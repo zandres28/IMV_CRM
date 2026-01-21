@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build Output
+dist/
+build/
+out/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Logs and Temporary Files
+*.log
+logs/
+tmp/
+temp/
+coverage/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# User specific debug files
+backend/output*.txt
+docker-compose.temp.yml
