@@ -63,7 +63,7 @@ export const ServiceTransferController = {
                 cost: cost || 0,
                 notes,
                 technicianId: technicianId ? parseInt(technicianId) : null
-            });
+            } as any);
 
             const result = await transferRepository.save(transfer);
 

@@ -12,6 +12,7 @@
     "seed:plans": "ts-node --transpile-only src/scripts/seedServicePlans.ts",
     "import:data": "ts-node --transpile-only src/scripts/import-data.ts",
     "backfill:installments": "ts-node --transpile-only src/scripts/backfillProductInstallments.ts",
+    "tunnel": "C:\\Users\\PC\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe\\ngrok.exe http 3001",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

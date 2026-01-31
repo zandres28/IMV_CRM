@@ -13,7 +13,7 @@ export const AppDataSource = new DataSource({
     database: process.env.DB_NAME,
     // Mantener en false: usamos migraciones para cambios de esquema.
     synchronize: false,
-    logging: true,
+    logging: ["error", "warn"], // Desactivar log SQL para mejorar rendimiento
     entities: [path.join(__dirname, "../entities/**/*.{ts,js}")],
     migrations: [path.join(__dirname, "../migrations/**/*.{ts,js}")],
     subscribers: [path.join(__dirname, "../subscribers/**/*.{ts,js}")],

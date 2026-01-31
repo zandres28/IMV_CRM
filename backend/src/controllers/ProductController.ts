@@ -51,14 +51,18 @@ export class ProductController {
             await this.productRepository.save(product);
 
             // Crear las cuotas
-            const currentDate = this.parseLocalDate(saleDate)!;
+            const baseDate = this.parseLocalDate(saleDate)!;
             const installmentPromises = Array.from({ length: installments }, (_, index) => {
-                currentDate.setMonth(currentDate.getMonth() + 1);
+                // Nueva regla: Cuota 1 vence el 5 del mes siguiente a la venta.
+                // Cuota 2 vence el 5 del mes subsiguiente, etc.
+                // Ej: Venta Enero. Cuota 1 vence 05 Feb. Cuota 2 vence 05 Mar.
+                const dueDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1 + index, 5);
+                
                 return this.installmentRepository.create({
                     product,
                     installmentNumber: index + 1,
                     amount: installmentAmount,
-                    dueDate: new Date(currentDate),
+                    dueDate: dueDate,
                     status: 'pending'
                 });
             });

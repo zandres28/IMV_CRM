@@ -33,6 +33,7 @@ import interactionTypeRoutes from "./routes/interaction-types";
 // Middleware
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { requireRoles } from "./middlewares/roles.middleware";
+import { apiKeyMiddleware } from "./middlewares/apiKey.middleware";
 
 dotenv.config();
 
@@ -62,7 +63,7 @@ app.use("/api/service-plans", authMiddleware, servicePlanRoutes);
 app.use("/api/technicians", authMiddleware, technicianRoutes);
 app.use("/api/monthly-billing", authMiddleware, monthlyBillingRoutes);
 app.use("/api/installation-billing", authMiddleware, installationBillingRoutes);
-app.use("/api/n8n", authMiddleware, n8nIntegrationRoutes);
+app.use("/api/n8n", apiKeyMiddleware, n8nIntegrationRoutes);
 app.use("/api/reports", authMiddleware, reportRoutes);
 app.use("/api/service-outages", authMiddleware, serviceOutageRoutes);
 app.use("/api/pon-map", authMiddleware, ponMapRoutes);

@@ -1,0 +1,39 @@
+### Configuración para Extensión "REST Client" de VS Code
+### Usa estas peticiones para probar la integración con N8N.
+### Asegúrate de que el backend esté corriendo en tu puerto local (ejs: 3001)
+
+@baseUrl = http://localhost:3001/api/n8n
+@apiKey = imv_crm_n8n_secret_key_2025
+
+### 1. Consultar Deuda de Cliente (Por Teléfono)
+### Reemplaza 3001234567 por un número que exista en tu DB Test (Ej: 3137771614)
+GET {{baseUrl}}/client-debt?phone=3137771614
+x-api-key: {{apiKey}}
+
+### 2. Registrar Pago (Desde WhatsApp/N8N)
+### Simula un pago de $50,000 COP
+POST {{baseUrl}}/register-payment
+Content-Type: application/json
+x-api-key: {{apiKey}}
+
+{
+    "phone": "3137771614",
+    "amount": 50000,
+    "paymentMethod": "nequi",
+    "reference": "WHATSAPP-TEST-001",
+    "date": "2025-01-22"
+}
+
+### 3. Obtener Recordatorios de Pago (Batch para N8N)
+GET {{baseUrl}}/payment-reminders?clientStatus=active
+x-api-key: {{apiKey}}
+
+### 4. Marcar Recordatorio como Enviado
+POST {{baseUrl}}/mark-sent
+Content-Type: application/json
+x-api-key: {{apiKey}}
+
+{
+    "clientId": 3,
+    "installationId": 1
+}

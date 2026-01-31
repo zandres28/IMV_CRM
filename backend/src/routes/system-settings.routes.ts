@@ -4,6 +4,7 @@ import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
+router.get("/", authMiddleware, SystemSettingController.getAll);
 router.get("/:key", authMiddleware, SystemSettingController.getSetting);
 router.put("/:key", authMiddleware, SystemSettingController.updateSetting);
 

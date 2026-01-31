@@ -27,3 +27,6 @@ Thumbs.db
 # User specific debug files
 backend/output*.txt
 docker-compose.temp.yml
+
+# N8N Workflows
+backend/n8n_workflows/

@@ -1,0 +1,113 @@
+{
+	"info": {
+		"_postman_id": "imv-crm-n8n-tests",
+		"name": "IMV CRM - N8N Integration Tests",
+		"description": "Colección para probar los endpoints de integración con N8N y WhatsApp",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Consultar Deuda (Por Teléfono)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "imv_crm_n8n_secret_key_2025",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:3001/api/n8n/client-debt?phone=3137771614",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3001",
+					"path": [
+						"api",
+						"n8n",
+						"client-debt"
+					],
+					"query": [
+						{
+							"key": "phone",
+							"value": "3137771614",
+							"description": "Teléfono del cliente (JAIRO GIRALDO)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Registrar Pago (Webhook WhatsApp)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "imv_crm_n8n_secret_key_2025",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"phone\": \"3137771614\",\n    \"amount\": 50000,\n    \"paymentMethod\": \"nequi\",\n    \"reference\": \"WHATSAPP-TEST-001\",\n    \"date\": \"2025-01-22\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3001/api/n8n/register-payment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3001",
+					"path": [
+						"api",
+						"n8n",
+						"register-payment"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Obtener Recordatorios",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "imv_crm_n8n_secret_key_2025",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:3001/api/n8n/payment-reminders?clientStatus=active",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3001",
+					"path": [
+						"api",
+						"n8n",
+						"payment-reminders"
+					],
+					"query": [
+						{
+							"key": "clientStatus",
+							"value": "active"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

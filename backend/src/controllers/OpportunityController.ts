@@ -38,7 +38,7 @@ export const OpportunityController = {
     create: async (req: Request, res: Response) => {
         try {
             const newOpportunity = opportunityRepository.create(req.body);
-            const result = await opportunityRepository.save(newOpportunity);
+            const result = await opportunityRepository.save(newOpportunity) as any;
             
             if (req.body.notes && result.client) {
                 // Manejar si client es objeto o ID
