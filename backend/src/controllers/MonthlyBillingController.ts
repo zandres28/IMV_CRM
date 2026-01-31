@@ -7,6 +7,7 @@ import { AdditionalService } from "../entities/AdditionalService";
 import { ProductSold } from "../entities/ProductSold";
 import { ProductInstallment } from "../entities/ProductInstallment";
 import { ServiceOutage } from "../entities/ServiceOutage";
+import { Interaction } from "../entities/Interaction";
 import { Between, Brackets, In } from "typeorm";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { hasPermission, PERMISSIONS } from "../utils/permissions";
@@ -472,8 +473,37 @@ export class MonthlyBillingController {
 
             const payments = await query.getMany();
 
+            // --- LOGICA DE RECORDATORIOS (ENVIADO SI/NO) ---
+            const monthIdx = getMonthIndex(month as string);
+            const yr = parseInt(year as string);
+            const startMonth = new Date(yr, monthIdx, 1);
+            const endMonth = new Date(yr, monthIdx + 1, 0); // Warning: this is 00:00:00
+            endMonth.setHours(23, 59, 59, 999); // Fix for full day coverage
+
+            const clientIds = payments.map(p => p.client?.id).filter(id => id); // IDs unicos
+            let sentClientIds = new Set<number>();
+            
+            if (clientIds.length > 0) {
+                const interactionRepository = AppDataSource.getRepository(Interaction);
+                const sentInteractions = await interactionRepository.find({
+                    where: {
+                        clientId: In(clientIds),
+                        subject: 'Recordatorio WhatsApp Automático',
+                        created_at: Between(startMonth, endMonth)
+                    },
+                    select: ['clientId']
+                });
+                sentInteractions.forEach(i => sentClientIds.add(i.clientId));
+            }
+
+            const paymentsWithReminder = payments.map(p => ({
+                ...p,
+                reminderSent: p.client ? sentClientIds.has(p.client.id) : false
+            }));
+            // -----------------------------------------------
+
             // Ordenar por instalación más reciente del cliente (desc)
-            payments.sort((a, b) => {
+            paymentsWithReminder.sort((a, b) => {
                 const clientA = a.client;
                 const clientB = b.client;
 
@@ -488,19 +518,19 @@ export class MonthlyBillingController {
 
             // Calcular estadísticas de pagos mensuales
             const stats = {
-                total: payments.length,
-                pending: payments.filter(p => p.status === 'pending').length,
-                paid: payments.filter(p => p.status === 'paid').length,
-                overdue: payments.filter(p => p.status === 'overdue').length,
-                totalAmount: payments.reduce((sum, p) => sum + Number(p.amount), 0),
-                paidAmount: payments.filter(p => p.status === 'paid')
+                total: paymentsWithReminder.length,
+                pending: paymentsWithReminder.filter(p => p.status === 'pending').length,
+                paid: paymentsWithReminder.filter(p => p.status === 'paid').length,
+                overdue: paymentsWithReminder.filter(p => p.status === 'overdue').length,
+                totalAmount: paymentsWithReminder.reduce((sum, p) => sum + Number(p.amount), 0),
+                paidAmount: paymentsWithReminder.filter(p => p.status === 'paid')
                     .reduce((sum, p) => sum + Number(p.amount), 0),
-                pendingAmount: payments.filter(p => p.status === 'pending' || p.status === 'overdue')
+                pendingAmount: paymentsWithReminder.filter(p => p.status === 'pending' || p.status === 'overdue')
                     .reduce((sum, p) => sum + Number(p.amount), 0),
                 // Desglose por tipo de concepto
-                totalServicePlan: payments.reduce((sum, p) => sum + Number(p.servicePlanAmount || 0), 0),
-                totalAdditionalServices: payments.reduce((sum, p) => sum + Number(p.additionalServicesAmount || 0), 0),
-                totalProducts: payments.reduce((sum, p) => sum + Number(p.productInstallmentsAmount || 0), 0),
+                totalServicePlan: paymentsWithReminder.reduce((sum, p) => sum + Number(p.servicePlanAmount || 0), 0),
+                totalAdditionalServices: paymentsWithReminder.reduce((sum, p) => sum + Number(p.additionalServicesAmount || 0), 0),
+                totalProducts: paymentsWithReminder.reduce((sum, p) => sum + Number(p.productInstallmentsAmount || 0), 0),
                 totalInstallationFees: 0 // Placeholder
             };
 
@@ -520,7 +550,7 @@ export class MonthlyBillingController {
 
             stats.totalInstallationFees = installationsInMonth.reduce((sum, inst) => sum + Number(inst.installationFee || 0), 0);
 
-            res.json({ payments, stats });
+            res.json({ payments: paymentsWithReminder, stats });
 
         } catch (error) {
             console.error("Error obteniendo cobros mensuales:", error);

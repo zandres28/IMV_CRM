@@ -5,6 +5,16 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 import { hasPermission } from "../utils/permissions";
 
 export class SystemSettingController {
+    static async getAll(req: Request, res: Response) {
+        try {
+            const settingRepository = AppDataSource.getRepository(SystemSetting);
+            const settings = await settingRepository.find();
+            return res.json(settings);
+        } catch (error) {
+            return res.status(500).json({ message: "Error al obtener configuraciones", error });
+        }
+    }
+
     static async getSetting(req: Request, res: Response) {
         try {
             const { key } = req.params;
