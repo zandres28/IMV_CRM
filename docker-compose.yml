@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: imv_crm
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3307:3306" # Mapped to 3307 to avoid conflict with local Laragon MySQL (3306)
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=imv_crm
+      - JWT_SECRET=7861295b154a5b660fdf0ae93dbb8654c363aa026c2cda3d41782cb0d4df6ebd28f42752698a281ff88dd10ae590ec3d
+      - N8N_API_KEY=d927994f95870a3ad2a57fa70d0b767dfd273692dd23324f449e9cecffe9dc8b
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

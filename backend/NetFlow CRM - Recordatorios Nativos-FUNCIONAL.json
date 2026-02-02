@@ -1,0 +1,810 @@
+{
+  "name": "NetFlow CRM - Recordatorios Nativos",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerInterval": "cron",
+        "cronExpression": "0 9 * * *"
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -300,
+        424
+      ],
+      "id": "b2bf4ae1-bb6a-45d3-a72b-dbe53b5306b3",
+      "disabled": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "date-check",
+              "leftValue": "={{ $now.day == 5 || $now.day == 30 || ($now.month == 2 && $now.day == $now.endOf('month').day) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Check Date (5th, 30th, Feb End)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -100,
+        424
+      ],
+      "id": "check-date-node"
+    },
+    {
+      "parameters": {
+        "url": "https://histaminic-hosea-stiltedly.ngrok-free.dev/api/n8n/payment-reminders",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "paymentStatus",
+              "value": "pending"
+            },
+            {
+              "name": "sentFilter",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "imv_crm_n8n_secret_key_2025"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Get Reminders from CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        48,
+        424
+      ],
+      "id": "04f15322-101e-4fdf-874d-6015b3726959",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        704,
+        496
+      ],
+      "id": "fe46c0d0-846e-454b-98a8-8b64e707d847",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Get Reminders from CRM').item.json.TIPO }}",
+                    "rightValue": "PROXIMO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "28ca0c7e-57b9-4670-8e25-ab58cd8aa720"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recordatorio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Get Reminders from CRM').item.json.TIPO }}",
+                    "rightValue": "ULTIMO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ultimo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Get Reminders from CRM').item.json.TIPO }}",
+                    "rightValue": "VENCIDO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Vencido"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Switch by Tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1168,
+        160
+      ],
+      "id": "68ea3553-edd8-49a9-8d7f-a4c1b18adbd7",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Zona horaria: America/Bogota\nfecha de hoy: {{ $now.toFormat('yyyy-MM-dd') }}\n\nEscribe el texto exactamente así:\n\nHola {{ $('Parametrización').item.json['Nombre Completo'] }}\n\nSu factura de IMV Internet del mes de {{ $('Parametrización').item.json.MES }} ya está disponible.\n\n📅 Fecha límite de pago: *{{ $('Parametrización').item.json.FECHA_LIMITE }}*\n📶 Plan: *{{ $('Parametrización').item.json.PLAN }}*\n💵 Valor por el plan: *$ {{ $('Parametrización').item.json.VALOR.toLocaleString() }}*\n\n{{ $('Adicionales').item.json.add }}\n\nMedios de pago:\n\nTransferencia a la llave: *@NEQUIALV966*\n\nCuenta de ahorros Bancolombia: *912-478680-17* \nTitular: *Alvaro Andrés Zambrano*\n\n📲 Importante: *Envíe el comprobante de pago por este WhatsApp.*\n\n*Por favor realice el pago a tiempo para evitar la suspensión del servicio.*\n\n👉 Si ya realizó el pago, ignore este mensaje.\n👉 Si presenta alguna dificultad, no dude en escribirnos.\n\n",
+              "role": "assistant"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "AI - Recordatorio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        80
+      ],
+      "id": "80ae1bc0-3365-4213-88c3-a2eb42187cc0",
+      "credentials": {
+        "openAiApi": {
+          "id": "H6A1s3MW9pHuTWeX",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Zona horaria: America/Bogota\nfecha de hoy: {{ $now.toFormat('yyyy-MM-dd') }}\n\nEscribe el texto exactamente así:\n\n🔴 *URGENTE: SERVICIO SUSPENDIDO*\n\nHola {{ $('Parametrización').item.json['Nombre Completo'] }}\n\nLe informamos que su servicio de **IMV INTERNET** (Plan: *{{ $('Parametrización').item.json.PLAN }}*) se encuentra **SUSPENDIDO** por falta de pago del mes de {{ $('Parametrización').item.json.MES }}.\n\n💵 Valor Pendiente: *$ {{ $('Parametrización').item.json.VALOR.toLocaleString() }}*\n\n{{ $('Adicionales').item.json.add }}\n\n⚠️ *Para reactivar su servicio, por favor realice el pago a:*\n\nTransferencia a la llave: *@NEQUIALV966*\n\nCuenta de ahorros Bancolombia: *912-478680-17* \nTitular: *Alvaro Andrés Zambrano*\n\n📲 **MUY IMPORTANTE:** Una vez realizado el pago, **envíe el comprobante por este medio** para gestionar su reconexión lo antes posible.\n\n👉 Si ya realizó el pago en las últimas horas, por favor envíenos el comprobante ahora mismo.",
+              "role": "assistant"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "AI - Vencido",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        272
+      ],
+      "id": "0b60fa53-f442-44c4-a96a-3670395ade6c",
+      "credentials": {
+        "openAiApi": {
+          "id": "H6A1s3MW9pHuTWeX",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://imvevoapi.duckdns.org/message/sendText/imv_chatwoot2",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "979AF1D6D474-435D-89FB-725780FC0F99"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Get Reminders from CRM').item.json['Celular 1'] }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1744,
+        176
+      ],
+      "id": "394960f4-9c02-4827-a960-e788a547d9c0",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d597bc18-8398-4ebb-a651-05b98b7bea05",
+              "name": "Nombre Completo",
+              "value": "={{ $json['Nombre Completo'] }}",
+              "type": "string"
+            },
+            {
+              "id": "f951d319-0a18-4165-8bcb-3fe776c5f15b",
+              "name": "Celular 1",
+              "value": "={{ $json['Celular 1'] }}",
+              "type": "number"
+            },
+            {
+              "id": "79999238-8fa4-419c-bf4c-b552568ca296",
+              "name": "VALOR",
+              "value": "={{ $json.VALOR }}",
+              "type": "number"
+            },
+            {
+              "id": "01a049dd-87d0-4efd-ab6f-d159fef9cbb3",
+              "name": "ID Cliente",
+              "value": "={{ $json['ID Cliente'] }}",
+              "type": "string"
+            },
+            {
+              "id": "e9e3c0af-0719-4cdd-a521-b51128dcfb23",
+              "name": "PLAN",
+              "value": "={{ $json.PLAN }}",
+              "type": "string"
+            },
+            {
+              "id": "8611aa6a-6e64-4b36-9070-21bb07f2580d",
+              "name": "TIPO",
+              "value": "={{ $json.TIPO }}",
+              "type": "string"
+            },
+            {
+              "id": "feb57a7f-9a5d-429a-ab49-cfeee4fcec60",
+              "name": "MES",
+              "value": "={{ $json.MES }}",
+              "type": "string"
+            },
+            {
+              "id": "04beee85-a0f3-4e5c-bf03-d260486472b0",
+              "name": "FECHA_LIMITE",
+              "value": "={{ $json.FECHA_LIMITE }}",
+              "type": "string"
+            },
+            {
+              "id": "4ae696b9-d0ff-4ca4-aa91-ddd134414a6d",
+              "name": "DETALLE_ADICIONAL",
+              "value": "={{ $json.DETALLE_ADICIONAL }}",
+              "type": "string"
+            },
+            {
+              "id": "60fb1d57-4cb7-4764-8e5d-52badbe23fb6",
+              "name": "ADICIONAL",
+              "value": "={{ $json.ADICIONAL }}",
+              "type": "number"
+            },
+            {
+              "id": "4815a66b-d2f5-4e75-a0cd-40160994136e",
+              "name": "CUOTA",
+              "value": "={{ $json.CUOTA }}",
+              "type": "string"
+            },
+            {
+              "id": "00244bf0-2015-4eaf-88ce-f7024e574f7a",
+              "name": "TOTAL",
+              "value": "={{ $json.VALOR + $json.ADICIONAL}}",
+              "type": "number"
+            },
+            {
+              "id": "30639ff8-0c56-4c75-b434-8b192478c185",
+              "name": "installation_id",
+              "value": "={{ $json.installation_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        424
+      ],
+      "id": "515158da-fe53-4067-bc17-a29c5c32be18",
+      "name": "Parametrización"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://histaminic-hosea-stiltedly.ngrok-free.dev/api/n8n/mark-sent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "imv_crm_n8n_secret_key_2025"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "clientId",
+              "value": "={{ $('Loop Over Items').item.json['ID Cliente'].replace('CL-', '').replace(/^0+/, '') }}"
+            },
+            {
+              "name": "installationId",
+              "value": "={{ $('Loop Over Items').item.json.installation_id }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Mark as Sent in CRM1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2640,
+        256
+      ],
+      "id": "b7a3f178-888c-49a9-8da5-13b58df94f8a"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "715f3a08-2845-4462-b93d-6b81ef69367c",
+              "leftValue": "={{ $json.ENVIADO }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        424
+      ],
+      "id": "2f99edd3-9178-4d61-a1c6-12587bef2368",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "markMessageAsRead",
+        "instanceName": "imv_chatwoot2"
+      },
+      "type": "n8n-nodes-evolution-api-v2.evolutionApi",
+      "typeVersion": 2,
+      "position": [
+        1968,
+        80
+      ],
+      "id": "ebf7e2e3-de81-474f-b647-1224f1318ad7",
+      "name": "Marcar mensagem como lida",
+      "credentials": {
+        "evolutionApiApi": {
+          "id": "sB5XX3NrQcR6PqUZ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "/* Obtener datos del item actual del bucle */\nconst datos = $('Loop Over Items').item.json;\nlet mensaje = \"\";\n\n/* Asegurar valores numéricos */\nconst adicional = Number(datos.ADICIONAL || 0);\nconst valorPlan = Number(datos.VALOR || 0);\nconst total = valorPlan + adicional;\n\n/* Solo generamos mensaje extra si hay deuda adicional */\nif (adicional > 0) {\n  \n  mensaje += `\\n\\n➕ *Detalle de Adicionales:*`;\n\n  // 1. Mostrar nombres de servicios/productos (Netflix, TvBox, etc.)\n  if (datos.DETALLE_ADICIONAL && datos.DETALLE_ADICIONAL !== 'Ninguno') {\n    mensaje += `\\n📦 Concepto: ${datos.DETALLE_ADICIONAL}`;\n  }\n\n  // 2. Mostrar cuotas solo si existen (Ej: \"1/3\")\n  if (datos.CUOTA && datos.CUOTA.trim() !== '') {\n    mensaje += `\\n🗓️ Cuota N°: ${datos.CUOTA}`;\n  }\n\n  // 3. Mostrar totales formateados\n  // Usamos 'es-CO' o 'en-US' para que ponga separadores de miles (ej: 50.000)\n  mensaje += `\\n💵 Valor Adicional: $${adicional.toLocaleString('en-US')}`;\n  \n  mensaje += `\\n\\n💲 *TOTAL A PAGAR: $${total.toLocaleString('en-US')}*`;\n}\n\nreturn { \n  add: mensaje,\n  TOTAL: total\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        192
+      ],
+      "id": "ec79a068-104a-4168-9259-1406ac3ad02e",
+      "name": "Adicionales"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Genera un número aleatorio entre 15 y 30 segundos\n// Recomendado: cambiar a un rango más amplio como 15-30 en producción\nconst min = 8; // En producción usar 15\nconst max = 25; // En producción usar 30\n\nconst randomDelay = Math.floor(Math.random() * (max - min + 1)) + min;\n\nreturn {\n  delayRandom: randomDelay\n};"
+      },
+      "name": "Generate Random Delay",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2192,
+        80
+      ],
+      "id": "d7f409f2-14f4-4610-8dd4-8a230b3a344a"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delayRandom }}",
+        "unit": "seconds"
+      },
+      "name": "Wait Random Time",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        80
+      ],
+      "id": "a3399427-5ed1-44ea-8ecf-dd3cd5dfaf0b",
+      "webhookId": "36efbb7a-52a9-4a97-a949-3e7a4dc608c7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://imvevoapi.duckdns.org/message/sendText/imv_chatwoot2",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "979AF1D6D474-435D-89FB-725780FC0F99"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate, br"
+            },
+            {
+              "name": "Connection",
+              "value": "keep-alive"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "+573006143054"
+            },
+            {
+              "name": "text",
+              "value": "=\"Hubo un error en los masivos en el registro No: \" {{ $('Parametrización').item.json.row_number }} - {{ $('Parametrización').item.json['Nombre Completo'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "HTTP - Notifica Error a WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2016,
+        496
+      ],
+      "id": "63ab5c9b-a7b1-4e1d-ac28-75090548cac6",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Date (5th, 30th, Feb End)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Date (5th, 30th, Feb End)": {
+      "main": [
+        [
+          {
+            "node": "Get Reminders from CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Reminders from CRM": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Adicionales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by Tipo": {
+      "main": [
+        [
+          {
+            "node": "AI - Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI - Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI - Vencido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI - Recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI - Vencido": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Marcar mensagem como lida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Notifica Error a WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parametrización": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Sent in CRM1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Parametrización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar mensagem como lida": {
+      "main": [
+        [
+          {
+            "node": "Generate Random Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adicionales": {
+      "main": [
+        [
+          {
+            "node": "Switch by Tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Random Delay": {
+      "main": [
+        [
+          {
+            "node": "Wait Random Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Random Time": {
+      "main": [
+        [
+          {
+            "node": "Mark as Sent in CRM1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Notifica Error a WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9892a7a4-85b7-46ad-a9e0-de60a4b8c74c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "640556f4f4b715e1ae5f32d577dceea2f288da63ea4a1eb79c8a030213c5c48f"
+  },
+  "id": "05QpPp2xmc1ASFtj",
+  "tags": []
+}
