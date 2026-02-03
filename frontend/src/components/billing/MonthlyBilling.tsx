@@ -380,7 +380,7 @@ const MonthlyBilling: React.FC = () => {
                         
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                              <Typography variant="body2">
-                                Plan: {formatCurrency(Number(payment.planAmount))}
+                                Plan: {formatCurrency(Number(payment.servicePlanAmount))}
                              </Typography>
                              <Typography variant="h6" color="primary">
                                 {formatCurrency(Number(payment.amount))}
