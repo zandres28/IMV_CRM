@@ -57,6 +57,6 @@ Write-Host "`n==============================================" -ForegroundColor C
 Write-Host "   MIGRACIÓN COMPLETADA EXITOSAMENTE          " -ForegroundColor Cyan
 Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost" 
-Write-Host "Backend:  http://localhost:3001" 
+Write-Host "Backend:  http://localhost:3010" 
 Write-Host "Database: localhost:3307"
 Write-Host "`nPara detener todo usa: docker-compose down"
