@@ -36,7 +36,9 @@ import {
     List,
     ListItem,
     ListItemText,
-    ListItemIcon
+    ListItemIcon,
+    useMediaQuery,
+    useTheme
 } from '@mui/material';
 import { formatLocalDate, toInputDateString } from '../../utils/dateUtils';
 import {
@@ -60,6 +62,8 @@ const MonthlyBilling: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const currentDate = new Date();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     // Init state from URL params if available
     const urlMonth = searchParams.get('month');
@@ -353,14 +357,74 @@ const MonthlyBilling: React.FC = () => {
 
     const paginatedPayments = filteredPayments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
+    const renderMobileCards = () => (
+        <Box>
+            {paginatedPayments.map((payment) => (
+                <Card key={payment.id} sx={{ mb: 2, boxShadow: 3 }}>
+                    <CardContent onClick={() => handleOpenDetailDialog(payment)}>
+                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                            <Box>
+                                <Typography variant="subtitle1" fontWeight="bold">
+                                    {payment.client?.fullName || 'Cliente Eliminado'}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {payment.month} {payment.year}
+                                </Typography>
+                            </Box>
+                            <Chip 
+                                label={payment.status === 'paid' ? 'Pagado' : (payment.status === 'overdue' ? 'Vencido' : 'Pendiente')} 
+                                color={payment.status === 'paid' ? 'success' : (payment.status === 'overdue' ? 'error' : 'warning')} 
+                                size="small" 
+                            />
+                        </Box>
+                        
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                             <Typography variant="body2">
+                                Plan: {formatCurrency(Number(payment.planAmount))}
+                             </Typography>
+                             <Typography variant="h6" color="primary">
+                                {formatCurrency(Number(payment.amount))}
+                             </Typography>
+                        </Box>
+
+                        {payment.client?.secondaryPhone && (
+                             <Typography variant="caption" display="block" color="text.secondary">
+                                WhatsApp: {payment.client.secondaryPhone}
+                             </Typography>
+                        )}
+                    </CardContent>
+                    
+                    <Box display="flex" justifyContent="flex-end" p={1} gap={1} borderTop={1} borderColor="divider">
+                         <IconButton 
+                            size="small" 
+                            onClick={(e) => { e.stopPropagation(); handleOpenDetailDialog(payment); }}
+                         >
+                            <VisibilityIcon />
+                        </IconButton>
+                        {(payment.status === 'pending' || payment.status === 'overdue') && (
+                            <Button 
+                                variant="contained" 
+                                size="small" 
+                                startIcon={<PaymentIcon />}
+                                onClick={(e) => { e.stopPropagation(); handleOpenPaymentDialog(payment); }}
+                            >
+                                Pagar
+                            </Button>
+                        )}
+                    </Box>
+                </Card>
+            ))}
+        </Box>
+    );
+
     return (
-        <Box sx={{ p: 3 }}>
-            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ p: isMobile ? 1 : 3 }}>
+            <Box sx={{ mb: 3, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? 2 : 0 }}>
                 <Typography variant="h4" component="h1">
                     Facturación Mensual
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <FormControl sx={{ minWidth: 200 }}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+                    <FormControl sx={{ minWidth: isMobile ? '100%' : 200 }} size="small">
                         <InputLabel>Modo de Vista</InputLabel>
                         <Select
                             value={viewMode}
@@ -568,7 +632,8 @@ const MonthlyBilling: React.FC = () => {
                 </Button>
             </Box>
 
-            {/* Tabla de pagos */}
+            {/* Tabla de pagos (Desktop) o Tarjetas (Mobile) */}
+            {isMobile ? renderMobileCards() : (
             <TableContainer component={Paper}>
                 <Table size="small">
                     <TableHead>
@@ -773,20 +838,22 @@ const MonthlyBilling: React.FC = () => {
                         ))}
                     </TableBody>
                 </Table>
-                <TablePagination
-                    component="div"
-                    count={filteredPayments.length}
-                    page={page}
-                    onPageChange={(_, newPage) => setPage(newPage)}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={(e) => {
-                        setRowsPerPage(parseInt(e.target.value, 10));
-                        setPage(0);
-                    }}
-                    rowsPerPageOptions={[5, 10, 25, 50]}
-                    labelRowsPerPage="Filas por página:"
-                />
             </TableContainer>
+            )}
+
+            <TablePagination
+                component="div"
+                count={filteredPayments.length}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => {
+                    setRowsPerPage(parseInt(e.target.value, 10));
+                    setPage(0);
+                }}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                labelRowsPerPage="Filas por página:"
+            />
 
             {/* Barra de acciones para selección múltiple */}
             {selectedPaymentIds.length > 0 && (
