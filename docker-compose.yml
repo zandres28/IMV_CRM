@@ -27,6 +27,8 @@ services:
       - DB_NAME=imv_crm
       - JWT_SECRET=7861295b154a5b660fdf0ae93dbb8654c363aa026c2cda3d41782cb0d4df6ebd28f42752698a281ff88dd10ae590ec3d
       - N8N_API_KEY=d927994f95870a3ad2a57fa70d0b767dfd273692dd23324f449e9cecffe9dc8b
+    volumes:
+      - ./tmp:/app/tmp
     depends_on:
       - db
 
