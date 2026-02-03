@@ -9,6 +9,10 @@ RUN npm install
 
 COPY . .
 
+# Recibimos el argumento de build para inyectarlo en la variable de entorno durante el build
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
