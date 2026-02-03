@@ -31,7 +31,13 @@ services:
       - db
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Aquí definimos la URL pública de la API para el build de React
+        # Como usas DuckDNS + NPM, más adelante cambiarás esto por tu dominio (ej. https://api.tu-dominio.duckdns.org)
+        # Por ahora, usamos la IP pública y el puerto que abrimos (3010)
+        REACT_APP_API_URL: http://149.130.162.188:3010/api
     restart: always
     ports:
       - "8095:80"
