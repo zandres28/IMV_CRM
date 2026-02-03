@@ -16,7 +16,13 @@ git pull origin master
 # -d: Modo "Detached" (en segundo plano)
 # --remove-orphans: Limpia contenedores viejos si se eliminaron del compose
 echo "[2/3] Actualizando contenedores Docker..."
-docker-compose up -d --build --remove-orphans
+
+# Detectar versión de Compose (con o sin guion)
+if command -v docker-compose &> /dev/null; then
+    docker-compose up -d --build --remove-orphans
+else
+    docker compose up -d --build --remove-orphans
+fi
 
 # 3. Limpieza
 echo "[3/3] Limpiando imágenes antiguas para ahorrar espacio..."
