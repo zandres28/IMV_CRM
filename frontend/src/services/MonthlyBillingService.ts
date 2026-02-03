@@ -11,6 +11,7 @@ export interface Payment {
         fullName: string;
         identificationNumber: string;
         primaryPhone: string;
+        secondaryPhone?: string;
         installations?: {
             id: number;
             serviceType: string;
