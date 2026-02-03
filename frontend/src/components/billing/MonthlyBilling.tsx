@@ -368,7 +368,7 @@ const MonthlyBilling: React.FC = () => {
                                     {payment.client?.fullName || 'Cliente Eliminado'}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                    {payment.month} {payment.year}
+                                    {payment.paymentMonth} {payment.paymentYear}
                                 </Typography>
                             </Box>
                             <Chip 
