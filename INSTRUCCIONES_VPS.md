@@ -3,7 +3,7 @@
 ## Prerrequisitos en el VPS
 1. Tener Docker y Docker Compose instalados.
 2. Tener Git instalado.
-3. Puerto 80 (Frontend) y 3001 (Backend) libres.
+3. Puerto 80 (Frontend) y 3010 (Backend) libres.
 
 ## Paso 1: Subir tu código (Desde tu PC Local)
 Guarda tus cambios locales (incluyendo los nuevos archivos Docker) y súbelos a tu repositorio.

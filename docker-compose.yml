@@ -17,9 +17,9 @@ services:
     build: ./backend
     restart: always
     ports:
-      - "3001:3001"
+      - "3010:3010"
     environment:
-      - PORT=3001
+      - PORT=3010
       - DB_HOST=db
       - DB_PORT=3306
       - DB_USER=root
