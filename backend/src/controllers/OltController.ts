@@ -54,10 +54,11 @@ export const OltController = {
     toggleService: async (req: Request, res: Response) => {
         try {
             const { installationId } = req.params;
-            const { action } = req.body; // 'enable' | 'disable'
+            const { action } = req.body; // 'enable' | 'disable' | 'reboot' | 'restart'
 
-            if (!action || !['enable', 'disable'].includes(action)) {
-                return res.status(400).json({ message: "Acción inválida. Use 'enable' o 'disable'" });
+            const validActions = ['enable', 'disable', 'reboot', 'restart'];
+            if (!action || !validActions.includes(action)) {
+                return res.status(400).json({ message: "Acción inválida. Use 'enable', 'disable', 'reboot' o 'restart'" });
             }
             
             const installation = await findInstallation(installationId);
@@ -75,15 +76,21 @@ export const OltController = {
 
             const oltService = new OltService();
             let output = '';
+            let messageAction = '';
 
             if (action === 'enable') {
                 output = await oltService.activateOnu(installation.ponId, installation.onuId);
-            } else {
+                messageAction = 'activado';
+            } else if (action === 'disable') {
                 output = await oltService.deactivateOnu(installation.ponId, installation.onuId);
+                messageAction = 'cortado';
+            } else if (action === 'reboot' || action === 'restart') {
+                output = await oltService.rebootOnu(installation.ponId, installation.onuId);
+                messageAction = 'reiniciado';
             }
 
             return res.json({ 
-                message: `Servicio ${action === 'enable' ? 'activado' : 'cortado'} exitosamente`,
+                message: `Servicio ${messageAction} exitosamente`,
                 details: { ponId: installation.ponId, onuId: installation.onuId, sn: installation.onuSerialNumber },
                 log: output 
             });
