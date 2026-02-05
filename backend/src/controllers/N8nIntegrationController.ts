@@ -226,6 +226,15 @@ export const N8nIntegrationController = {
                          // Fallback final: Buscar pago general que NO sea 'installation'
                          payment = payments.find(p => !p.installation && p.paymentType !== 'installation');
                     }
+
+                    // FIX: Si no se encontró pago específico o está pendiente, pero existe al menos un pago PAGADO
+                    // para este cliente en el mes, asumimos que está al día (para evitar cobros duplicados en multi-servicio).
+                    if (!payment || payment.status !== 'paid') {
+                        const paidPayment = payments.find(p => p.status === 'paid');
+                        if (paidPayment) {
+                            payment = paidPayment;
+                        }
+                    }
                     
                     // Calcular días transcurridos desde la fecha de vencimiento
                     let dias = 0;
