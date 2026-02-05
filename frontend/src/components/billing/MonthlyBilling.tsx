@@ -246,18 +246,13 @@ const MonthlyBilling: React.FC = () => {
         if (allSelected) {
             setSelectedPaymentIds([]);
         } else {
-            // Solo seleccionar pagos pendientes o vencidos
-            const pendingIds = filteredPayments
-                .filter(p => p.status === 'pending' || p.status === 'overdue')
-                .map(p => p.id);
-            setSelectedPaymentIds(pendingIds);
+            // Seleccionar todos los pagos filtrados (sin importar estado)
+            const allIds = filteredPayments.map(p => p.id);
+            setSelectedPaymentIds(allIds);
         }
     };
 
     const toggleSelectOne = (paymentId: number, status: string) => {
-        // Solo permitir selección de pagos pendientes o vencidos
-        if (status !== 'pending' && status !== 'overdue') return;
-        
         setSelectedPaymentIds(prev => 
             prev.includes(paymentId) 
                 ? prev.filter(id => id !== paymentId) 
@@ -669,7 +664,6 @@ const MonthlyBilling: React.FC = () => {
                                     <Checkbox
                                         checked={selectedPaymentIds.includes(payment.id)}
                                         onChange={() => toggleSelectOne(payment.id, payment.status)}
-                                        disabled={payment.status !== 'pending' && payment.status !== 'overdue'}
                                     />
                                 </TableCell>
                                 <TableCell>
