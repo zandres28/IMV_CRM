@@ -782,7 +782,7 @@ export const N8nIntegrationController = {
                             ponId: installation.ponId,
                             onuId: installation.onuId,
                             onuSerialNumber: installation.onuSerialNumber,
-                            address: installation.installationAddress || client.installationAddress,
+                            address: client.installationAddress,
                             phone: client.primaryPhone,
                             reason: `Sin pago registrado para ${queryMonth} ${queryYear}`,
                             extensionDate: client.suspension_extension_date,
