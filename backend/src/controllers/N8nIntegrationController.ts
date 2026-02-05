@@ -703,5 +703,104 @@ export const N8nIntegrationController = {
              console.error(error);
              return res.status(500).json({ message: "Error al resetear recordatorios", error });
         }
+    },
+
+    getSuspensionCandidates: async (req: Request, res: Response) => {
+        try {
+            const clientRepository = AppDataSource.getRepository(Client);
+            const paymentRepository = AppDataSource.getRepository(Payment);
+
+            const currentDate = new Date();
+            // Parametros opcionales, defecto mes actual (si se corre el 6 de Feb, busca pagos de FEBRERO)
+            let queryMonth = currentDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
+            let queryYear = currentDate.getFullYear();
+
+            // Soportar override para pruebas o lógica específica (ej: consultar mes anterior)
+            if (req.query.month) queryMonth = (req.query.month as string).trim().toUpperCase();
+            if (req.query.year) queryYear = parseInt(req.query.year as string, 10);
+            
+            // 1. Obtener clientes activos con sus instalaciones
+             const clients = await clientRepository
+                .createQueryBuilder('client')
+                .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted AND installation.isActive = :isActive', { isDeleted: false, isActive: true })
+                .where('client.status = :status', { status: 'active' })
+                .getMany();
+
+            const candidates = [];
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            // Optimización: traer todos los pagos PAGADOS del mes de una vez
+            const clientIds = clients.map(c => c.id);
+            if (clientIds.length === 0) return res.json([]);
+
+            const allPayments = await paymentRepository.find({
+                where: [
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear, status: 'paid' },
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth.toLowerCase(), paymentYear: queryYear, status: 'paid' }
+                ],
+                relations: ['client'] 
+            });
+            
+            const paidClientIds = new Set(allPayments.map(p => p.client.id));
+
+            for (const client of clients) {
+                // 1. Chequeo de Extensión de Suspensión
+                if (client.suspension_extension_date) {
+                    const extDate = new Date(client.suspension_extension_date);
+                    // Ajustar zona horaria local ignorando horas para comparación de fecha pura
+                    // Ojo: new Date("YYYY-MM-DD") en JS a veces es UTC anterior. 
+                    // TypeORM suele devolver objeto Date.
+                    // Ajustamos extDate al final del día para ser permisivos
+                    extDate.setHours(23, 59, 59, 999);
+                    
+                    // Si la fecha de extensión es HOY o FUTURO, se respeta.
+                    if (extDate >= today) {
+                        continue; // SALTAR: El cliente tiene plazo extendido
+                    }
+                }
+
+                // 2. Chequeo de Pago
+                // Si el cliente tiene AL MENOS un pago registrado como 'paid' para este mes/año, se salva.
+                if (paidClientIds.has(client.id)) {
+                    continue; // SALTAR: Ya pagó (o al menos una parte, asumimos ok para no cortar error)
+                }
+
+                // 3. Es candidato a suspensión (Moroso). Agregar sus instalaciones OLT.
+                if (client.installations && client.installations.length > 0) {
+                    for (const installation of client.installations) {
+                        // Solo incluimos instalaciones controlables (con SN o PON/ONU ID)
+                        // Opcional: Incluir todas para reporte manual
+                        const hasOltData = (installation.ponId && installation.onuId) || installation.onuSerialNumber;
+                        
+                        candidates.push({
+                            clientId: client.id,
+                            clientName: client.fullName,
+                            installationId: installation.id,
+                            // Datos para el endpoint de corte
+                            action_identifier: installation.onuSerialNumber || installation.id, 
+                            ponId: installation.ponId,
+                            onuId: installation.onuId,
+                            onuSerialNumber: installation.onuSerialNumber,
+                            address: installation.installationAddress || client.installationAddress,
+                            phone: client.primaryPhone,
+                            reason: `Sin pago registrado para ${queryMonth} ${queryYear}`,
+                            extensionDate: client.suspension_extension_date,
+                            automatable: !!hasOltData
+                        });
+                    }
+                }
+            }
+
+            return res.json({
+                period: `${queryMonth} ${queryYear}`,
+                total_candidates: candidates.length,
+                candidates: candidates
+            });
+
+        } catch (error: any) {
+            console.error("Error getting suspension candidates:", error);
+            return res.status(500).json({ message: "Error interno", error: error.message });
+        }
     }
 };
