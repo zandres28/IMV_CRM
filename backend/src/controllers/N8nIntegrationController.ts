@@ -74,8 +74,19 @@ export const N8nIntegrationController = {
             }
 
             const currentDate = new Date();
-            const currentMonth = currentDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
-            const currentYear = currentDate.getFullYear();
+            
+            // Lógica para determinar el mes y año de consulta
+            // 1. Por defecto: Mes/Año actual
+            // 2. Si se reciben parámetros ?month=...&year=..., se usan esos (Prioridad)
+            let queryMonth = currentDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
+            let queryYear = currentDate.getFullYear();
+
+            if (req.query.month) {
+                queryMonth = (req.query.month as string).trim().toUpperCase();
+            }
+            if (req.query.year) {
+                queryYear = parseInt(req.query.year as string, 10);
+            }
 
             // --- OPTIMIZACIÓN DE CONSULTAS (BULK FETCH) ---
             // Traer todos los datos relacionados en 3 consultas masivas en lugar de N consultas por cliente
@@ -98,11 +109,11 @@ export const N8nIntegrationController = {
                 relations: ['product', 'product.client']
             });
 
-            // 3. Obtener todos los pagos del mes
+            // 3. Obtener todos los pagos del mes SOLICITADO
             const allPayments = await paymentRepository.find({
                 where: [
-                    { client: { id: In(clientIds) }, paymentMonth: currentMonth, paymentYear: currentYear },
-                    { client: { id: In(clientIds) }, paymentMonth: currentMonth.toLowerCase(), paymentYear: currentYear }
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear },
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth.toLowerCase(), paymentYear: queryYear }
                 ],
                 relations: ['installation', 'client']
             });
@@ -131,12 +142,14 @@ export const N8nIntegrationController = {
             // ----------------------------------------------
 
             const reminders = [];
-            // const currentDate = new Date(); // MOVED UP
-            // const currentMonth ... // MOVED UP
-            // const currentYear ... // MOVED UP
 
-            // Calcular fecha límite (5 del mes siguiente)
-            const deadlineDate = new Date(currentYear, currentDate.getMonth() + 1, 5);
+            // Helper para calcular indices de mes
+            const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const queryMonthIndex = monthNames.indexOf(queryMonth);
+            const safeMonthIndex = queryMonthIndex !== -1 ? queryMonthIndex : currentDate.getMonth();
+
+            // Calcular fecha límite (5 del mes siguiente al consultado)
+            const deadlineDate = new Date(queryYear, safeMonthIndex + 1, 5);
             const deadlineMonthName = deadlineDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
             const formattedDeadline = `05 de ${deadlineMonthName}`;
 
@@ -176,8 +189,8 @@ export const N8nIntegrationController = {
                     // Cuota 1 => Mes de venta, Cuota 2 => Mes siguiente, etc.
                     const targetMonthIndex = saleMonthIndex + (p.installmentNumber - 1);
                     
-                    // Indice del mes actual de facturación
-                    const currentMonthIndex = currentYear * 12 + currentDate.getMonth();
+                    // Indice del mes actual de facturación (o el consultado via query params)
+                    const currentMonthIndex = queryYear * 12 + safeMonthIndex;
 
                     // Si el mes objetivo es menor o igual al actual, se cobra.
                     return targetMonthIndex <= currentMonthIndex;
@@ -278,7 +291,7 @@ export const N8nIntegrationController = {
                         'Celular 1': client.primaryPhone,
                         'Celular 2': client.secondaryPhone || '',
                         'PLAN': installation.servicePlan?.name || installation.serviceType,
-                        'MES': currentMonth,
+                        'MES': queryMonth,
                         'FECHA_LIMITE': formattedDeadline,
                         'DIAS': dias,
                         'VALOR': valorMensualidad, // Ahora usa el valor real (posiblemente prorrateado) del pago
