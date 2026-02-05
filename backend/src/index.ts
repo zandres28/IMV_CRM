@@ -29,6 +29,7 @@ import serviceTransferRoutes from "./routes/serviceTransfer";
 import dashboardRoutes from "./routes/dashboard";
 import systemSettingsRoutes from "./routes/system-settings.routes";
 import interactionTypeRoutes from "./routes/interaction-types";
+import oltRoutes from "./routes/olt";
 
 // Middleware
 import { authMiddleware } from "./middlewares/auth.middleware";
@@ -48,6 +49,9 @@ app.use("/api/public", publicRoutes);
 
 // Configuración de rutas protegidas (requieren autenticación)
 app.use("/api/clients", authMiddleware, clientRoutes);
+
+// Rutas de integración OLT (Protegidas por API Key internamente en el router)
+app.use("/api/olt", oltRoutes);
 app.use("/api/settings", authMiddleware, systemSettingsRoutes);
 app.use("/api/contacts", authMiddleware, contactRoutes);
 app.use("/api/interactions", authMiddleware, interactionRoutes);
