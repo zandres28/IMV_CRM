@@ -18,6 +18,9 @@ router.get('/client-details', (req, res) => N8nIntegrationController.getClientBy
 // Registrar pago (Webhook)
 router.post('/register-payment', (req, res) => N8nIntegrationController.registerPayment(req, res));
 
+// Obtener candidatos a suspensión (corte automático día 6)
+router.get('/suspension-candidates', (req, res) => N8nIntegrationController.getSuspensionCandidates(req, res));
+
 // Resetear estado recordatorios (Admin/Tools)
 router.post('/reset-reminders', (req, res) => N8nIntegrationController.resetRemindersStatus(req, res));
 
