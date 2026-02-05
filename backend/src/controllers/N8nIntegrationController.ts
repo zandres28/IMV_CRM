@@ -734,6 +734,13 @@ export const N8nIntegrationController = {
             const clientIds = clients.map(c => c.id);
             if (clientIds.length === 0) return res.json([]);
 
+            const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const queryMonthIndex = monthNames.indexOf(queryMonth.toUpperCase());
+            // Calcular el último día del mes consultado para comparaciones
+            // Si queryMonthIndex es -1 (error), usamos mes actual 0 por seguridad, aunque idealmente validar
+            const safeMonthIndex = queryMonthIndex !== -1 ? queryMonthIndex : 0;
+            const endOfQueryPeriod = new Date(queryYear, safeMonthIndex + 1, 0, 23, 59, 59); // Ultimo dia del mes consultado
+
             const allPayments = await paymentRepository.find({
                 where: [
                     { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear, status: 'paid' },
@@ -749,9 +756,6 @@ export const N8nIntegrationController = {
                 if (client.suspension_extension_date) {
                     const extDate = new Date(client.suspension_extension_date);
                     // Ajustar zona horaria local ignorando horas para comparación de fecha pura
-                    // Ojo: new Date("YYYY-MM-DD") en JS a veces es UTC anterior. 
-                    // TypeORM suele devolver objeto Date.
-                    // Ajustamos extDate al final del día para ser permisivos
                     extDate.setHours(23, 59, 59, 999);
                     
                     // Si la fecha de extensión es HOY o FUTURO, se respeta.
@@ -766,29 +770,46 @@ export const N8nIntegrationController = {
                     continue; // SALTAR: Ya pagó (o al menos una parte, asumimos ok para no cortar error)
                 }
 
-                // 3. Es candidato a suspensión (Moroso). Agregar sus instalaciones OLT.
-                if (client.installations && client.installations.length > 0) {
-                    for (const installation of client.installations) {
-                        // Solo incluimos instalaciones controlables (con SN o PON/ONU ID)
-                        // Opcional: Incluir todas para reporte manual
-                        const hasOltData = (installation.ponId && installation.onuId) || installation.onuSerialNumber;
-                        
-                        candidates.push({
-                            clientId: client.id,
-                            clientName: client.fullName,
-                            installationId: installation.id,
-                            // Datos para el endpoint de corte
-                            action_identifier: installation.onuSerialNumber || installation.id, 
-                            ponId: installation.ponId,
-                            onuId: installation.onuId,
-                            onuSerialNumber: installation.onuSerialNumber,
-                            address: client.installationAddress,
-                            phone: client.primaryPhone,
-                            reason: `Sin pago registrado para ${queryMonth} ${queryYear}`,
-                            extensionDate: client.suspension_extension_date,
-                            automatable: !!hasOltData
-                        });
-                    }
+                // 3. Chequeo de Fecha de Instalación (NUEVO)
+                // Si TODAS las instalaciones del cliente son posteriores al periodo cobrado, no es moroso
+                // Si tiene al menos una instalacion vieja (que debio pagar) y no pagó, es candidato.
+                
+                // Filtrar instalaciones activas que debieron facturar en este periodo
+                const billableInstallations = (client.installations || []).filter(inst => {
+                    if (!inst.installationDate) return true; // Si no tiene fecha, asumimos antigua (cobrable)
+                    const installDate = new Date(inst.installationDate);
+                    // Una instalacion es cobrable si se instaló ANTES o DURANTE el mes consultado.
+                    // Ej: Consultado ENERO. Fin periodo: 31 Enero.
+                    // Instalado 15 Enero -> Cobrable.
+                    // Instalado 1 Febrero -> InstallDate > EndOfPeriod -> NO Cobrable.
+                    return installDate <= endOfQueryPeriod;
+                });
+
+                if (billableInstallations.length === 0) {
+                     continue; // SALTAR: Cliente nuevo (sus instalaciones son posteriores al mes de deuda)
+                }
+
+                // 4. Es candidato a suspensión (Moroso). Agregar sus instalaciones OLT.
+                for (const installation of billableInstallations) {
+                    // Solo incluimos instalaciones controlables (con SN o PON/ONU ID)
+                    // Opcional: Incluir todas para reporte manual
+                    const hasOltData = (installation.ponId && installation.onuId) || installation.onuSerialNumber;
+                    
+                    candidates.push({
+                        clientId: client.id,
+                        clientName: client.fullName,
+                        installationId: installation.id,
+                        // Datos para el endpoint de corte
+                        action_identifier: installation.onuSerialNumber || installation.id, 
+                        ponId: installation.ponId,
+                        onuId: installation.onuId,
+                        onuSerialNumber: installation.onuSerialNumber,
+                        address: client.installationAddress,
+                        phone: client.primaryPhone,
+                        reason: `Sin pago registrado para ${queryMonth} ${queryYear}`,
+                        extensionDate: client.suspension_extension_date,
+                        automatable: !!hasOltData
+                    });
                 }
             }
 

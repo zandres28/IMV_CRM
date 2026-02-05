@@ -2,9 +2,9 @@ import { Client } from 'ssh2';
 
 export class OltService {
     private config = {
-        host: '192.168.100.1',
-        port: 22,
-        username: 'admin',
+        host: process.env.OLT_HOST || '192.168.100.1',
+        port: Number(process.env.OLT_PORT) || 22,
+        username: process.env.OLT_USER || 'admin',
         password: process.env.OLT_PASSWORD || 'IMV*2025*', // Fallback a la proporcionada
         readyTimeout: 20000,
     };
@@ -130,5 +130,47 @@ export class OltService {
             `show ont info ${port} ${onuId}`
         ];
         return this.executeOltCommands(commands);
+    }
+
+    /**
+     * Busca una ONU por Serial Number en toda la OLT y devuelve su ubicación.
+     * Retorna { ponId: "0/0/1", onuId: "5" } o null si no se encuentra.
+     */
+    async findOnuBySn(serialNumber: string): Promise<{ ponId: string, onuId: string } | null> {
+        // Comando global (no requiere entrar a interface gpon, pero en esta OLT 
+        // parece que show ont info by-sn se ejecuta DENTRO de interface gpon 0/0 según manual)
+        // Probaremos dentro de gpon 0/0 por defecto.
+        
+        const commands = [
+            `interface gpon 0/0`,
+            `show ont info by-sn ${serialNumber}`
+        ];
+
+        const output = await this.executeOltCommands(commands);
+        
+        // Analizar salida. Ejemplo esperado:
+        // F/S P  ONT  SN            ...
+        // 0/0 1  2    DF51A6B7... 
+        
+        // Regex para capturar F/S (0/0), P (1) y ONT ID (2)
+        // Busca una línea que contenga el SN
+        const line = output.split('\n').find(l => l.includes(serialNumber));
+        if (!line) return null;
+
+        // Parsear linea
+        // Ejemplo formato estricto: " 0/0 1  2    DF51..."
+        // Usamos regex simple
+        const match = line.match(/(\d+\/\d+)\s+(\d+)\s+(\d+)/);
+        if (match) {
+            const board = match[1]; // 0/0
+            const port = match[2];  // 1
+            const onuId = match[3]; // 2
+            
+            return {
+                ponId: `${board}/${port}`,
+                onuId: onuId
+            };
+        }
+        return null;
     }
 }
