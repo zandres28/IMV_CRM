@@ -12,6 +12,7 @@ export interface Client {
     deletedAt?: string | null;
     created_at: string;
     updated_at: string;
+    suspension_extension_date?: string | null;
     latestInstallationDate?: string | null;
     pendingInteractionsCount?: number;
 }

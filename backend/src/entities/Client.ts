@@ -4,6 +4,7 @@ import { Payment } from "./Payment";
 import { AdditionalService } from "./AdditionalService";
 import { ProductSold } from "./ProductSold";
 import { Interaction } from "./Interaction";
+import { dateOnlyTransformer } from "../utils/transformers";
 
 @Entity("clients")
 export class Client {
@@ -12,6 +13,11 @@ export class Client {
 
     @Column()
     fullName: string;
+    
+    // ...
+
+    @Column({ type: 'date', nullable: true, transformer: dateOnlyTransformer })
+    suspension_extension_date?: Date | null;
 
     @Column({ unique: true })
     identificationNumber: string;
