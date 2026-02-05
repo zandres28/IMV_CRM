@@ -3,16 +3,30 @@ import { AppDataSource } from "../config/database";
 import { Installation } from "../entities/Installation";
 import { OltService } from "../services/OltService";
 
+// Helper para buscar instalación por ID o Serial Number
+const findInstallation = async (identifier: string) => {
+    const installationRepository = AppDataSource.getRepository(Installation);
+    
+    // 1. Intentar buscar por ID numérico
+    if (!isNaN(Number(identifier))) {
+        const byId = await installationRepository.findOne({ where: { id: parseInt(identifier) } });
+        if (byId) return byId;
+    }
+
+    // 2. Intentar buscar por ONU Serial Number
+    const bySn = await installationRepository.findOne({ where: { onuSerialNumber: identifier } });
+    return bySn;
+};
+
 export const OltController = {
     rebootOnu: async (req: Request, res: Response) => {
         try {
             const { installationId } = req.params;
             
-            const installationRepository = AppDataSource.getRepository(Installation);
-            const installation = await installationRepository.findOne({ where: { id: parseInt(installationId) } });
+            const installation = await findInstallation(installationId);
 
             if (!installation) {
-                return res.status(404).json({ message: "Instalación no encontrada" });
+                return res.status(404).json({ message: "Instalación no encontrada tras buscar por ID y Serial Number" });
             }
 
             if (!installation.ponId || !installation.onuId) {
@@ -27,7 +41,7 @@ export const OltController = {
 
             return res.json({ 
                 message: "Comando de reinicio enviado exitosamente", 
-                details: { ponId: installation.ponId, onuId: installation.onuId },
+                details: { ponId: installation.ponId, onuId: installation.onuId, sn: installation.onuSerialNumber },
                 log: output 
             });
 
@@ -46,11 +60,10 @@ export const OltController = {
                 return res.status(400).json({ message: "Acción inválida. Use 'enable' o 'disable'" });
             }
             
-            const installationRepository = AppDataSource.getRepository(Installation);
-            const installation = await installationRepository.findOne({ where: { id: parseInt(installationId) } });
+            const installation = await findInstallation(installationId);
 
             if (!installation) {
-                return res.status(404).json({ message: "Instalación no encontrada" });
+                return res.status(404).json({ message: "Instalación no encontrada tras buscar por ID y Serial Number" });
             }
 
             if (!installation.ponId || !installation.onuId) {
@@ -71,6 +84,7 @@ export const OltController = {
 
             return res.json({ 
                 message: `Servicio ${action === 'enable' ? 'activado' : 'cortado'} exitosamente`,
+                details: { ponId: installation.ponId, onuId: installation.onuId, sn: installation.onuSerialNumber },
                 log: output 
             });
 
@@ -84,11 +98,10 @@ export const OltController = {
         try {
             const { installationId } = req.params;
             
-            const installationRepository = AppDataSource.getRepository(Installation);
-            const installation = await installationRepository.findOne({ where: { id: parseInt(installationId) } });
+            const installation = await findInstallation(installationId);
 
             if (!installation) {
-                return res.status(404).json({ message: "Instalación no encontrada" });
+                return res.status(404).json({ message: "Instalación no encontrada tras buscar por ID y Serial Number" });
             }
 
             if (!installation.ponId || !installation.onuId) {
