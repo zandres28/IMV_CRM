@@ -228,7 +228,16 @@ export const ClientController = {
                 return res.status(404).json({ message: "Cliente no encontrado" });
             }
 
-            clientRepository.merge(client, req.body);
+            // Sanitizar body para evitar actualizar cosas que no se deben o manejar conversiones
+            const { suspension_extension_date, ...rest } = req.body;
+            
+            clientRepository.merge(client, rest);
+
+            if (suspension_extension_date !== undefined) {
+                // Si viene null o string vacio, limpiar. Si viene fecha, asignar.
+                client.suspension_extension_date = suspension_extension_date ? new Date(suspension_extension_date) : null;
+            }
+
             const result = await clientRepository.save(client);
             return res.json(result);
         } catch (error) {
