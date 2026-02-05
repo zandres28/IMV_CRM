@@ -35,7 +35,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         primaryPhone: '',
         secondaryPhone: '',
         email: '',
-        status: 'active'
+        status: 'active',
+        suspension_extension_date: ''
     });
 
     useEffect(() => {
@@ -49,7 +50,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 primaryPhone: formatPhoneForDisplay(client.primaryPhone),
                 secondaryPhone: formatPhoneForDisplay(client.secondaryPhone),
                 email: client.email || '',
-                status: client.status || 'active'
+                status: client.status || 'active',
+                // Asegurar formato YYYY-MM-DD si viene fecha ISO completa
+                suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : ''
             });
             setIsEditable(false);
         } else {
@@ -67,7 +70,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 primaryPhone: formatPhoneForDisplay(client.primaryPhone),
                 secondaryPhone: formatPhoneForDisplay(client.secondaryPhone),
                 email: client.email || '',
-                status: client.status || 'active'
+                status: client.status || 'active',
+                suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : ''
             });
             setIsEditable(false);
         }
@@ -244,6 +248,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                                 <MenuItem value="cancelled">Cancelado</MenuItem>
                             </Select>
                         </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            name="suspension_extension_date"
+                            label="Extender Susp. Hasta"
+                            type="date"
+                            value={formData.suspension_extension_date}
+                            onChange={handleInputChange}
+                            disabled={!isEditable}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            helperText="Fecha límite antes del corte automático"
+                        />
                     </Grid>
 
                     {isEditable && (
