@@ -14,6 +14,9 @@ router.get("/", requirePermission(PERMISSIONS.BILLING.VIEW), MonthlyBillingContr
 // Obtener detalle de un pago
 router.get("/:id", requirePermission(PERMISSIONS.BILLING.VIEW), MonthlyBillingController.getPaymentDetail);
 
+// Eliminar un pago
+router.delete("/:id", requirePermission(PERMISSIONS.BILLING.DELETE), MonthlyBillingController.deletePayment);
+
 // Registrar un pago
 router.put("/:id/pay", requirePermission(PERMISSIONS.BILLING.CREATE), MonthlyBillingController.registerPayment);
 
