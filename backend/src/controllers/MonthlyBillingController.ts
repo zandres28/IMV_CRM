@@ -590,7 +590,36 @@ export class MonthlyBillingController {
             res.status(500).json({ message: "Error obteniendo detalle de pago" });
         }
     }
+    /**
+     * Elimina un pago existente
+     * DELETE /api/monthly-billing/:id
+     */
+    static async deletePayment(req: AuthRequest, res: Response) {
+        try {
+            // Verificar permisos
+            if (!hasPermission(req.user || null, PERMISSIONS.BILLING.DELETE)) {
+                return res.status(403).json({ message: 'No tienes permiso para eliminar pagos' });
+            }
 
+            const { id } = req.params;
+            const paymentRepository = AppDataSource.getRepository(Payment);
+            
+            const payment = await paymentRepository.findOne({ 
+                where: { id: parseInt(id) } 
+            });
+
+            if (!payment) {
+                return res.status(404).json({ message: "Pago no encontrado" });
+            }
+
+            await paymentRepository.remove(payment);
+
+            return res.json({ message: "Pago eliminado correctamente" });
+        } catch (error) {
+            console.error("Error al eliminar pago:", error);
+            return res.status(500).json({ message: "Error interno al eliminar el pago" });
+        }
+    }
     /**
      * Registrar un pago
      * PUT /api/monthly-billing/:id/pay
