@@ -466,7 +466,12 @@ export class MonthlyBillingController {
             }
 
             if (status) {
-                query.andWhere('payment.status = :status', { status });
+                if (status === 'pending') {
+                    // Si el filtro es "pendientes", incluir "vencidos" también, ya que técnicamente están pendientes de pago
+                    query.andWhere('payment.status IN (:...statuses)', { statuses: ['pending', 'overdue'] });
+                } else {
+                    query.andWhere('payment.status = :status', { status });
+                }
             }
 
             query.orderBy('payment.dueDate', 'ASC');
