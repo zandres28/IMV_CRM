@@ -214,16 +214,25 @@ export const ClientDetail: React.FC = () => {
             status: inst.serviceStatus
         }));
 
+    const handleBack = () => {
+        const fromState = (location.state as any)?.from;
+        if (fromState === 'billing') {
+            navigate('/monthly-billing');
+        } else {
+            navigate('/clients');
+        }
+    };
+
     return (
         <Box sx={{ width: '100%' }}>
             <Box mb={2}>
                 <Button
                     startIcon={<ArrowBackIcon />}
-                    onClick={() => navigate('/clients')}
+                    onClick={handleBack}
                     variant="outlined"
                     color="inherit"
                 >
-                    Regresar al listado
+                    {(location.state as any)?.from === 'billing' ? 'Regresar a Facturación' : 'Regresar al listado'}
                 </Button>
             </Box>
             <Paper 

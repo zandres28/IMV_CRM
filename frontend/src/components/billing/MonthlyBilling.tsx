@@ -670,7 +670,7 @@ const MonthlyBilling: React.FC = () => {
                                     <Box
                                         sx={{ cursor: 'pointer' }}
                                         title="Ver detalles del cliente"
-                                        onClick={() => payment.client && navigate(`/clients/${payment.client.id}`)}
+                                        onClick={() => payment.client && navigate(`/clients/${payment.client.id}`, { state: { from: 'billing' } })}
                                     >
                                         <Typography variant="body2" sx={{ fontWeight: 500, textDecoration: 'underline' }}>
                                             {payment.client?.fullName || 'Cliente Desconocido'}
