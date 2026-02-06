@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { ClientForm } from './ClientForm';
 import { ServicesList } from '../services/ServicesList';
 import { ProductsList } from '../services/ProductsList';
@@ -48,6 +50,10 @@ export const ClientDetail: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state && (location.state as any).openTabIndex) ?? 0;
     const [tabValue, setTabValue] = useState<number>(initialTab);
+
+    // Estado para confirmación de eliminación
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+    const [paymentToDelete, setPaymentToDelete] = useState<number | null>(null);
 
     const loadClient = useCallback(async () => {
         try {
@@ -172,6 +178,29 @@ export const ClientDetail: React.FC = () => {
             pendiente_instalacion: 'Pendiente Instalación'
         };
         return statusMap[status] || status;
+    };
+
+    const handleDeleteClick = (paymentIdRaw: string) => {
+        // El ID viene como "payment-123", extraemos el numero
+        if (paymentIdRaw.startsWith('payment-')) {
+            const id = parseInt(paymentIdRaw.replace('payment-', ''));
+            setPaymentToDelete(id);
+            setOpenDeleteDialog(true);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (paymentToDelete) {
+            try {
+                await ClientService.deletePayment(paymentToDelete);
+                setOpenDeleteDialog(false);
+                setPaymentToDelete(null);
+                loadPayments(); // Recargar lista
+            } catch (error) {
+                console.error("Error eliminando pago", error);
+                alert("Error eliminando el pago");
+            }
+        }
     };
 
     if (!client) {
@@ -368,6 +397,7 @@ export const ClientDetail: React.FC = () => {
                                 <TableCell>Estado</TableCell>
                                 <TableCell>Fecha Pago</TableCell>
                                 <TableCell>Método</TableCell>
+                                <TableCell>Acciones</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -392,11 +422,18 @@ export const ClientDetail: React.FC = () => {
                                     </TableCell>
                                     <TableCell>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : '-'}</TableCell>
                                     <TableCell>{payment.method || '-'}</TableCell>
+                                    <TableCell>
+                                        {!payment.isProduct && (
+                                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(payment.id)}>
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                             {allPayments.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={7} align="center">No hay pagos registrados</TableCell>
+                                    <TableCell colSpan={8} align="center">No hay pagos registrados</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
@@ -407,6 +444,27 @@ export const ClientDetail: React.FC = () => {
             <TabPanel value={tabValue} index={5}>
                 <ClientInteractionHistory clientId={client.id} />
             </TabPanel>
+            
+            <Dialog
+                open={openDeleteDialog}
+                onClose={() => setOpenDeleteDialog(false)}
+            >
+                <DialogTitle>Confirmar eliminación</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        ¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenDeleteDialog(false)} color="primary">
+                        Cancelar
+                    </Button>
+                    <Button onClick={handleConfirmDelete} color="error" autoFocus>
+                        Eliminar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
         </Box>
     );
 };

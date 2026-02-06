@@ -35,6 +35,10 @@ export const ClientService = {
         return response.data;
     },
 
+    deletePayment: async (paymentId: number): Promise<void> => {
+        await axios.delete(`${API_URL}/monthly-billing/${paymentId}`);
+    },
+
     resetReminderStatus: async (phone: string): Promise<any> => {
         const response = await axios.post(`${API_URL}/interactions/reset-n8n-reminder`, { phone });
         return response.data;
