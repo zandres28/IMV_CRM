@@ -217,7 +217,7 @@ export const ClientDetail: React.FC = () => {
     const handleBack = () => {
         const fromState = (location.state as any)?.from;
         if (fromState === 'billing') {
-            navigate('/monthly-billing');
+            navigate('/billing');
         } else {
             navigate('/clients');
         }
