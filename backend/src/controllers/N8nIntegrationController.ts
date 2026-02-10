@@ -334,12 +334,25 @@ export const N8nIntegrationController = {
             if (paymentStatus) {
                 const pFilter = String(paymentStatus).toLowerCase();
                 if (pFilter === 'pending') {
-                    filteredReminders = filteredReminders.filter(r => r.estado_pago === 'pending');
+                    // Mostrar pendientes, incluyendo los que técnicamente están vencidos si así lo desea la gestión simple,
+                    // O ser estricto. Para coincidir con el panel de facturación que suele mostrar "Pendiente" como categoría general,
+                    // a veces se incluye todo.
+                    // Pero si el usuario pidió explícitamente "overdue" en otra query, aquí 'pending' debería ser solo lo vigente.
+                    // Sin embargo, en N8n a menudo 'pending' se usa para "no pagado".
+                    // Revisando MonthlyBillingController: "pending" include ['pending', 'overdue'].
+                    
+                    // Lógica alineada con MonthlyBillingController: "Pendiente" trae todo lo no pagado.
+                    filteredReminders = filteredReminders.filter(r => r.estado_pago === 'pending' || r.estado_pago === 'overdue');
+                } else if (pFilter === 'overdue') {
+                    // Vencidos explícitos (status='overdue') O Pendientes que segun cálculo de días ya vencieron (TIPO='VENCIDO' o 'ULTIMO')
+                    // recordatorio.TIPO se calcula arriba basado en fecha.
+                    filteredReminders = filteredReminders.filter(r => 
+                        r.estado_pago === 'overdue' || 
+                        (r.estado_pago === 'pending' && (r.TIPO === 'VENCIDO' || r.TIPO === 'ULTIMO'))
+                    );
                 } else if (pFilter === 'paid' || pFilter === 'approved') {
                     filteredReminders = filteredReminders.filter(r => r.estado_pago === 'approved' || r.estado_pago === 'paid');
                 }
-                // If it was handled inside the loop, we are double checking or refining here. 
-                // But since I'm removing the inner loop filter logic in this edit, I must do it here.
             }
 
             // Apply reminderType filter
