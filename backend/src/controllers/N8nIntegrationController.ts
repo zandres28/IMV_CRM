@@ -253,8 +253,14 @@ export const N8nIntegrationController = {
                     let dias = 0;
                     let tipo = 'RECORDATORIO';
                     
-                    if (payment && payment.dueDate) {
+                    if (payment && payment.status === 'paid') {
+                        // Si ya pagó, no calcular días de mora ni marcar como vencido
+                        tipo = 'PAGADO';
+                        dias = 0;
+                    } else if (payment && payment.dueDate) {
                         const dueDate = new Date(payment.dueDate);
+                        // Ajustar zona horaria si es necesario o trabajar con fechas puras
+                        // Se asume que dueDate en DB es medianoche local o UTC correctamente manejada env-wise.
                         const diffTime = currentDate.getTime() - dueDate.getTime();
                         dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         
