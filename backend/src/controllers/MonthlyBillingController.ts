@@ -93,6 +93,13 @@ export class MonthlyBillingController {
                     // Si NO está activa (cancelada/suspendida), solo incluir si tiene retirementDate dentro del mes o posterior
                     if (inst.retirementDate) {
                         const rDate = parseLocalDate(inst.retirementDate as unknown as string) || new Date(inst.retirementDate);
+                        
+                        // FIX: Problema con Carlota/Consuelo. Retiro el 30 Enero. Facturando Enero (mes actual).
+                        // Si se retiró ANTES de que empiece este mes, NO se debe facturar NADA.
+                        if (rDate < firstDayOfMonth) {
+                             return false; 
+                        }
+
                         // Si se retiró durante este mes (o después), facturar (prorrateado o completo)
                         return rDate >= firstDayOfMonth;
                     }
