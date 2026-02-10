@@ -469,6 +469,20 @@ export class MonthlyBillingController {
                 if (status === 'pending') {
                     // Si el filtro es "pendientes", incluir "vencidos" también, ya que técnicamente están pendientes de pago
                     query.andWhere('payment.status IN (:...statuses)', { statuses: ['pending', 'overdue'] });
+                } else if (status === 'overdue') {
+                    // Si el filtro es "vencidos", incluir:
+                    // 1. Los que explícitamente tienen status = 'overdue'
+                    // 2. Los que están 'pending' pero su fecha de vencimiento ya pasó (dinámico)
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    
+                    query.andWhere(new Brackets(qb => {
+                        qb.where('payment.status = :overdueStatus', { overdueStatus: 'overdue' })
+                          .orWhere('(payment.status = :pendingStatus AND payment.dueDate < :today)', { 
+                              pendingStatus: 'pending',
+                              today
+                          });
+                    }));
                 } else {
                     query.andWhere('payment.status = :status', { status });
                 }
