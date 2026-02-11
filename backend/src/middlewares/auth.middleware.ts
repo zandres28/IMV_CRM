@@ -30,7 +30,11 @@ export const authMiddleware = async (
     }
 
     // Verificar el token
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      console.error('JWT_SECRET is not defined in environment variables');
+      return res.status(500).json({ message: 'Error de configuración del servidor' });
+    }
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
 
     // Buscar el usuario en la base de datos

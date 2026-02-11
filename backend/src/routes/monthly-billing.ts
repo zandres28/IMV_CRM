@@ -14,25 +14,10 @@ router.get("/", requirePermission(PERMISSIONS.BILLING.VIEW), MonthlyBillingContr
 // Obtener detalle de un pago
 router.get("/:id", requirePermission(PERMISSIONS.BILLING.VIEW), MonthlyBillingController.getPaymentDetail);
 
+// Deshace la facturación mensual para un periodo específico
+router.delete("/rollback", requirePermission(PERMISSIONS.BILLING.DELETE), MonthlyBillingController.rollbackMonthlyBilling);
+
 // Eliminar un pago
 router.delete("/:id", requirePermission(PERMISSIONS.BILLING.DELETE), MonthlyBillingController.deletePayment);
-
-// Registrar un pago
-router.put("/:id/pay", requirePermission(PERMISSIONS.BILLING.CREATE), MonthlyBillingController.registerPayment);
-
-// Actualizar estado de un pago
-router.put("/:id/status", requirePermission(PERMISSIONS.BILLING.EDIT), MonthlyBillingController.updatePaymentStatus);
-
-// Marcar pagos vencidos
-router.post("/mark-overdue", requirePermission(PERMISSIONS.BILLING.EDIT), MonthlyBillingController.markOverduePayments);
-
-// Recalcular cobros del mes
-router.post("/recalculate", requirePermission(PERMISSIONS.BILLING.EDIT), MonthlyBillingController.recalculateMonthlyBilling);
-
-// Obtener pagos pendientes de un cliente
-router.get("/client/:clientId/pending", requirePermission(PERMISSIONS.BILLING.VIEW), MonthlyBillingController.getClientPendingPayments);
-
-// Marcar pagos en lote como pagados
-router.post("/bulk/mark-paid", requirePermission(PERMISSIONS.BILLING.EDIT), MonthlyBillingController.bulkMarkPaid);
 
 export default router;

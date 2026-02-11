@@ -1,0 +1,586 @@
+[
+  {
+    "id": 362,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-14T16:03:09.329Z"
+  },
+  {
+    "id": 363,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-14T16:09:37.742Z"
+  },
+  {
+    "id": 364,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-14T16:15:04.364Z"
+  },
+  {
+    "id": 365,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:11.409Z"
+  },
+  {
+    "id": 366,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:12.429Z"
+  },
+  {
+    "id": 367,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:13.009Z"
+  },
+  {
+    "id": 368,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:13.774Z"
+  },
+  {
+    "id": 369,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:14.091Z"
+  },
+  {
+    "id": 370,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:14.362Z"
+  },
+  {
+    "id": 371,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:14.826Z"
+  },
+  {
+    "id": 372,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:15.066Z"
+  },
+  {
+    "id": 373,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:15.412Z"
+  },
+  {
+    "id": 374,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:15.847Z"
+  },
+  {
+    "id": 375,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:16.291Z"
+  },
+  {
+    "id": 376,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:16.606Z"
+  },
+  {
+    "id": 377,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:16.926Z"
+  },
+  {
+    "id": 378,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:17.366Z"
+  },
+  {
+    "id": 379,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "paid",
+    "created": "2026-01-16T11:34:17.914Z"
+  },
+  {
+    "id": 380,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:18.596Z"
+  },
+  {
+    "id": 381,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:19.034Z"
+  },
+  {
+    "id": 382,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:19.415Z"
+  },
+  {
+    "id": 383,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:20.045Z"
+  },
+  {
+    "id": 384,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:20.725Z"
+  },
+  {
+    "id": 385,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:20.983Z"
+  },
+  {
+    "id": 386,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:21.301Z"
+  },
+  {
+    "id": 387,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:21.522Z"
+  },
+  {
+    "id": 388,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:21.697Z"
+  },
+  {
+    "id": 389,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:21.842Z"
+  },
+  {
+    "id": 390,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:22.009Z"
+  },
+  {
+    "id": 391,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:22.247Z"
+  },
+  {
+    "id": 392,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:22.428Z"
+  },
+  {
+    "id": 393,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:22.633Z"
+  },
+  {
+    "id": 394,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:22.817Z"
+  },
+  {
+    "id": 395,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:23.007Z"
+  },
+  {
+    "id": 396,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:23.285Z"
+  },
+  {
+    "id": 397,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:23.482Z"
+  },
+  {
+    "id": 398,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:23.650Z"
+  },
+  {
+    "id": 399,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:23.806Z"
+  },
+  {
+    "id": 400,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:24.013Z"
+  },
+  {
+    "id": 401,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:24.167Z"
+  },
+  {
+    "id": 402,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:24.336Z"
+  },
+  {
+    "id": 403,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:24.475Z"
+  },
+  {
+    "id": 404,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:24.665Z"
+  },
+  {
+    "id": 405,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:24.854Z"
+  },
+  {
+    "id": 406,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:25.032Z"
+  },
+  {
+    "id": 407,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:25.228Z"
+  },
+  {
+    "id": 408,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:25.380Z"
+  },
+  {
+    "id": 409,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:25.535Z"
+  },
+  {
+    "id": 410,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:25.691Z"
+  },
+  {
+    "id": 411,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "paid",
+    "created": "2026-01-16T11:34:25.884Z"
+  },
+  {
+    "id": 412,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:26.152Z"
+  },
+  {
+    "id": 413,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:26.417Z"
+  },
+  {
+    "id": 414,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:26.800Z"
+  },
+  {
+    "id": 415,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:26.954Z"
+  },
+  {
+    "id": 416,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:27.232Z"
+  },
+  {
+    "id": 417,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:27.721Z"
+  },
+  {
+    "id": 418,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:28.839Z"
+  },
+  {
+    "id": 419,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:29.154Z"
+  },
+  {
+    "id": 420,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:29.323Z"
+  },
+  {
+    "id": 421,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:29.567Z"
+  },
+  {
+    "id": 422,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:29.848Z"
+  },
+  {
+    "id": 423,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-16T11:34:30.149Z"
+  },
+  {
+    "id": 424,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-17T09:29:55.750Z"
+  },
+  {
+    "id": 425,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-20T14:47:46.400Z"
+  },
+  {
+    "id": 426,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-20T14:55:37.722Z"
+  },
+  {
+    "id": 427,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-21T09:11:57.762Z"
+  },
+  {
+    "id": 428,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-01-27T08:38:38.690Z"
+  },
+  {
+    "id": 429,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-30T11:27:38.550Z"
+  },
+  {
+    "id": 430,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-30T11:27:38.623Z"
+  },
+  {
+    "id": 431,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-30T11:27:38.794Z"
+  },
+  {
+    "id": 432,
+    "month": "enero",
+    "year": 2026,
+    "type": "monthly",
+    "status": "pending",
+    "created": "2026-01-30T11:27:38.916Z"
+  },
+  {
+    "id": 433,
+    "month": "febrero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-02-02T09:05:36.034Z"
+  },
+  {
+    "id": 434,
+    "month": "enero",
+    "year": 2026,
+    "type": "installation",
+    "status": "paid",
+    "created": "2026-02-02T09:20:02.764Z"
+  }
+]

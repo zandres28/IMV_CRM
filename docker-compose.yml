@@ -6,8 +6,8 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: imv_crm
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
     volumes:
       - db_data:/var/lib/mysql
     ports:
@@ -17,16 +17,16 @@ services:
     build: ./backend
     restart: always
     ports:
-      - "3010:3010"
+      - "${PORT}:${PORT}"
     environment:
-      - PORT=3010
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASSWORD=rootpassword
-      - DB_NAME=imv_crm
-      - JWT_SECRET=7861295b154a5b660fdf0ae93dbb8654c363aa026c2cda3d41782cb0d4df6ebd28f42752698a281ff88dd10ae590ec3d
-      - N8N_API_KEY=d927994f95870a3ad2a57fa70d0b767dfd273692dd23324f449e9cecffe9dc8b
+      - PORT=${PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - DB_NAME=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - N8N_API_KEY=${N8N_API_KEY}
     volumes:
       - ./tmp:/app/tmp
     depends_on:
@@ -39,7 +39,7 @@ services:
         # Aquí definimos la URL pública de la API para el build de React
         # Como usas DuckDNS + NPM, más adelante cambiarás esto por tu dominio (ej. https://api.tu-dominio.duckdns.org)
         # Por ahora, usamos la IP pública y el puerto que abrimos (3010)
-        REACT_APP_API_URL: http://149.130.162.188:3010/api
+        REACT_APP_API_URL: ${REACT_APP_API_URL}
     restart: always
     ports:
       - "8095:80"
