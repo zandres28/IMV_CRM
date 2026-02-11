@@ -152,6 +152,12 @@ const MonthlyBillingService = {
     setReminderStatus: async (clientIds: number[], sent: boolean): Promise<any> => {
         const response = await axios.post(`${ROOT_API_URL}/interactions/set-reminder-status`, { clientIds, sent });
         return response.data;
+    },
+
+    // Deshacer facturación masiva
+    rollbackMonthlyBilling: async (month: string, year: number) => {
+        const response = await axios.delete(`${API_URL}/rollback`, { data: { month, year } });
+        return response.data;
     }
 };
 

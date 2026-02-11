@@ -16,7 +16,7 @@ export const N8nIntegrationController = {
         try {
             // Obtener filtros de query params
             const { paymentStatus, clientStatus, reminderType, sentFilter } = req.query;
-            
+
             const clientRepository = AppDataSource.getRepository(Client);
             const paymentRepository = AppDataSource.getRepository(Payment);
             const additionalServiceRepository = AppDataSource.getRepository(AdditionalService);
@@ -65,7 +65,7 @@ export const N8nIntegrationController = {
                 // Por defecto o si es explícitamente 'active'
                 clientQuery.where('client.status = :status', { status: 'active' });
             }
-            
+
             const clients = await clientQuery.getMany();
 
             const clientIds = clients.map(c => c.id);
@@ -74,7 +74,7 @@ export const N8nIntegrationController = {
             }
 
             const currentDate = new Date();
-            
+
             // Lógica para determinar el mes y año de consulta
             // 1. Por defecto: Mes/Año actual
             // 2. Si se reciben parámetros ?month=...&year=..., se usan esos (Prioridad)
@@ -93,7 +93,7 @@ export const N8nIntegrationController = {
 
             // 1. Obtener todos los servicios adicionales activos para estos clientes
             const allAdditionalServices = await additionalServiceRepository.find({
-                where: { 
+                where: {
                     client: { id: In(clientIds) },
                     status: 'active' as any
                 },
@@ -110,11 +110,13 @@ export const N8nIntegrationController = {
             });
 
             // 3. Obtener todos los pagos del mes SOLICITADO
+            const queryMonthSentence = queryMonth.charAt(0).toUpperCase() + queryMonth.slice(1).toLowerCase();
             const allPayments = await paymentRepository.find({
-                where: [
-                    { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear },
-                    { client: { id: In(clientIds) }, paymentMonth: queryMonth.toLowerCase(), paymentYear: queryYear }
-                ],
+                where: {
+                    client: { id: In(clientIds) },
+                    paymentMonth: In([queryMonth, queryMonth.toLowerCase(), queryMonthSentence]),
+                    paymentYear: queryYear
+                },
                 relations: ['installation', 'client']
             });
 
@@ -164,7 +166,7 @@ export const N8nIntegrationController = {
             for (const client of clients) {
                 // Obtener instalaciones activas
                 const activeInstallations = client.installations?.filter(inst => inst.isActive && !inst.isDeleted) || [];
-                
+
                 if (activeInstallations.length === 0) continue;
 
                 // Obtener servicios adicionales activos (Desde cache)
@@ -177,18 +179,18 @@ export const N8nIntegrationController = {
 
                 // Obtener pagos pendientes de productos (cuotas) (Desde cache)
                 const allProductInstallments = installmentsMap.get(client.id) || [];
-                
+
                 // Filtrar solo las cuotas que corresponden al mes actual (o anteriores vencidas) based en Fecha de Venta
                 const productInstallments = allProductInstallments.filter(p => {
                     const saleDate = new Date(p.product.saleDate);
-                    
+
                     // Indice de mes absoluto: (Año * 12) + Mes (0-11)
                     const saleMonthIndex = saleDate.getFullYear() * 12 + saleDate.getMonth();
-                    
+
                     // El mes al que corresponde esta cuota específica
                     // Cuota 1 => Mes de venta, Cuota 2 => Mes siguiente, etc.
                     const targetMonthIndex = saleMonthIndex + (p.installmentNumber - 1);
-                    
+
                     // Indice del mes actual de facturación (o el consultado via query params)
                     const currentMonthIndex = queryYear * 12 + safeMonthIndex;
 
@@ -200,11 +202,11 @@ export const N8nIntegrationController = {
                 const roundToHundred = (amount: number) => Math.ceil(amount / 100) * 100;
 
                 const productDebt = productInstallments.reduce((acc, curr) => acc + roundToHundred(Number(curr.amount)), 0);
-                
+
                 // Generar detalle limpio (Ej: "TVBOX" en lugar de "TVBOX (Ct 1)")
                 // Usamos Set para evitar duplicados si hay varias cuotas del mismo producto vencidas
                 const productNames = [...new Set(productInstallments.map(p => p.product.productName))].join(', ');
-                
+
                 const productDetails = productNames;
 
                 // Obtener pagos del cliente para el mes actual (buscando tanto mayúsculas como minúsculas) (Desde cache)
@@ -224,7 +226,7 @@ export const N8nIntegrationController = {
                     // a menos que sea lo único que existe (caso raro, pero se maneja por defecto si todo falla).
 
                     let payment = payments.find(p => p.installation?.id === installation.id && p.paymentType === 'monthly');
-                    
+
                     if (!payment) {
                         // Buscar pago mensual genérico
                         payment = payments.find(p => !p.installation && p.paymentType === 'monthly');
@@ -236,24 +238,26 @@ export const N8nIntegrationController = {
                     }
 
                     if (!payment) {
-                         // Fallback final: Buscar pago general que NO sea 'installation'
-                         payment = payments.find(p => !p.installation && p.paymentType !== 'installation');
+                        // Fallback final: Buscar pago general que NO sea 'installation'
+                        payment = payments.find(p => !p.installation && p.paymentType !== 'installation');
                     }
 
                     // FIX: Si no se encontró pago específico o está pendiente, pero existe al menos un pago PAGADO
                     // para este cliente en el mes, asumimos que está al día (para evitar cobros duplicados en multi-servicio).
-                    if (!payment || payment.status !== 'paid') {
-                        const paidPayment = payments.find(p => p.status === 'paid');
+                    const isPaidStatus = (status: string) => ['paid', 'approved'].includes(status.toLowerCase());
+
+                    if (!payment || !isPaidStatus(payment.status)) {
+                        const paidPayment = payments.find(p => isPaidStatus(p.status));
                         if (paidPayment) {
                             payment = paidPayment;
                         }
                     }
-                    
+
                     // Calcular días transcurridos desde la fecha de vencimiento
                     let dias = 0;
                     let tipo = 'RECORDATORIO';
-                    
-                    if (payment && payment.status === 'paid') {
+
+                    if (payment && isPaidStatus(payment.status)) {
                         // Si ya pagó, no calcular días de mora ni marcar como vencido
                         tipo = 'PAGADO';
                         dias = 0;
@@ -263,7 +267,7 @@ export const N8nIntegrationController = {
                         // Se asume que dueDate en DB es medianoche local o UTC correctamente manejada env-wise.
                         const diffTime = currentDate.getTime() - dueDate.getTime();
                         dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
+
                         // Determinar tipo de recordatorio
                         if (dias < vencidoMin) {
                             tipo = 'PROXIMO';
@@ -279,7 +283,7 @@ export const N8nIntegrationController = {
                     // Prioridad: servicePlanAmount del pago encontrado.
                     // Fallback: installation.monthlyFee (pero esto ignora prorrateo si no hay pago generado)
                     let valorMensualidad = Number(installation.monthlyFee);
-                    
+
                     if (payment) {
                         // Si hay pago, confiar en el cálculo del generador de facturas
                         // servicePlanAmount contiene el valor base (prorrateado o completo)
@@ -287,8 +291,8 @@ export const N8nIntegrationController = {
                     }
 
                     // Calcular información de cuotas de productos (Ej: "1/3")
-                    const cuota = productInstallments.length > 0 
-                        ? productInstallments.map(p => `${p.installmentNumber}/${p.product.installments}`).join(', ') 
+                    const cuota = productInstallments.length > 0
+                        ? productInstallments.map(p => `${p.installmentNumber}/${p.product.installments}`).join(', ')
                         : '';
 
                     const reminderData = {
@@ -340,14 +344,14 @@ export const N8nIntegrationController = {
                     // Pero si el usuario pidió explícitamente "overdue" en otra query, aquí 'pending' debería ser solo lo vigente.
                     // Sin embargo, en N8n a menudo 'pending' se usa para "no pagado".
                     // Revisando MonthlyBillingController: "pending" include ['pending', 'overdue'].
-                    
+
                     // Lógica alineada con MonthlyBillingController: "Pendiente" trae todo lo no pagado.
                     filteredReminders = filteredReminders.filter(r => r.estado_pago === 'pending' || r.estado_pago === 'overdue');
                 } else if (pFilter === 'overdue') {
                     // Vencidos explícitos (status='overdue') O Pendientes que segun cálculo de días ya vencieron (TIPO='VENCIDO' o 'ULTIMO')
                     // recordatorio.TIPO se calcula arriba basado en fecha.
-                    filteredReminders = filteredReminders.filter(r => 
-                        r.estado_pago === 'overdue' || 
+                    filteredReminders = filteredReminders.filter(r =>
+                        r.estado_pago === 'overdue' ||
                         (r.estado_pago === 'pending' && (r.TIPO === 'VENCIDO' || r.TIPO === 'ULTIMO'))
                     );
                 } else if (pFilter === 'paid' || pFilter === 'approved') {
@@ -357,7 +361,7 @@ export const N8nIntegrationController = {
 
             // Apply reminderType filter
             if (reminderType && reminderType !== 'all') {
-                 filteredReminders = filteredReminders.filter(r => r.TIPO === reminderType);
+                filteredReminders = filteredReminders.filter(r => r.TIPO === reminderType);
             }
 
             return res.json(filteredReminders);
@@ -366,7 +370,7 @@ export const N8nIntegrationController = {
             return res.json(reminders);
         } catch (error) {
             console.error('Error al generar recordatorios:', error);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: 'Error al generar recordatorios de pago',
                 error: error instanceof Error ? error.message : 'Error desconocido'
             });
@@ -377,7 +381,7 @@ export const N8nIntegrationController = {
     markAsSent: async (req: Request, res: Response) => {
         try {
             const { clientId, installationId } = req.body;
-            
+
             if (!clientId) {
                 return res.status(400).json({ message: 'Client ID is required' });
             }
@@ -413,14 +417,14 @@ export const N8nIntegrationController = {
             });
 
             await interactionRepository.save(interaction);
-            
-            return res.json({ 
+
+            return res.json({
                 success: true,
                 message: 'Recordatorio marcado como enviado'
             });
         } catch (error) {
             console.error('Error al marcar recordatorio:', error);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: 'Error al marcar recordatorio',
                 error: error instanceof Error ? error.message : 'Error desconocido'
             });
@@ -439,7 +443,7 @@ export const N8nIntegrationController = {
             }
 
             const clientRepository = AppDataSource.getRepository(Client);
-            
+
             // Limpiar el teléfono entrante para búsqueda flexible
             const cleanPhone = String(phone).replace(/\D/g, '');
             // Tomar los últimos 10 dígitos para asegurar coincidencia si viene con 57
@@ -474,7 +478,7 @@ export const N8nIntegrationController = {
     getClientDebt: async (req: Request, res: Response) => {
         try {
             const { phone } = req.query;
-            
+
             if (!phone) {
                 return res.status(400).json({ message: 'Phone number is required' });
             }
@@ -559,7 +563,7 @@ export const N8nIntegrationController = {
             pendingPayments.sort((a, b) => a.id - b.id);
 
             if (pendingPayments.length === 0) {
-                return res.json({ 
+                return res.json({
                     success: false,
                     message: 'No pending invoices found for this client',
                     client: client.fullName
@@ -575,7 +579,7 @@ export const N8nIntegrationController = {
             targetPayment.paymentDate = date ? new Date(date) : new Date();
             targetPayment.paymentMethod = paymentMethod || 'whatsapp_integration';
             targetPayment.externalId = reference || `WHATSAPP-${Date.now()}`;
-            
+
             await paymentRepository.save(targetPayment);
 
             return res.json({
@@ -602,17 +606,17 @@ export const N8nIntegrationController = {
 
             const interactionRepository = AppDataSource.getRepository(Interaction);
             const interactionTypeRepository = AppDataSource.getRepository(InteractionType);
-            
+
             const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
             const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
             endOfMonth.setHours(23, 59, 59, 999);
-            
+
             console.log(`[setReminderStatus] Range: ${startOfMonth.toISOString()} - ${endOfMonth.toISOString()}`);
 
             const targetIds = clientId ? [clientId] : (clientIds || []);
-            
+
             if (targetIds.length === 0) {
-                 return res.status(400).json({ success: false, message: 'Faltan IDs de cliente' });
+                return res.status(400).json({ success: false, message: 'Faltan IDs de cliente' });
             }
 
             if (sent) {
@@ -623,7 +627,7 @@ export const N8nIntegrationController = {
                 }
 
                 if (!type) {
-                     return res.status(500).json({ message: "No se encontró un tipo de interacción válido (Whatsapp/ID:1)" });
+                    return res.status(500).json({ message: "No se encontró un tipo de interacción válido (Whatsapp/ID:1)" });
                 }
 
                 let createdCount = 0;
@@ -638,14 +642,14 @@ export const N8nIntegrationController = {
 
                     if (!existing) {
                         const interaction = interactionRepository.create({
-                             clientId: id,
-                             subject: 'Recordatorio WhatsApp Automático',
-                             description: 'Marcado como enviado manualmente desde el panel de facturación.',
-                             notes: 'Simulación de envío para evitar duplicados.',
-                             interactionType: type,
-                             priority: 'media',
-                             status: 'completado',
-                             created_at: new Date()
+                            clientId: id,
+                            subject: 'Recordatorio WhatsApp Automático',
+                            description: 'Marcado como enviado manualmente desde el panel de facturación.',
+                            notes: 'Simulación de envío para evitar duplicados.',
+                            interactionType: type,
+                            priority: 'media',
+                            status: 'completado',
+                            created_at: new Date()
                         });
                         await interactionRepository.save(interaction);
                         createdCount++;
@@ -655,9 +659,9 @@ export const N8nIntegrationController = {
             } else {
                 // RESET (DELETE)
                 const result = await interactionRepository.delete({
-                     clientId: In(targetIds),
-                     subject: 'Recordatorio WhatsApp Automático',
-                     created_at: Between(startOfMonth, endOfMonth)
+                    clientId: In(targetIds),
+                    subject: 'Recordatorio WhatsApp Automático',
+                    created_at: Between(startOfMonth, endOfMonth)
                 });
                 return res.json({ success: true, message: `Reseteados: ${result.affected}` });
             }
@@ -685,7 +689,7 @@ export const N8nIntegrationController = {
             };
 
             if (all === true || all === 'true') {
-                 // Reset ALL
+                // Reset ALL
             } else if (phone) {
                 // Find client by phone
                 const client = await clientRepository.findOne({
@@ -696,31 +700,31 @@ export const N8nIntegrationController = {
                 });
 
                 if (!client) {
-                    return res.status(404).json({ 
+                    return res.status(404).json({
                         success: false,
-                        message: `No se encontró cliente con el teléfono ${phone}` 
+                        message: `No se encontró cliente con el teléfono ${phone}`
                     });
                 }
-                
+
                 criteria.clientId = client.id;
             } else {
-                 return res.status(400).json({ 
-                     success: false,
-                     message: "Debe proporcionar 'phone' (para uno) o 'all': true (para todos)" 
-                 });
+                return res.status(400).json({
+                    success: false,
+                    message: "Debe proporcionar 'phone' (para uno) o 'all': true (para todos)"
+                });
             }
 
             const result = await interactionRepository.delete(criteria);
-            
-            return res.json({ 
-                success: true, 
+
+            return res.json({
+                success: true,
                 message: `Reseteados ${result.affected} registro(s) de recordatorio.`,
                 affected: result.affected
             });
 
         } catch (error) {
-             console.error(error);
-             return res.status(500).json({ message: "Error al resetear recordatorios", error });
+            console.error(error);
+            return res.status(500).json({ message: "Error al resetear recordatorios", error });
         }
     },
 
@@ -737,9 +741,9 @@ export const N8nIntegrationController = {
             // Soportar override para pruebas o lógica específica (ej: consultar mes anterior)
             if (req.query.month) queryMonth = (req.query.month as string).trim().toUpperCase();
             if (req.query.year) queryYear = parseInt(req.query.year as string, 10);
-            
+
             // 1. Obtener clientes activos con sus instalaciones
-             const clients = await clientRepository
+            const clients = await clientRepository
                 .createQueryBuilder('client')
                 .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted AND installation.isActive = :isActive', { isDeleted: false, isActive: true })
                 .where('client.status = :status', { status: 'active' })
@@ -747,7 +751,7 @@ export const N8nIntegrationController = {
 
             const candidates = [];
             const today = new Date();
-            today.setHours(0,0,0,0);
+            today.setHours(0, 0, 0, 0);
 
             // Optimización: traer todos los pagos PAGADOS del mes de una vez
             const clientIds = clients.map(c => c.id);
@@ -765,9 +769,9 @@ export const N8nIntegrationController = {
                     { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear, status: 'paid' },
                     { client: { id: In(clientIds) }, paymentMonth: queryMonth.toLowerCase(), paymentYear: queryYear, status: 'paid' }
                 ],
-                relations: ['client'] 
+                relations: ['client']
             });
-            
+
             const paidClientIds = new Set(allPayments.map(p => p.client.id));
 
             for (const client of clients) {
@@ -776,7 +780,7 @@ export const N8nIntegrationController = {
                     const extDate = new Date(client.suspension_extension_date);
                     // Ajustar zona horaria local ignorando horas para comparación de fecha pura
                     extDate.setHours(23, 59, 59, 999);
-                    
+
                     // Si la fecha de extensión es HOY o FUTURO, se respeta.
                     if (extDate >= today) {
                         continue; // SALTAR: El cliente tiene plazo extendido
@@ -792,7 +796,7 @@ export const N8nIntegrationController = {
                 // 3. Chequeo de Fecha de Instalación (NUEVO)
                 // Si TODAS las instalaciones del cliente son posteriores al periodo cobrado, no es moroso
                 // Si tiene al menos una instalacion vieja (que debio pagar) y no pagó, es candidato.
-                
+
                 // Filtrar instalaciones activas que debieron facturar en este periodo
                 const billableInstallations = (client.installations || []).filter(inst => {
                     if (!inst.installationDate) return true; // Si no tiene fecha, asumimos antigua (cobrable)
@@ -805,7 +809,7 @@ export const N8nIntegrationController = {
                 });
 
                 if (billableInstallations.length === 0) {
-                     continue; // SALTAR: Cliente nuevo (sus instalaciones son posteriores al mes de deuda)
+                    continue; // SALTAR: Cliente nuevo (sus instalaciones son posteriores al mes de deuda)
                 }
 
                 // 4. Es candidato a suspensión (Moroso). Agregar sus instalaciones OLT.
@@ -813,13 +817,13 @@ export const N8nIntegrationController = {
                     // Solo incluimos instalaciones controlables (con SN o PON/ONU ID)
                     // Opcional: Incluir todas para reporte manual
                     const hasOltData = (installation.ponId && installation.onuId) || installation.onuSerialNumber;
-                    
+
                     candidates.push({
                         clientId: client.id,
                         clientName: client.fullName,
                         installationId: installation.id,
                         // Datos para el endpoint de corte
-                        action_identifier: installation.onuSerialNumber || installation.id, 
+                        action_identifier: installation.onuSerialNumber || installation.id,
                         ponId: installation.ponId,
                         onuId: installation.onuId,
                         onuSerialNumber: installation.onuSerialNumber,
