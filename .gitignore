@@ -30,3 +30,8 @@ docker-compose.temp.yml
 
 # N8N Workflows
 backend/n8n_workflows/
+
+# Database Backups
+backups/
+*.sql
+*.sql.gz
