@@ -13,14 +13,14 @@ export const ClientController = {
     // Registro público de clientes
     registerPublic: async (req: Request, res: Response) => {
         try {
-            const { 
-                fullName, 
-                identificationNumber, 
-                installationAddress, 
-                city, 
-                primaryPhone, 
+            const {
+                fullName,
+                identificationNumber,
+                installationAddress,
+                city,
+                primaryPhone,
                 secondaryPhone,
-                planId 
+                planId
             } = req.body;
 
             // Validaciones básicas
@@ -29,7 +29,7 @@ export const ClientController = {
             }
 
             // Verificar si el cliente ya existe
-            const existingClient = await clientRepository.findOne({ 
+            const existingClient = await clientRepository.findOne({
                 where: { identificationNumber },
                 withDeleted: true
             });
@@ -60,14 +60,14 @@ export const ClientController = {
 
             // Crear nota/interacción con el plan solicitado
             const noteContent = `Solicitud de Servicio desde Web.\nPlan solicitado: ${plan.name} (${plan.speedMbps} Mbps) - ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(plan.monthlyFee)}\nCliente registrado automáticamente.`;
-            
+
             // Usamos un ID de sistema o null para el usuario creador (createNoteInteraction maneja userId opcional?)
             // createNoteInteraction espera un userId. Si es publico, quizás null o 1 (admin).
             // Revisaré createNoteInteraction. Asumiré que puedo pasar null o un usuario sistema.
             // Por ahora paso null y que la función lo maneje o falle si es strict number.
-            
+
             // Re-importante check interactionUtils
-            
+
             await createNoteInteraction(
                 newClient.id,
                 noteContent,
@@ -88,8 +88,8 @@ export const ClientController = {
         try {
             // Verificar permiso para ver clientes
             if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.VIEW)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para ver la lista de clientes' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para ver la lista de clientes'
                 });
             }
 
@@ -98,7 +98,7 @@ export const ClientController = {
             let query = clientRepository
                 .createQueryBuilder('client')
                 .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted', { isDeleted: false })
-                .loadRelationCountAndMap('client.pendingInteractionsCount', 'client.interactions', 'interaction', (qb) => 
+                .loadRelationCountAndMap('client.pendingInteractionsCount', 'client.interactions', 'interaction', (qb) =>
                     qb.where('interaction.status IN (:...statuses)', { statuses: ['pendiente', 'en_progreso'] })
                 )
                 .orderBy(`(
@@ -143,8 +143,8 @@ export const ClientController = {
         try {
             // Solo admin puede normalizar nombres
             if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.EDIT)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para normalizar nombres' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para normalizar nombres'
                 });
             }
             const clients = await clientRepository.find();
@@ -163,17 +163,17 @@ export const ClientController = {
         try {
             // Verificar permiso para ver clientes
             if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.VIEW)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para ver clientes' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para ver clientes'
                 });
             }
             let { id } = req.params;
             id = id.trim();
-            
+
             // Estrategia de búsqueda dual:
             // 1. Intentar buscar por ID (Primary Key) si es un número válido
             // 2. Si no se encuentra o no es número, buscar por identificationNumber
-            
+
             let client = null;
             const idAsNumber = parseInt(id);
 
@@ -184,7 +184,7 @@ export const ClientController = {
             if (!client) {
                 client = await clientRepository.findOneBy({ identificationNumber: id });
             }
-            
+
             if (!client) {
                 return res.status(404).json({ message: "Cliente no encontrado" });
             }
@@ -200,15 +200,33 @@ export const ClientController = {
         try {
             // Verificar permiso para crear clientes
             if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.CREATE)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para crear clientes' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para crear clientes'
                 });
             }
             const newClient = clientRepository.create(req.body);
             const result = await clientRepository.save(newClient);
             return res.status(201).json(result);
-        } catch (error) {
-            return res.status(500).json({ message: "Error al crear el cliente", error });
+        } catch (error: any) {
+            // Detectar error de duplicado (código MySQL 1062, PostgreSQL 23505)
+            if (error.code === 'ER_DUP_ENTRY' || error.code === '23505' || error.errno === 1062) {
+                // Extraer el campo duplicado del mensaje de error
+                const field = error.message?.includes('identificationNumber')
+                    ? 'número de identificación'
+                    : 'cliente';
+
+                return res.status(409).json({
+                    message: `Ya existe un cliente con este ${field}. Por favor, verifica los datos e intenta nuevamente.`,
+                    error: 'DUPLICATE_ENTRY'
+                });
+            }
+
+            // Otros errores de validación
+            console.error('Error al crear cliente:', error);
+            return res.status(500).json({
+                message: "Error al crear el cliente. Por favor, verifica que todos los campos estén correctos.",
+                error: error.message || 'Error desconocido'
+            });
         }
     },
 
@@ -217,20 +235,20 @@ export const ClientController = {
         try {
             // Verificar permiso para editar clientes
             if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.EDIT)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para editar clientes' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para editar clientes'
                 });
             }
             const { id } = req.params;
             const client = await clientRepository.findOneBy({ id: parseInt(id) });
-            
+
             if (!client) {
                 return res.status(404).json({ message: "Cliente no encontrado" });
             }
 
             // Sanitizar body para evitar actualizar cosas que no se deben o manejar conversiones
             const { suspension_extension_date, ...rest } = req.body;
-            
+
             clientRepository.merge(client, rest);
 
             if (suspension_extension_date !== undefined) {
@@ -250,8 +268,8 @@ export const ClientController = {
         try {
             // Verificar permiso para eliminar clientes
             if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.DELETE)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para eliminar clientes' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para eliminar clientes'
                 });
             }
             const { id } = req.params;
@@ -314,7 +332,7 @@ export const ClientController = {
 
         } catch (error: any) {
             console.error('Error al eliminar cliente:', error);
-            
+
             // Capturar error de FK y transformarlo en mensaje claro
             if (error.code === 'ER_ROW_IS_REFERENCED_2') {
                 return res.status(400).json({
@@ -324,9 +342,9 @@ export const ClientController = {
                 });
             }
 
-            return res.status(500).json({ 
-                message: 'Error al eliminar el cliente', 
-                error: error.message || error 
+            return res.status(500).json({
+                message: 'Error al eliminar el cliente',
+                error: error.message || error
             });
         }
     },
@@ -336,13 +354,13 @@ export const ClientController = {
         try {
             // Verificar permiso para ver clientes (o facturación)
             if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.VIEW)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para ver pagos del cliente' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para ver pagos del cliente'
                 });
             }
             const { id } = req.params;
             const paymentRepository = AppDataSource.getRepository(require('../entities/Payment').Payment);
-            
+
             const payments = await paymentRepository.find({
                 where: { client: { id: parseInt(id) } },
                 order: { dueDate: 'DESC' }
