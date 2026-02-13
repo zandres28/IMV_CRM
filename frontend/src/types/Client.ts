@@ -10,11 +10,11 @@ export interface Client {
     onuSerialNumber?: string;
     status: string;
     deletedAt?: string | null;
+    retirementDate?: string | null;
+    retirementReason?: string | null;
     created_at: string;
     updated_at: string;
     suspension_extension_date?: string | null;
     latestInstallationDate?: string | null;
     pendingInteractionsCount?: number;
-    retirementDate?: string | null;
-    retirementReason?: string;
 }
