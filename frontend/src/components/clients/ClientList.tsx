@@ -164,7 +164,7 @@ export const ClientList: React.FC = () => {
             );
 
             // Check if any additional service name matches the search term
-            const matchesServiceSearch = clientDetails?.additionalServices.some(s => 
+            const matchesServiceSearch = clientDetails?.additionalServices.some(s =>
                 s.serviceName?.toLowerCase().includes(searchLower) && s.status === 'active'
             );
 
@@ -192,7 +192,7 @@ export const ClientList: React.FC = () => {
             // OR if the client was created in that period (fallback for older records)
             const matchesDate = (() => {
                 if (dateFilter.month === null || dateFilter.year === null) return true;
-                
+
                 // Check installations first
                 if (clientDetails?.installations && clientDetails.installations.length > 0) {
                     return clientDetails.installations.some(inst => {
@@ -317,7 +317,7 @@ export const ClientList: React.FC = () => {
                 setClients(clients.filter(client => client.id !== id));
             } catch (error: any) {
                 console.error('Error al eliminar el cliente:', error);
-                
+
                 // Mostrar error específico de validación
                 if (error.response?.data) {
                     const errorData = error.response.data;
@@ -347,7 +347,7 @@ export const ClientList: React.FC = () => {
         const statusMap: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'default' | 'info' }> = {
             active: { label: 'Activo', color: 'success' },
             suspended: { label: 'Suspendido', color: 'warning' },
-            cancelled: { label: 'Cancelado', color: 'error' },
+            cancelled: { label: 'Retirado', color: 'error' },
             inactive: { label: 'Inactivo', color: 'default' },
             pendiente_instalacion: { label: 'Pendiente Inst.', color: 'info' }
         };
@@ -359,7 +359,7 @@ export const ClientList: React.FC = () => {
             <Typography variant="h4" gutterBottom>
                 Clientes
             </Typography>
-            
+
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={2}>
                 <Button
                     variant="contained"
@@ -369,7 +369,7 @@ export const ClientList: React.FC = () => {
                 >
                     Nuevo Cliente
                 </Button>
-                
+
                 <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
                     <FormControl size="small" sx={{ minWidth: 150 }}>
                         <InputLabel>Estado</InputLabel>
@@ -381,7 +381,7 @@ export const ClientList: React.FC = () => {
                             <MenuItem value="all">Todos</MenuItem>
                             <MenuItem value="active">Activo</MenuItem>
                             <MenuItem value="suspended">Suspendido</MenuItem>
-                            <MenuItem value="cancelled">Cancelado</MenuItem>
+                            <MenuItem value="cancelled">Retirado</MenuItem>
                             <MenuItem value="inactive">Inactivo</MenuItem>
                             <MenuItem value="pendiente_instalacion">Pendiente Inst.</MenuItem>
                             <MenuItem value="deleted">Eliminados</MenuItem>
@@ -427,10 +427,10 @@ export const ClientList: React.FC = () => {
 
                     <Box display="flex" gap={1} alignItems="center">
                         {dateFilter.month !== null && dateFilter.year !== null && (
-                            <Chip 
-                                label={`Fecha: ${dateFilter.month + 1}/${dateFilter.year}`} 
-                                onDelete={() => setDateFilter({ month: null, year: null })} 
-                                color="secondary" 
+                            <Chip
+                                label={`Fecha: ${dateFilter.month + 1}/${dateFilter.year}`}
+                                onDelete={() => setDateFilter({ month: null, year: null })}
+                                color="secondary"
                             />
                         )}
                         {(searchTerm || statusFilter !== 'all' || cityFilter !== 'all' || pendingFilter || (dateFilter.month !== null)) && (
@@ -487,11 +487,11 @@ export const ClientList: React.FC = () => {
                                             </Typography>
                                             {(client.pendingInteractionsCount || 0) > 0 && (
                                                 <Box mb={0.5}>
-                                                    <Chip 
-                                                        icon={<ReportProblemIcon style={{ width: 14, height: 14 }} />} 
-                                                        label={`${client.pendingInteractionsCount} CRM Pendientes`} 
-                                                        color="warning" 
-                                                        size="small" 
+                                                    <Chip
+                                                        icon={<ReportProblemIcon style={{ width: 14, height: 14 }} />}
+                                                        label={`${client.pendingInteractionsCount} CRM Pendientes`}
+                                                        color="warning"
+                                                        size="small"
                                                         sx={{ height: 20, fontSize: '0.70rem' }}
                                                     />
                                                 </Box>
@@ -506,7 +506,7 @@ export const ClientList: React.FC = () => {
                                             size="small"
                                         />
                                     </Box>
-                                    
+
                                     <Divider sx={{ my: 1 }} />
 
                                     <Box display="flex" alignItems="center" gap={1} mb={0.5}>
@@ -546,10 +546,10 @@ export const ClientList: React.FC = () => {
                                                     if (activeServices.some(s => /netflix/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-netflix" label="N" size="small" color="error" variant="filled" title="Netflix activo" sx={{ fontWeight: 'bold' }} />);
                                                     }
-                                                    if (activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g,'')) || /tele\s+latino/i.test(s.serviceName))) {
+                                                    if (activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g, '')) || /tele\s+latino/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-telel" label="TeleL" size="small" color="secondary" variant="filled" title="Tele Latino activo" />);
                                                     }
-                                                    if (activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g,'')))) {
+                                                    if (activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g, '')))) {
                                                         chips.push(<Chip key="svc-tvbox" label="TVBox" size="small" color="info" variant="filled" title="TVBOX activo" />);
                                                     }
                                                     return chips;
@@ -626,7 +626,7 @@ export const ClientList: React.FC = () => {
                         onPageChange={handleChangePage}
                         onRowsPerPageChange={handleChangeRowsPerPage}
                         labelRowsPerPage="Filas:"
-                        labelDisplayedRows={({ from, to, count }) => 
+                        labelDisplayedRows={({ from, to, count }) =>
                             `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
                         }
                     />
@@ -641,7 +641,7 @@ export const ClientList: React.FC = () => {
                                         active={orderBy === 'fullName'}
                                         direction={orderBy === 'fullName' ? order : 'asc'}
                                         onClick={() => handleRequestSort('fullName')}
-                                        sx={{ 
+                                        sx={{
                                             color: 'white !important',
                                             '&:hover': { color: 'white !important' },
                                             '& .MuiTableSortLabel-icon': { color: 'white !important' }
@@ -656,7 +656,7 @@ export const ClientList: React.FC = () => {
                                         active={orderBy === 'city'}
                                         direction={orderBy === 'city' ? order : 'asc'}
                                         onClick={() => handleRequestSort('city')}
-                                        sx={{ 
+                                        sx={{
                                             color: 'white !important',
                                             '&:hover': { color: 'white !important' },
                                             '& .MuiTableSortLabel-icon': { color: 'white !important' }
@@ -673,7 +673,7 @@ export const ClientList: React.FC = () => {
                                         active={orderBy === 'status'}
                                         direction={orderBy === 'status' ? order : 'asc'}
                                         onClick={() => handleRequestSort('status')}
-                                        sx={{ 
+                                        sx={{
                                             color: 'white !important',
                                             '&:hover': { color: 'white !important' },
                                             '& .MuiTableSortLabel-icon': { color: 'white !important' }
@@ -689,17 +689,17 @@ export const ClientList: React.FC = () => {
                             {paginatedClients.map((client, index) => {
                                 const services = clientServices[client.id];
                                 return (
-                                        <TableRow 
-                                            key={client.id}
-                                            onClick={() => navigate(`/clients/${client.id}`)}
-                                            sx={{ 
-                                                cursor: 'pointer',
-                                                backgroundColor: index % 2 === 0 ? 'white' : '#f5f5f5',
-                                                '&:hover': {
-                                                    backgroundColor: '#e3f2fd'
-                                                }
-                                            }}
-                                        >
+                                    <TableRow
+                                        key={client.id}
+                                        onClick={() => navigate(`/clients/${client.id}`)}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            backgroundColor: index % 2 === 0 ? 'white' : '#f5f5f5',
+                                            '&:hover': {
+                                                backgroundColor: '#e3f2fd'
+                                            }
+                                        }}
+                                    >
                                         <TableCell sx={{ whiteSpace: 'nowrap', minWidth: '220px' }}>
                                             <Box>
                                                 <Box display="flex" alignItems="center" gap={1}>
@@ -707,16 +707,26 @@ export const ClientList: React.FC = () => {
                                                         {client.fullName}
                                                     </Typography>
                                                     {(client.pendingInteractionsCount || 0) > 0 && (
-                                                        <Chip 
-                                                            icon={<ReportProblemIcon style={{ width: 14, height: 14 }} />} 
-                                                            label={`${client.pendingInteractionsCount} CRM`} 
-                                                            color="warning" 
-                                                            size="small" 
+                                                        <Chip
+                                                            icon={<ReportProblemIcon style={{ width: 14, height: 14 }} />}
+                                                            label={`${client.pendingInteractionsCount} CRM`}
+                                                            color="warning"
+                                                            size="small"
                                                             sx={{ height: 20, fontSize: '0.70rem', '& .MuiChip-label': { paddingLeft: 1, paddingRight: 1 } }}
                                                         />
                                                     )}
                                                 </Box>
                                                 {(() => {
+                                                    // Si está retirado, mostrar Fecha de Retiro
+                                                    if (client.status === 'cancelled' && client.retirementDate) {
+                                                        const rDate = parseLocalDate(client.retirementDate);
+                                                        return (
+                                                            <Typography variant="caption" color="error" sx={{ display: 'block', fontWeight: 'bold' }}>
+                                                                Retirado: {formatLocalDate(client.retirementDate)}
+                                                            </Typography>
+                                                        );
+                                                    }
+
                                                     const baseDateStr = client.latestInstallationDate || client.created_at;
                                                     if (!baseDateStr) return null;
                                                     const dateObj = parseLocalDate(baseDateStr);
@@ -761,10 +771,10 @@ export const ClientList: React.FC = () => {
                                                     if (activeServices.some(s => /netflix/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-netflix" label="N" size="small" color="error" variant="filled" title="Netflix activo" sx={{ fontWeight: 'bold' }} />);
                                                     }
-                                                    if (activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g,'')) || /tele\s+latino/i.test(s.serviceName))) {
+                                                    if (activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g, '')) || /tele\s+latino/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-telel" label="TeleL" size="small" color="secondary" variant="outlined" title="Tele Latino activo" />);
                                                     }
-                                                    if (activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g,'')))) {
+                                                    if (activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g, '')))) {
                                                         chips.push(<Chip key="svc-tvbox" label="TVBox" size="small" color="info" variant="outlined" title="TVBOX activo" />);
                                                     }
                                                     return chips;
@@ -858,7 +868,7 @@ export const ClientList: React.FC = () => {
                         onPageChange={handleChangePage}
                         onRowsPerPageChange={handleChangeRowsPerPage}
                         labelRowsPerPage="Filas por página:"
-                        labelDisplayedRows={({ from, to, count }) => 
+                        labelDisplayedRows={({ from, to, count }) =>
                             `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
                         }
                     />
@@ -879,7 +889,7 @@ export const ClientList: React.FC = () => {
                     <Alert severity="error" sx={{ mb: 2 }}>
                         {deleteError.message}
                     </Alert>
-                    
+
                     {deleteError.hint && (
                         <DialogContentText sx={{ mb: 2, fontStyle: 'italic' }}>
                             {deleteError.hint}
@@ -923,7 +933,7 @@ export const ClientList: React.FC = () => {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button 
+                    <Button
                         onClick={() => setDeleteError({ open: false, message: '' })}
                         color="primary"
                     >
@@ -933,8 +943,8 @@ export const ClientList: React.FC = () => {
             </Dialog>
 
             {/* Scroll superior sincronizado */}
-            <Box 
-                sx={{ 
+            <Box
+                sx={{
                     display: 'none'
                 }}
             >
@@ -964,9 +974,9 @@ export const ClientList: React.FC = () => {
                             {paginatedClients.map((client, index) => {
                                 const services = clientServices[client.id];
                                 return (
-                                    <TableRow 
+                                    <TableRow
                                         key={client.id}
-                                        sx={{ 
+                                        sx={{
                                             backgroundColor: index % 2 === 0 ? 'white' : '#f5f5f5',
                                             '&:hover': {
                                                 backgroundColor: '#e3f2fd'
@@ -980,11 +990,11 @@ export const ClientList: React.FC = () => {
                                                         {client.fullName}
                                                     </Typography>
                                                     {(client.pendingInteractionsCount || 0) > 0 && (
-                                                        <Chip 
-                                                            icon={<ReportProblemIcon style={{ width: 14, height: 14 }} />} 
-                                                            label={`${client.pendingInteractionsCount} CRM`} 
-                                                            color="warning" 
-                                                            size="small" 
+                                                        <Chip
+                                                            icon={<ReportProblemIcon style={{ width: 14, height: 14 }} />}
+                                                            label={`${client.pendingInteractionsCount} CRM`}
+                                                            color="warning"
+                                                            size="small"
                                                             sx={{ height: 20, fontSize: '0.70rem', '& .MuiChip-label': { paddingLeft: 1, paddingRight: 1 } }}
                                                         />
                                                     )}
@@ -1034,10 +1044,10 @@ export const ClientList: React.FC = () => {
                                                     if (activeServices.some(s => /netflix/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-netflix" label="N" size="small" color="error" variant="filled" title="Netflix activo" sx={{ fontWeight: 'bold' }} />);
                                                     }
-                                                    if (activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g,'')) || /tele\s+latino/i.test(s.serviceName))) {
+                                                    if (activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g, '')) || /tele\s+latino/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-telel" label="TeleL" size="small" color="secondary" variant="outlined" title="Tele Latino activo" />);
                                                     }
-                                                    if (activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g,'')))) {
+                                                    if (activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g, '')))) {
                                                         chips.push(<Chip key="svc-tvbox" label="TVBox" size="small" color="info" variant="outlined" title="TVBOX activo" />);
                                                     }
                                                     return chips;

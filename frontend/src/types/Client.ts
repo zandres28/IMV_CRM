@@ -15,4 +15,6 @@ export interface Client {
     suspension_extension_date?: string | null;
     latestInstallationDate?: string | null;
     pendingInteractionsCount?: number;
+    retirementDate?: string | null;
+    retirementReason?: string;
 }

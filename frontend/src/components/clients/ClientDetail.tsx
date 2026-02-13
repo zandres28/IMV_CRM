@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { Warning as WarningIcon } from '@mui/icons-material';
 import { ClientForm } from './ClientForm';
+import { ClientRetirementDialog } from './ClientRetirementDialog';
 import { ServicesList } from '../services/ServicesList';
 import { ProductsList } from '../services/ProductsList';
 import { InstallationsList } from '../installations/InstallationsList';
@@ -14,7 +16,7 @@ import { AdditionalService, ProductSold } from '../../types/AdditionalServices';
 import { AdditionalServiceService } from '../../services/AdditionalServiceService';
 import { ProductService } from '../../services/ProductService';
 import { Payment } from '../../services/MonthlyBillingService';
-import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, Restore as RestoreIcon } from '@mui/icons-material';
+import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, Restore as RestoreIcon, Edit as EditIcon } from '@mui/icons-material';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -53,6 +55,9 @@ export const ClientDetail: React.FC = () => {
     // Estado para confirmación de eliminación
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [paymentToDelete, setPaymentToDelete] = useState<number | null>(null);
+
+    // Estado para retiro de cliente
+    const [openRetirementDialog, setOpenRetirementDialog] = useState(false);
 
     const loadClient = useCallback(async () => {
         try {
@@ -128,8 +133,8 @@ export const ClientDetail: React.FC = () => {
             id: `payment-${p.id}`,
             dueDate: p.dueDate,
             monthYear: `${p.paymentMonth} ${p.paymentYear}`,
-            type: p.paymentType === 'monthly' ? 'Mensualidad' : 
-                  p.paymentType === 'installation' ? 'Instalación' : 'Otro',
+            type: p.paymentType === 'monthly' ? 'Mensualidad' :
+                p.paymentType === 'installation' ? 'Instalación' : 'Otro',
             amount: p.amount,
             status: p.status,
             paymentDate: p.paymentDate,
@@ -137,7 +142,7 @@ export const ClientDetail: React.FC = () => {
             isProduct: false
         }));
 
-        const productInstallments = products.flatMap(product => 
+        const productInstallments = products.flatMap(product =>
             (product.installmentPayments || []).map(inst => ({
                 id: `installment-${inst.id}`,
                 dueDate: inst.dueDate,
@@ -151,10 +156,10 @@ export const ClientDetail: React.FC = () => {
             }))
         );
 
-        const combined = [...regularPayments, ...productInstallments].sort((a, b) => 
+        const combined = [...regularPayments, ...productInstallments].sort((a, b) =>
             new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()
         );
-        
+
         console.log('Pagos combinados y ordenados:', combined);
         return combined;
     }, [payments, products]);
@@ -173,7 +178,7 @@ export const ClientDetail: React.FC = () => {
         const statusMap: Record<string, string> = {
             active: 'Activo',
             suspended: 'Suspendido',
-            cancelled: 'Cancelado',
+            cancelled: 'Retirado',
             pendiente_instalacion: 'Pendiente Instalación'
         };
         return statusMap[status] || status;
@@ -235,14 +240,14 @@ export const ClientDetail: React.FC = () => {
                     {(location.state as any)?.from === 'billing' ? 'Regresar a Facturación' : 'Regresar al listado'}
                 </Button>
             </Box>
-            <Paper 
-                sx={{ 
-                    p: 3, 
+            <Paper
+                sx={{
+                    p: 3,
                     mb: 2,
                     borderLeft: 6,
-                    borderColor: client.status === 'active' ? 'success.main' : 
-                                 client.status === 'suspended' ? 'warning.main' : 
-                                 client.status === 'pendiente_instalacion' ? 'info.main' : 'error.main'
+                    borderColor: client.status === 'active' ? 'success.main' :
+                        client.status === 'suspended' ? 'warning.main' :
+                            client.status === 'pendiente_instalacion' ? 'info.main' : 'error.main'
                 }}
             >
                 <Grid container spacing={2} alignItems="center">
@@ -278,8 +283,8 @@ export const ClientDetail: React.FC = () => {
                                 {(() => {
                                     const activeServices = additionalServices.filter(s => s.status === 'active');
                                     const hasNetflix = activeServices.some(s => /netflix/i.test(s.serviceName));
-                                    const hasTeleLatino = activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g,'')) || /tele\s+latino/i.test(s.serviceName));
-                                    const hasTvBox = activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g,'')));
+                                    const hasTeleLatino = activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g, '')) || /tele\s+latino/i.test(s.serviceName));
+                                    const hasTvBox = activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g, '')));
                                     return (
                                         <>
                                             {hasNetflix && (
@@ -321,7 +326,7 @@ export const ClientDetail: React.FC = () => {
                                     const productName = product.productName.toLowerCase();
                                     let label = product.productName;
                                     let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default';
-                                    
+
                                     // Simplificar nombre para productos comunes
                                     if (/tv\s*box|tvbox/i.test(productName)) {
                                         label = 'TVBox';
@@ -333,7 +338,7 @@ export const ClientDetail: React.FC = () => {
                                         label = 'Antena';
                                         color = 'secondary';
                                     }
-                                    
+
                                     return (
                                         <Chip
                                             key={`prod-${product.id}`}
@@ -350,19 +355,28 @@ export const ClientDetail: React.FC = () => {
                     </Grid>
                     <Grid item xs={12} md={4} textAlign={{ xs: 'left', md: 'right' }}>
                         <Box display="flex" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} alignItems="center" gap={1}>
-                            <Chip 
+                            <Chip
                                 label={getStatusLabel(client.status)}
                                 color={getStatusColor(client.status)}
                                 sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}
                             />
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                startIcon={client.status === 'cancelled' ? <EditIcon /> : <WarningIcon />}
+                                onClick={() => setOpenRetirementDialog(true)}
+                            >
+                                {client.status === 'cancelled' ? 'Editar Retiro' : 'Retirar'}
+                            </Button>
                         </Box>
                     </Grid>
                 </Grid>
             </Paper>
 
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs 
-                    value={tabValue} 
+                <Tabs
+                    value={tabValue}
                     onChange={handleTabChange}
                     variant="scrollable"
                     scrollButtons="auto"
@@ -418,13 +432,13 @@ export const ClientDetail: React.FC = () => {
                                         {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(payment.amount)}
                                     </TableCell>
                                     <TableCell>
-                                        <Chip 
-                                            label={payment.status === 'paid' ? 'Pagado' : 
-                                                   payment.status === 'pending' ? 'Pendiente' : 
-                                                   payment.status === 'overdue' ? 'Vencido' : 'Cancelado'}
-                                            color={payment.status === 'paid' ? 'success' : 
-                                                   payment.status === 'pending' ? 'warning' : 
-                                                   payment.status === 'overdue' ? 'error' : 'default'}
+                                        <Chip
+                                            label={payment.status === 'paid' ? 'Pagado' :
+                                                payment.status === 'pending' ? 'Pendiente' :
+                                                    payment.status === 'overdue' ? 'Vencido' : 'Cancelado'}
+                                            color={payment.status === 'paid' ? 'success' :
+                                                payment.status === 'pending' ? 'warning' :
+                                                    payment.status === 'overdue' ? 'error' : 'default'}
                                             size="small"
                                         />
                                     </TableCell>
@@ -452,7 +466,17 @@ export const ClientDetail: React.FC = () => {
             <TabPanel value={tabValue} index={5}>
                 <ClientInteractionHistory clientId={client.id} />
             </TabPanel>
-            
+
+            <ClientRetirementDialog
+                open={openRetirementDialog}
+                onClose={() => setOpenRetirementDialog(false)}
+                client={client}
+                onSuccess={() => {
+                    loadClient();
+                    loadInstallations();
+                }}
+            />
+
             <Dialog
                 open={openDeleteDialog}
                 onClose={() => setOpenDeleteDialog(false)}

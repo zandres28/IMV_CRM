@@ -349,7 +349,6 @@ export const ClientController = {
         }
     },
 
-    // Obtener pagos de un cliente
     getPayments: async (req: AuthRequest, res: Response) => {
         try {
             // Verificar permiso para ver clientes (o facturación)
@@ -369,6 +368,71 @@ export const ClientController = {
             return res.json(payments);
         } catch (error) {
             return res.status(500).json({ message: "Error al obtener los pagos del cliente", error });
+        }
+    },
+
+    // Retirar un cliente formalmente (Baja de servicio)
+    retireClient: async (req: AuthRequest, res: Response) => {
+        try {
+            // Verificar permiso para editar/eliminar clientes
+            if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.EDIT)) {
+                return res.status(403).json({
+                    message: 'No tienes permiso para dar de baja clientes'
+                });
+            }
+            const { id } = req.params;
+            const { retirementDate, reason } = req.body;
+
+            if (!retirementDate || !reason) {
+                return res.status(400).json({ message: "Fecha de retiro y motivo son requeridos" });
+            }
+
+            const clientId = parseInt(id);
+            const client = await clientRepository.findOne({
+                where: { id: clientId },
+                relations: ['installations']
+            });
+
+            if (!client) {
+                return res.status(404).json({ message: "Cliente no encontrado" });
+            }
+
+            // Actualizar cliente
+            client.status = 'cancelled';
+            client.retirementDate = new Date(retirementDate);
+            client.retirementReason = reason;
+
+            await clientRepository.save(client);
+
+            // Actualizar instalaciones activas
+            const installationRepository = AppDataSource.getRepository(require('../entities/Installation').Installation);
+            const activeInstallations = (client.installations || []).filter(i => i.serviceStatus === 'active' && !i.isDeleted);
+
+            for (const installation of activeInstallations) {
+                installation.serviceStatus = 'cancelled';
+                installation.retirementDate = new Date(retirementDate);
+                // Opcional: Agregar nota sobre el retiro
+                installation.notes = (installation.notes ? installation.notes + '\n' : '') + `Retiro formal: ${reason} (${retirementDate})`;
+                await installationRepository.save(installation);
+            }
+
+            // Crear nota/interacción
+            await createNoteInteraction(
+                clientId,
+                `Cliente dado de baja.\nFecha: ${retirementDate}\nMotivo: ${reason}`,
+                'Baja de Servicio',
+                req.user?.id
+            );
+
+            return res.json({
+                message: "Cliente dado de baja exitosamente",
+                client,
+                affectedInstallations: activeInstallations.length
+            });
+
+        } catch (error) {
+            console.error('Error al retirar cliente:', error);
+            return res.status(500).json({ message: "Error al procesar el retiro del cliente", error });
         }
     },
 };

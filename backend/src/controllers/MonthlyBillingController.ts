@@ -42,9 +42,10 @@ export class MonthlyBillingController {
             const installmentRepository = queryRunner.manager.getRepository(ProductInstallment);
             const outageRepository = queryRunner.manager.getRepository(ServiceOutage);
 
-            // Obtener todos los clientes (activos e inactivos) para verificar si tienen cobros pendientes o retiros recientes
+            // Obtener todos los clientes (activos e inactivos) pero filtrar aquellos retirados ANTES del mes de facturación
+            // Nota: La lógica detallada de exclusión está más abajo en el filtrado de instalaciones, 
+            // pero podemos optimizar aquí si quisiéramos. Por ahora traemos todos.
             const clients = await clientRepository.find({
-                // where: { status: 'active' }, // Se comenta para permitir facturar clientes retirados en el mes
                 relations: ['installations', 'installations.servicePlan']
             });
 
@@ -96,20 +97,26 @@ export class MonthlyBillingController {
                         return true;
                     }
 
-                    // Si NO está activa (cancelada/suspendida), solo incluir si tiene retirementDate dentro del mes o posterior
+                    // Si NO está activa (cancelada/suspendida), verificación estricta de fecha de retiro
                     if (inst.retirementDate) {
                         const rDate = parseLocalDate(inst.retirementDate as unknown as string) || new Date(inst.retirementDate);
 
-                        // FIX: Problema con Carlota/Consuelo. Retiro el 30 Enero. Facturando Enero (mes actual).
-                        // Si se retiró ANTES de que empiece este mes, NO se debe facturar NADA.
+                        // Si se retiró ANTES de que empiece este mes, NO facturar (obvio)
                         if (rDate < firstDayOfMonth) {
                             return false;
                         }
 
-                        // Si se retiró durante este mes (o después), facturar (prorrateado o completo)
-                        return rDate >= firstDayOfMonth;
+                        // NUEVA REGLA (FEB 2026): Si se retira DURANTE este mes, NO FACTURAR NADA.
+                        // El usuario pidió explícitamente: "Dicho cliente retirado ya no debe salir en la facturación de ese mes en el que se retiró."
+                        if (rDate >= firstDayOfMonth && rDate <= lastDayOfMonth) {
+                            return false;
+                        }
+
+                        // Si se retira DESPUÉS de este mes, facturar normal (porque estuvo activo todo el mes)
+                        return true;
                     }
 
+                    // Si no tiene fecha de retiro pero no está activa, no facturar (mejor prevenir)
                     return false;
                 });
 
