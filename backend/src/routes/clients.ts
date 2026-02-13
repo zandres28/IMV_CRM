@@ -12,6 +12,7 @@ router.get("/:id", requirePermission(PERMISSIONS.CLIENTS.LIST.VIEW), ClientContr
 router.post("/", requirePermission(PERMISSIONS.CLIENTS.LIST.CREATE), ClientController.create);
 router.put("/:id", requirePermission(PERMISSIONS.CLIENTS.LIST.EDIT), ClientController.update);
 router.delete("/:id", requirePermission(PERMISSIONS.CLIENTS.LIST.DELETE), ClientController.delete);
+router.post("/:id/retire", requirePermission(PERMISSIONS.CLIENTS.LIST.EDIT), ClientController.retireClient);
 
 // Endpoint administrativo para normalizar nombres
 router.post("/normalize-names", requirePermission(PERMISSIONS.CLIENTS.LIST.EDIT), ClientController.normalizeAllNames);

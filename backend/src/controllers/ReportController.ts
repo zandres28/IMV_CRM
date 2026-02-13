@@ -5,6 +5,7 @@ import { Payment } from '../entities/Payment';
 import { AdditionalService } from '../entities/AdditionalService';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { hasPermission, PERMISSIONS, getDataScopeForUser } from '../utils/permissions';
+import { Brackets } from 'typeorm';
 
 export const ReportController = {
     search: async (req: AuthRequest, res: Response) => {
@@ -12,16 +13,16 @@ export const ReportController = {
             // Verificar permiso para ver consultas
             const canViewAll = hasPermission(req.user, PERMISSIONS.QUERIES.VIEW);
             const canViewOwn = hasPermission(req.user, PERMISSIONS.QUERIES.OWN);
-            
+
             if (!canViewAll && !canViewOwn) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para realizar consultas' 
+                return res.status(403).json({
+                    message: 'No tienes permiso para realizar consultas'
                 });
             }
 
             // Determinar el alcance de datos para el usuario
             const dataScope = getDataScopeForUser(req.user!);
-            
+
             // Si solo puede ver sus propios datos, retornar mensaje informativo
             // Los usuarios normales no tienen clientes asignados
             if (dataScope === 'own') {
@@ -43,7 +44,8 @@ export const ReportController = {
                 pageSize = '25',
                 planId,
                 installationMonth,
-                installationYear
+                installationYear,
+                reportType = 'account_status' // nuevo parámetro
             } = req.query;
 
             const pageNum = parseInt(page as string, 10);
@@ -53,6 +55,135 @@ export const ReportController = {
             const clientRepository = AppDataSource.getRepository(Client);
             const paymentRepository = AppDataSource.getRepository(Payment);
             const additionalServiceRepository = AppDataSource.getRepository(AdditionalService);
+
+            // ==========================================
+            // REPORTE DE RETIRADOS
+            // ==========================================
+            if (reportType === 'retired') {
+                let queryBuilder = clientRepository
+                    .createQueryBuilder('client')
+                    .leftJoinAndSelect('client.installations', 'installation')
+                    .where('client.retirementDate IS NOT NULL')
+                    .andWhere('client.status != :status', { status: 'active' });
+
+                if (search) {
+                    queryBuilder.andWhere(
+                        '(client.fullName LIKE :search OR client.identificationNumber LIKE :search)',
+                        { search: `%${search}%` }
+                    );
+                }
+
+                // Filtro por fecha de retiro (opcional, usando installationMonth/Year como proxy de fecha de retiro si se desea, 
+                // pero por ahora lo dejamos simple o reutilizamos los params)
+                if (installationMonth && installationYear) {
+                    const monthIndex = parseInt(installationMonth as string) - 1;
+                    const year = parseInt(installationYear as string);
+                    const startDate = new Date(year, monthIndex, 1);
+                    const endDate = new Date(year, monthIndex + 1, 0);
+                    queryBuilder.andWhere('client.retirementDate BETWEEN :startDate AND :endDate', { startDate, endDate });
+                }
+
+                const total = await queryBuilder.getCount();
+                const clients = await queryBuilder
+                    .orderBy('client.retirementDate', 'DESC')
+                    .skip(skip)
+                    .take(pageSizeNum)
+                    .getMany();
+
+                const rows = clients.map(client => ({
+                    id: `CL-${String(client.id).padStart(4, '0')}`,
+                    clientId: client.id,
+                    fullName: client.fullName,
+                    primaryPhone: client.primaryPhone,
+                    retirementDate: client.retirementDate,
+                    retirementReason: client.retirementReason,
+                    installationDate: client.installations?.find(i => !i.isDeleted)?.installationDate || null,
+                    city: client.city
+                }));
+
+                return res.json({
+                    data: rows,
+                    summary: { totalFiltered: total },
+                    pagination: { page: pageNum, pageSize: pageSizeNum, total }
+                });
+            }
+
+            // ==========================================
+            // REPORTE DE SERVICIOS ADICIONALES
+            // ==========================================
+            if (reportType === 'services') {
+                // Buscamos clientes que tengan servicios adicionales activos O productos pendientes/activos
+
+                let queryBuilder = clientRepository
+                    .createQueryBuilder('client')
+                    .leftJoinAndSelect('client.additionalServices', 'service', 'service.status = :svcStatus', { svcStatus: 'active' })
+                    .leftJoinAndSelect('client.productsSold', 'product', 'product.status = :prodStatus', { prodStatus: 'pending' })
+                    .where('client.status = :status', { status: 'active' });
+
+                if (search) {
+                    queryBuilder.andWhere(
+                        '(client.fullName LIKE :search OR client.identificationNumber LIKE :search)',
+                        { search: `%${search}%` }
+                    );
+                }
+
+                const { serviceType = 'all' } = req.query;
+
+                // Filtrar para que tenga AL MENOS uno de los dos (servicio o producto) dependiendo del filtro
+                queryBuilder.andWhere(new Brackets(qb => {
+                    if (serviceType === 'service') {
+                        qb.where('service.id IS NOT NULL');
+                    } else if (serviceType === 'product') {
+                        qb.where('product.id IS NOT NULL');
+                    } else {
+                        // 'all' (default): uno u otro
+                        qb.where('service.id IS NOT NULL')
+                            .orWhere('product.id IS NOT NULL');
+                    }
+                }));
+
+                const total = await queryBuilder.getCount();
+                const clients = await queryBuilder
+                    .skip(skip)
+                    .take(pageSizeNum)
+                    .getMany();
+
+                const rows = clients.map(client => {
+                    const services = client.additionalServices?.map(s => `${s.serviceName} ($${s.monthlyFee})`) || [];
+                    const products = client.productsSold?.map(p => `${p.productName} (Cuota: $${p.installmentAmount})`) || [];
+
+                    const combinedList = [...services, ...products].join(', ');
+
+                    const servicesTotal = client.additionalServices?.reduce((sum, s) => sum + Number(s.monthlyFee), 0) || 0;
+                    const productsTotal = client.productsSold?.reduce((sum, p) => sum + Number(p.installmentAmount), 0) || 0;
+
+                    const totalAdditional = servicesTotal + productsTotal;
+
+                    return {
+                        id: `CL-${String(client.id).padStart(4, '0')}`,
+                        clientId: client.id,
+                        fullName: client.fullName,
+                        primaryPhone: client.primaryPhone,
+                        plan: 'N/A',
+                        servicesList: combinedList,
+                        totalAdditional: totalAdditional,
+                        city: client.city
+                    };
+                });
+
+                return res.json({
+                    data: rows,
+                    summary: {
+                        totalFiltered: total,
+                        totalRevenue: rows.reduce((sum, r) => sum + r.totalAdditional, 0)
+                    },
+                    pagination: { page: pageNum, pageSize: pageSizeNum, total }
+                });
+            }
+
+            // ==========================================
+            // REPORTE POR DEFECTO: ESTADO DE CUENTA
+            // ==========================================
 
             // Construir query base
             let queryBuilder = clientRepository
@@ -128,15 +259,15 @@ export const ReportController = {
                 // Si no, mantenemos el comportamiento original de solo ver activas
                 const filterActive = !(installationMonth && installationYear);
 
-                const activeInstallations = client.installations?.filter(inst => 
+                const activeInstallations = client.installations?.filter(inst =>
                     !inst.isDeleted && (filterActive ? inst.isActive : true)
                 ) || [];
-                
+
                 if (activeInstallations.length === 0) continue;
 
                 // Obtener servicios adicionales activos
                 const additionalServices = await additionalServiceRepository.find({
-                    where: { 
+                    where: {
                         client: { id: client.id },
                         status: 'active' as any
                     }
@@ -160,15 +291,15 @@ export const ReportController = {
                         continue;
                     }
                     const payment = payments.find(p => p.installation?.id === installation.id);
-                    
+
                     let dias = 0;
                     let tipo = 'RECORDATORIO';
-                    
+
                     if (payment && payment.dueDate) {
                         const dueDate = new Date(payment.dueDate);
                         const diffTime = currentDate.getTime() - dueDate.getTime();
                         dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
+
                         if (dias < 0) {
                             tipo = 'PROXIMO';
                         } else if (dias >= 0 && dias <= 5) {

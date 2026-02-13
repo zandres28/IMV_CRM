@@ -17,14 +17,14 @@ services:
     build: ./backend
     restart: always
     ports:
-      - "${PORT}:${PORT}"
+      - "${PORT:-3010}:${PORT:-3010}"
     environment:
-      - PORT=${PORT}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${MYSQL_USER}
-      - DB_PASSWORD=${MYSQL_PASSWORD}
-      - DB_NAME=${MYSQL_DATABASE}
+      - PORT=${PORT:-3010}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${MYSQL_USER:-root}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-rootpassword}
+      - DB_NAME=${MYSQL_DATABASE:-imv_crm}
       - JWT_SECRET=${JWT_SECRET}
       - N8N_API_KEY=${N8N_API_KEY}
     volumes:
