@@ -24,6 +24,13 @@ else
     docker compose up -d --build --remove-orphans
 fi
 
+# 2.5 Ejecutar migraciones en el backend (si aplica)
+echo "[2.5] Ejecutando migraciones en el backend (si hay)..."
+if command -v docker-compose &> /dev/null; then
+    docker-compose exec backend npm run migration:run
+else
+    docker compose exec backend npm run migration:run
+fi
 # 3. Limpieza
 echo "[3/3] Limpiando imágenes antiguas para ahorrar espacio..."
 docker image prune -f
