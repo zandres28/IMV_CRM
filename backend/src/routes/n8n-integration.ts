@@ -24,4 +24,7 @@ router.get('/suspension-candidates', (req, res) => N8nIntegrationController.getS
 // Resetear estado recordatorios (Admin/Tools)
 router.post('/reset-reminders', (req, res) => N8nIntegrationController.resetRemindersStatus(req, res));
 
+// Enviar promociones (imagenes/textos) vía n8n -> Devuelve lista de clientes activos con teléfono
+router.post('/promotions/send', (req, res) => N8nIntegrationController.sendPromotions(req, res));
+
 export default router;
