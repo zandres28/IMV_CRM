@@ -39,12 +39,16 @@ export const ClientService = {
         await axios.delete(`${API_URL}/monthly-billing/${paymentId}`);
     },
 
-    retire: async (id: number, retirementDate: string, reason: string): Promise<void> => {
-        await axios.post(`${API_URL}/clients/${id}/retire`, { retirementDate, reason });
-    },
-
     resetReminderStatus: async (phone: string): Promise<any> => {
         const response = await axios.post(`${API_URL}/interactions/reset-n8n-reminder`, { phone });
+        return response.data;
+    },
+
+    retire: async (id: number, retirementDate: string, reason: string): Promise<Client> => {
+        const response = await axios.post(`${API_URL}/clients/${id}/retire`, {
+            retirementDate,
+            reason
+        });
         return response.data;
     },
 };

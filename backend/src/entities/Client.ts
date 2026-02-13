@@ -13,7 +13,7 @@ export class Client {
 
     @Column()
     fullName: string;
-
+    
     // ...
 
     @Column({ type: 'date', nullable: true, transformer: dateOnlyTransformer })
@@ -48,7 +48,7 @@ export class Client {
     retirementDate?: Date | null;
 
     @Column({ type: 'text', nullable: true })
-    retirementReason?: string;
+    retirementReason?: string | null;
 
     @DeleteDateColumn()
     deletedAt?: Date;
