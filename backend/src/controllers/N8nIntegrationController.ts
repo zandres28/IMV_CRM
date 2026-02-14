@@ -431,9 +431,17 @@ export const N8nIntegrationController = {
     // Requiere header `x-n8n-api-key` igual a process.env.N8N_API_KEY
     sendPromotions: async (req: Request, res: Response) => {
         try {
-            const apiKeyHeader = String(req.headers['x-n8n-api-key'] || '');
-            if (!process.env.N8N_API_KEY || apiKeyHeader !== process.env.N8N_API_KEY) {
-                return res.status(401).json({ message: 'Unauthorized' });
+            // Aceptar tanto `x-n8n-api-key` como `x-api-key` y también ?apiKey query param
+            const apiKeyHeader = String(req.headers['x-n8n-api-key'] || req.headers['x-api-key'] || req.query.apiKey || '');
+            const validApiKey = process.env.N8N_API_KEY;
+
+            if (!validApiKey) {
+                console.error('N8N_API_KEY is not defined in environment variables');
+                return res.status(500).json({ message: 'Server configuration error' });
+            }
+
+            if (!apiKeyHeader || apiKeyHeader !== validApiKey) {
+                return res.status(401).json({ message: 'Invalid or missing API Key' });
             }
 
             const { message, images } = req.body as { message?: string; images?: string[] };

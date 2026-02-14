@@ -49,8 +49,7 @@ import {
     Clear as ClearIcon,
     ExpandMore as ExpandMoreIcon,
     NotificationsActive as ReminderOnIcon,
-    NotificationsOff as ReminderOffIcon,
-    DeleteSweep as DeleteSweepIcon
+    NotificationsOff as ReminderOffIcon
 } from '@mui/icons-material';
 import MonthlyBillingService, { Payment, BillingStats } from '../../services/MonthlyBillingService';
 
@@ -80,7 +79,7 @@ const MonthlyBilling: React.FC = () => {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'month' | 'cumulative'>('month');
     const [searchTerm, setSearchTerm] = useState('');
-
+    
     const filteredPayments = payments.filter(payment => {
         if (!payment.client) return false; // Skip orphan payments
         if (!searchTerm) return true;
@@ -99,7 +98,7 @@ const MonthlyBilling: React.FC = () => {
     const [selectedPaymentIds, setSelectedPaymentIds] = useState<number[]>([]);
     const allSelected = selectedPaymentIds.length > 0 && selectedPaymentIds.length === filteredPayments.length;
     const someSelected = selectedPaymentIds.length > 0 && selectedPaymentIds.length < filteredPayments.length;
-
+    
     // Snackbar feedback
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>(
         { open: false, message: '', severity: 'success' }
@@ -125,10 +124,10 @@ const MonthlyBilling: React.FC = () => {
         try {
             setLoading(true);
             await MonthlyBillingService.setReminderStatus(clientIds, sent);
-            setSnackbar({
-                open: true,
-                message: sent ? 'Recordatorios marcados como enviados' : 'Recordatorios reseteados (habilitados para envío)',
-                severity: 'success'
+            setSnackbar({ 
+                open: true, 
+                message: sent ? 'Recordatorios marcados como enviados' : 'Recordatorios reseteados (habilitados para envío)', 
+                severity: 'success' 
             });
             await loadBillingData(); // Reload to see changes
         } catch (error) {
@@ -166,33 +165,6 @@ const MonthlyBilling: React.FC = () => {
         setSearchTerm('');
         setFilterStatus('all');
         setPage(0);
-    };
-
-    const handleRollbackBilling = async () => {
-        if (window.confirm(`¿ESTÁS SEGURO? Esto eliminará TODOS los cobros pendientes y vencidos de ${selectedMonth} ${selectedYear} y restaurará las caídas de servicio. Esta acción no se puede deshacer.`)) {
-            const secondConfirm = window.confirm(`¿Confirmas nuevamente que deseas eliminar la facturación de ${selectedMonth} ${selectedYear}?`);
-            if (!secondConfirm) return;
-
-            setLoading(true);
-            try {
-                await MonthlyBillingService.rollbackMonthlyBilling(selectedMonth, selectedYear);
-                setSnackbar({
-                    open: true,
-                    message: `Facturación de ${selectedMonth} ${selectedYear} deshecha exitosamente`,
-                    severity: 'success'
-                });
-                loadBillingData();
-            } catch (error: any) {
-                console.error('Error deshaciendo cobros:', error);
-                setSnackbar({
-                    open: true,
-                    message: error?.response?.data?.message || 'Error deshaciendo cobros',
-                    severity: 'error'
-                });
-            } finally {
-                setLoading(false);
-            }
-        }
     };
 
     const handleGenerateBilling = async () => {
@@ -240,7 +212,7 @@ const MonthlyBilling: React.FC = () => {
             const extraAmount = selectedPayment.client?.productsSold?.flatMap(p => p.installmentPayments || [])
                 .filter(i => extraInstallmentIds.includes(i.id))
                 .reduce((sum, i) => sum + Number(i.amount), 0) || 0;
-
+            
             const totalAmount = Number(selectedPayment.amount) + extraAmount;
 
             await MonthlyBillingService.registerPayment(selectedPayment.id, {
@@ -281,9 +253,9 @@ const MonthlyBilling: React.FC = () => {
     };
 
     const toggleSelectOne = (paymentId: number, status: string) => {
-        setSelectedPaymentIds(prev =>
-            prev.includes(paymentId)
-                ? prev.filter(id => id !== paymentId)
+        setSelectedPaymentIds(prev => 
+            prev.includes(paymentId) 
+                ? prev.filter(id => id !== paymentId) 
                 : [...prev, paymentId]
         );
     };
@@ -301,7 +273,7 @@ const MonthlyBilling: React.FC = () => {
             alert('Debe seleccionar un método de pago');
             return;
         }
-
+        
         try {
             // Obtener IDs de cliente únicos de los pagos seleccionados
             const clientIds = Array.from(new Set(
@@ -322,35 +294,35 @@ const MonthlyBilling: React.FC = () => {
             const updated = resp?.summary?.updated ?? 0;
             const already = resp?.summary?.alreadyPaid?.length ?? 0;
             const notFound = resp?.summary?.notFound?.length ?? 0;
-
-            setSnackbar({
-                open: true,
-                message: `Pagos actualizados: ${updated}. Ya pagados: ${already}. Sin pago: ${notFound}.`,
-                severity: 'success'
+            
+            setSnackbar({ 
+                open: true, 
+                message: `Pagos actualizados: ${updated}. Ya pagados: ${already}. Sin pago: ${notFound}.`, 
+                severity: 'success' 
             });
-
+            
             setBulkDialogOpen(false);
             setSelectedPaymentIds([]);
             loadBillingData();
         } catch (e: any) {
-            setSnackbar({
-                open: true,
-                message: e?.response?.data?.message || 'Error marcando pagos',
-                severity: 'error'
+            setSnackbar({ 
+                open: true, 
+                message: e?.response?.data?.message || 'Error marcando pagos', 
+                severity: 'error' 
             });
         }
     };
 
     const getStatusChipProps = (payment: Payment) => {
         let status = payment.status;
-
+        
         // Visual override for pending payments that are past due date
         if (status === 'pending') {
             const dueDate = new Date(payment.dueDate);
             const now = new Date();
             // Reset hours to compare dates only
-            dueDate.setHours(23, 59, 59, 999);
-
+            dueDate.setHours(23, 59, 59, 999); 
+            
             if (now > dueDate) {
                 status = 'overdue';
             }
@@ -394,40 +366,40 @@ const MonthlyBilling: React.FC = () => {
                                     {payment.paymentMonth} {payment.paymentYear}
                                 </Typography>
                             </Box>
-                            <Chip
-                                label={payment.status === 'paid' ? 'Pagado' : (payment.status === 'overdue' ? 'Vencido' : 'Pendiente')}
-                                color={payment.status === 'paid' ? 'success' : (payment.status === 'overdue' ? 'error' : 'warning')}
-                                size="small"
+                            <Chip 
+                                label={payment.status === 'paid' ? 'Pagado' : (payment.status === 'overdue' ? 'Vencido' : 'Pendiente')} 
+                                color={payment.status === 'paid' ? 'success' : (payment.status === 'overdue' ? 'error' : 'warning')} 
+                                size="small" 
                             />
                         </Box>
-
+                        
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                            <Typography variant="body2">
+                             <Typography variant="body2">
                                 Plan: {formatCurrency(Number(payment.servicePlanAmount))}
-                            </Typography>
-                            <Typography variant="h6" color="primary">
+                             </Typography>
+                             <Typography variant="h6" color="primary">
                                 {formatCurrency(Number(payment.amount))}
-                            </Typography>
+                             </Typography>
                         </Box>
 
                         {payment.client?.secondaryPhone && (
-                            <Typography variant="caption" display="block" color="text.secondary">
+                             <Typography variant="caption" display="block" color="text.secondary">
                                 WhatsApp: {payment.client.secondaryPhone}
-                            </Typography>
+                             </Typography>
                         )}
                     </CardContent>
-
+                    
                     <Box display="flex" justifyContent="flex-end" p={1} gap={1} borderTop={1} borderColor="divider">
-                        <IconButton
-                            size="small"
+                         <IconButton 
+                            size="small" 
                             onClick={(e) => { e.stopPropagation(); handleOpenDetailDialog(payment); }}
-                        >
+                         >
                             <VisibilityIcon />
                         </IconButton>
                         {(payment.status === 'pending' || payment.status === 'overdue') && (
-                            <Button
-                                variant="contained"
-                                size="small"
+                            <Button 
+                                variant="contained" 
+                                size="small" 
                                 startIcon={<PaymentIcon />}
                                 onClick={(e) => { e.stopPropagation(); handleOpenPaymentDialog(payment); }}
                             >
@@ -494,15 +466,6 @@ const MonthlyBilling: React.FC = () => {
                     >
                         Generar Cobros
                     </Button>
-                    <Button
-                        variant="outlined"
-                        color="error"
-                        startIcon={<DeleteSweepIcon />}
-                        onClick={handleRollbackBilling}
-                        disabled={loading || payments.length === 0}
-                    >
-                        Deshacer Cobros
-                    </Button>
                 </Box>
             </Box>
 
@@ -563,7 +526,7 @@ const MonthlyBilling: React.FC = () => {
                             </CardContent>
                         </Card>
                     </Grid>
-
+                    
                     {/* Nuevas tarjetas de desglose */}
                     <Grid item xs={12} sm={6} md={3}>
                         <Card variant="outlined">
@@ -666,210 +629,210 @@ const MonthlyBilling: React.FC = () => {
 
             {/* Tabla de pagos (Desktop) o Tarjetas (Mobile) */}
             {isMobile ? renderMobileCards() : (
-                <TableContainer component={Paper}>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: '#1976d2' }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', width: 48 }}>
-                                    <Tooltip title={allSelected ? 'Deseleccionar todos' : 'Seleccionar todos (solo pendientes)'}>
-                                        <Checkbox
-                                            indeterminate={someSelected}
-                                            checked={allSelected}
-                                            onChange={toggleSelectAll}
-                                            sx={{ color: 'white' }}
-                                        />
-                                    </Tooltip>
+            <TableContainer component={Paper}>
+                <Table size="small">
+                    <TableHead>
+                        <TableRow sx={{ backgroundColor: '#1976d2' }}>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold', width: 48 }}>
+                                <Tooltip title={allSelected ? 'Deseleccionar todos' : 'Seleccionar todos (solo pendientes)'}>
+                                    <Checkbox
+                                        indeterminate={someSelected}
+                                        checked={allSelected}
+                                        onChange={toggleSelectAll}
+                                        sx={{ color: 'white' }}
+                                    />
+                                </Tooltip>
+                            </TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Cliente</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Servicio</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha Instalación</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Acciones</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {paginatedPayments.map((payment, index) => (
+                            <TableRow 
+                                key={payment.id}
+                                sx={{ 
+                                    backgroundColor: index % 2 === 0 ? 'white' : '#f5f5f5',
+                                    '&:hover': { backgroundColor: '#e3f2fd' }
+                                }}
+                            >
+                                <TableCell>
+                                    <Checkbox
+                                        checked={selectedPaymentIds.includes(payment.id)}
+                                        onChange={() => toggleSelectOne(payment.id, payment.status)}
+                                    />
                                 </TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Cliente</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Servicio</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha Instalación</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Acciones</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {paginatedPayments.map((payment, index) => (
-                                <TableRow
-                                    key={payment.id}
-                                    sx={{
-                                        backgroundColor: index % 2 === 0 ? 'white' : '#f5f5f5',
-                                        '&:hover': { backgroundColor: '#e3f2fd' }
-                                    }}
-                                >
-                                    <TableCell>
-                                        <Checkbox
-                                            checked={selectedPaymentIds.includes(payment.id)}
-                                            onChange={() => toggleSelectOne(payment.id, payment.status)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Box
-                                            sx={{ cursor: 'pointer' }}
-                                            title="Ver detalles del cliente"
-                                            onClick={() => payment.client && navigate(`/clients/${payment.client.id}`, { state: { from: 'billing' } })}
-                                        >
-                                            <Typography variant="body2" sx={{ fontWeight: 500, textDecoration: 'underline' }}>
-                                                {payment.client?.fullName || 'Cliente Desconocido'}
-                                            </Typography>
-                                            <Typography variant="caption" color="textSecondary">
-                                                {payment.client?.identificationNumber || '-'}
-                                            </Typography>
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                            {payment.client?.installations && payment.client.installations.length > 0 ? (
-                                                payment.client.installations
-                                                    .filter(inst => inst.isActive)
-                                                    .map((inst, i) => (
-                                                        <Chip
-                                                            key={`plan-${i}`}
-                                                            label={inst.servicePlan?.name || inst.serviceType}
-                                                            size="small"
-                                                            color="primary"
-                                                            variant="filled"
-                                                            sx={{ fontWeight: 'bold' }}
-                                                        />
-                                                    ))
-                                            ) : (
-                                                <Chip
-                                                    label={payment.installation?.servicePlan?.name || payment.installation?.serviceType || '-'}
-                                                    size="small"
-                                                    color="default"
-                                                    variant="outlined"
-                                                />
-                                            )}
-
-                                            {payment.client?.additionalServices?.filter(s => s.status === 'active').map((service, i) => {
-                                                let label = service.name || '';
-                                                let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default';
-                                                let variant: 'filled' | 'outlined' = 'outlined';
-
-                                                if (label) {
-                                                    if (/netflix/i.test(label)) {
-                                                        label = 'N';
-                                                        color = 'error';
-                                                        variant = 'filled';
-                                                    } else if (/tele.?lat/i.test(label.replace(/\s+/g, '')) || /tele\s+latino/i.test(label)) {
-                                                        label = 'TeleL';
-                                                        color = 'secondary';
-                                                        variant = 'filled';
-                                                    } else if (/tv\s*box/i.test(label) || /tvbox/i.test(label.replace(/\s+/g, ''))) {
-                                                        label = 'TVBox';
-                                                        color = 'info';
-                                                        variant = 'filled';
-                                                    }
-                                                }
-
-                                                return (
+                                <TableCell>
+                                    <Box
+                                        sx={{ cursor: 'pointer' }}
+                                        title="Ver detalles del cliente"
+                                        onClick={() => payment.client && navigate(`/clients/${payment.client.id}`, { state: { from: 'billing' } })}
+                                    >
+                                        <Typography variant="body2" sx={{ fontWeight: 500, textDecoration: 'underline' }}>
+                                            {payment.client?.fullName || 'Cliente Desconocido'}
+                                        </Typography>
+                                        <Typography variant="caption" color="textSecondary">
+                                            {payment.client?.identificationNumber || '-'}
+                                        </Typography>
+                                    </Box>
+                                </TableCell>
+                                <TableCell>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {payment.client?.installations && payment.client.installations.length > 0 ? (
+                                            payment.client.installations
+                                                .filter(inst => inst.isActive)
+                                                .map((inst, i) => (
                                                     <Chip
-                                                        key={`svc-${i}`}
-                                                        label={label}
+                                                        key={`plan-${i}`}
+                                                        label={inst.servicePlan?.name || inst.serviceType}
                                                         size="small"
-                                                        color={color}
-                                                        variant={variant}
-                                                        title={service.name}
-                                                        sx={variant === 'filled' ? { fontWeight: 'bold' } : {}}
+                                                        color="primary"
+                                                        variant="filled"
+                                                        sx={{ fontWeight: 'bold' }}
                                                     />
-                                                );
-                                            })}
+                                                ))
+                                        ) : (
+                                            <Chip
+                                                label={payment.installation?.servicePlan?.name || payment.installation?.serviceType || '-'}
+                                                size="small"
+                                                color="default"
+                                                variant="outlined"
+                                            />
+                                        )}
+                                        
+                                        {payment.client?.additionalServices?.filter(s => s.status === 'active').map((service, i) => {
+                                            let label = service.name || '';
+                                            let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default';
+                                            let variant: 'filled' | 'outlined' = 'outlined';
 
-                                            {payment.client?.productsSold?.filter(p => p.status !== 'cancelled' && p.status !== 'paid').map((product, i) => {
-                                                let label = product.productName;
-                                                let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default';
-
-                                                if (/tv\s*box|tvbox/i.test(product.productName)) {
+                                            if (label) {
+                                                if (/netflix/i.test(label)) {
+                                                    label = 'N';
+                                                    color = 'error';
+                                                    variant = 'filled';
+                                                } else if (/tele.?lat/i.test(label.replace(/\s+/g,'')) || /tele\s+latino/i.test(label)) {
+                                                    label = 'TeleL';
+                                                    color = 'secondary';
+                                                    variant = 'filled';
+                                                } else if (/tv\s*box/i.test(label) || /tvbox/i.test(label.replace(/\s+/g,''))) {
                                                     label = 'TVBox';
                                                     color = 'info';
-                                                } else if (/router/i.test(product.productName)) {
-                                                    label = 'Router';
-                                                    color = 'primary';
-                                                } else if (/antena/i.test(product.productName)) {
-                                                    label = 'Antena';
-                                                    color = 'secondary';
+                                                    variant = 'filled';
                                                 }
+                                            }
 
-                                                return (
-                                                    <Chip
-                                                        key={`prod-${i}`}
-                                                        label={label}
-                                                        size="small"
-                                                        color={color}
-                                                        variant="filled"
-                                                        title={`Producto: ${product.productName}`}
-                                                    />
-                                                );
-                                            })}
-
-                                            {payment.isProrated && (
+                                            return (
                                                 <Chip
-                                                    label="Prorrateo"
+                                                    key={`svc-${i}`}
+                                                    label={label}
                                                     size="small"
-                                                    color="info"
-                                                    variant="outlined"
+                                                    color={color}
+                                                    variant={variant}
+                                                    title={service.name}
+                                                    sx={variant === 'filled' ? { fontWeight: 'bold' } : {}}
                                                 />
-                                            )}
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {formatCurrency(payment.amount)}
-                                        </Typography>
-                                        {(payment.additionalServicesAmount > 0 || payment.productInstallmentsAmount > 0) && (
-                                            <Typography variant="caption" color="textSecondary">
-                                                + servicios/productos
-                                            </Typography>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            {...getStatusChipProps(payment)}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        {(() => {
-                                            const installations = payment.client?.installations || [];
-                                            const active = installations.find(i => i.isActive) || installations[0];
-                                            return active ? formatLocalDate(active.installationDate) : '-';
-                                        })()}
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        <Tooltip title="Ver detalle">
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleOpenDetailDialog(payment)}
-                                            >
-                                                <VisibilityIcon />
-                                            </IconButton>
-                                        </Tooltip>
-                                        {(payment.status === 'pending' || payment.status === 'overdue') && (
-                                            <Tooltip title="Registrar pago">
-                                                <IconButton
+                                            );
+                                        })}
+
+                                        {payment.client?.productsSold?.filter(p => p.status !== 'cancelled' && p.status !== 'paid').map((product, i) => {
+                                            let label = product.productName;
+                                            let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default';
+                                            
+                                            if (/tv\s*box|tvbox/i.test(product.productName)) {
+                                                label = 'TVBox';
+                                                color = 'info';
+                                            } else if (/router/i.test(product.productName)) {
+                                                label = 'Router';
+                                                color = 'primary';
+                                            } else if (/antena/i.test(product.productName)) {
+                                                label = 'Antena';
+                                                color = 'secondary';
+                                            }
+
+                                            return (
+                                                <Chip
+                                                    key={`prod-${i}`}
+                                                    label={label}
                                                     size="small"
-                                                    color="primary"
-                                                    onClick={() => handleOpenPaymentDialog(payment)}
-                                                >
-                                                    <PaymentIcon />
-                                                </IconButton>
-                                            </Tooltip>
+                                                    color={color}
+                                                    variant="filled"
+                                                    title={`Producto: ${product.productName}`}
+                                                />
+                                            );
+                                        })}
+
+                                        {payment.isProrated && (
+                                            <Chip 
+                                                label="Prorrateo" 
+                                                size="small" 
+                                                color="info" 
+                                                variant="outlined"
+                                            />
                                         )}
-                                        <Tooltip title={payment.reminderSent ? "Deshabilitar envío (Ya enviado)" : "Habilitar envío (No enviado)"}>
-                                            <IconButton
-                                                size="small"
-                                                color={payment.reminderSent ? "success" : "default"}
-                                                onClick={() => handleUpdateReminderStatus([payment.client.id], !payment.reminderSent)}
+                                    </Box>
+                                </TableCell>
+                                <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        {formatCurrency(payment.amount)}
+                                    </Typography>
+                                    {(payment.additionalServicesAmount > 0 || payment.productInstallmentsAmount > 0) && (
+                                        <Typography variant="caption" color="textSecondary">
+                                            + servicios/productos
+                                        </Typography>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <Chip 
+                                        {...getStatusChipProps(payment)}
+                                        size="small"
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                    {(() => {
+                                        const installations = payment.client?.installations || [];
+                                        const active = installations.find(i => i.isActive) || installations[0];
+                                        return active ? formatLocalDate(active.installationDate) : '-';
+                                    })()}
+                                </TableCell>
+                                <TableCell align="center">
+                                    <Tooltip title="Ver detalle">
+                                        <IconButton 
+                                            size="small" 
+                                            onClick={() => handleOpenDetailDialog(payment)}
+                                        >
+                                            <VisibilityIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                    {(payment.status === 'pending' || payment.status === 'overdue') && (
+                                        <Tooltip title="Registrar pago">
+                                            <IconButton 
+                                                size="small" 
+                                                color="primary"
+                                                onClick={() => handleOpenPaymentDialog(payment)}
                                             >
-                                                {payment.reminderSent ? <ReminderOnIcon /> : <ReminderOffIcon />}
+                                                <PaymentIcon />
                                             </IconButton>
                                         </Tooltip>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                                    )}
+                                    <Tooltip title={payment.reminderSent ? "Deshabilitar envío (Ya enviado)" : "Habilitar envío (No enviado)"}>
+                                        <IconButton
+                                            size="small"
+                                            color={payment.reminderSent ? "success" : "default"}
+                                            onClick={() => handleUpdateReminderStatus([payment.client.id], !payment.reminderSent)}
+                                        >
+                                            {payment.reminderSent ? <ReminderOnIcon /> : <ReminderOffIcon />}
+                                        </IconButton>
+                                    </Tooltip>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
             )}
 
             <TablePagination
@@ -893,9 +856,9 @@ const MonthlyBilling: React.FC = () => {
                         Seleccionados: {selectedPaymentIds.length} pago(s)
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                            variant="contained"
-                            color="info"
+                        <Button 
+                            variant="contained" 
+                            color="info" 
                             startIcon={<ReminderOffIcon />}
                             onClick={() => {
                                 const clientIds = payments.filter(p => selectedPaymentIds.includes(p.id)).map(p => p.client.id);
@@ -904,9 +867,9 @@ const MonthlyBilling: React.FC = () => {
                         >
                             Resetear Envíos
                         </Button>
-                        <Button
-                            variant="contained"
-                            color="secondary"
+                        <Button 
+                            variant="contained" 
+                            color="secondary" 
                             startIcon={<ReminderOnIcon />}
                             onClick={() => {
                                 const clientIds = payments.filter(p => selectedPaymentIds.includes(p.id)).map(p => p.client.id);
@@ -915,9 +878,9 @@ const MonthlyBilling: React.FC = () => {
                         >
                             Marcar Enviados
                         </Button>
-                        <Button
-                            variant="contained"
-                            color="primary"
+                        <Button 
+                            variant="contained" 
+                            color="primary" 
                             onClick={handleOpenBulkDialog}
                         >
                             Marcar como Pagado
@@ -991,9 +954,9 @@ const MonthlyBilling: React.FC = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setBulkDialogOpen(false)}>Cancelar</Button>
-                    <Button
-                        onClick={handleBulkMarkPaid}
-                        variant="contained"
+                    <Button 
+                        onClick={handleBulkMarkPaid} 
+                        variant="contained" 
                         color="primary"
                         disabled={!bulkPaymentMethod}
                     >
@@ -1026,7 +989,7 @@ const MonthlyBilling: React.FC = () => {
                                 )}
                                 <Typography variant="h6" sx={{ mt: 1 }}>
                                     <strong>Total a Pagar:</strong> {formatCurrency(
-                                        Number(selectedPayment.amount) +
+                                        Number(selectedPayment.amount) + 
                                         (selectedPayment.client?.productsSold?.flatMap(p => p.installmentPayments || [])
                                             .filter(i => extraInstallmentIds.includes(i.id))
                                             .reduce((sum, i) => sum + Number(i.amount), 0) || 0)
@@ -1039,7 +1002,7 @@ const MonthlyBilling: React.FC = () => {
                                 <Box sx={{ mb: 2, border: '1px solid #e0e0e0', borderRadius: 1, p: 1 }}>
                                     <Typography variant="subtitle2" sx={{ mb: 1 }}>Agregar cuotas adicionales:</Typography>
                                     <List dense sx={{ maxHeight: 150, overflow: 'auto' }}>
-                                        {selectedPayment.client.productsSold.flatMap(product =>
+                                        {selectedPayment.client.productsSold.flatMap(product => 
                                             product.installmentPayments
                                                 ?.filter(inst => {
                                                     // Mostrar cuotas pendientes que NO están incluidas en el cobro base
@@ -1047,7 +1010,7 @@ const MonthlyBilling: React.FC = () => {
                                                     const dueDate = new Date(inst.dueDate);
                                                     const monthIndex = MONTHS.indexOf(selectedPayment.paymentMonth.toLowerCase());
                                                     const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 5);
-
+                                                    
                                                     return inst.status === 'pending' && dueDate > billingPeriodEnd;
                                                 })
                                                 .map(inst => (
@@ -1059,7 +1022,7 @@ const MonthlyBilling: React.FC = () => {
                                                                 tabIndex={-1}
                                                                 disableRipple
                                                                 onChange={() => {
-                                                                    setExtraInstallmentIds(prev =>
+                                                                    setExtraInstallmentIds(prev => 
                                                                         prev.includes(inst.id)
                                                                             ? prev.filter(id => id !== inst.id)
                                                                             : [...prev, inst.id]
@@ -1067,7 +1030,7 @@ const MonthlyBilling: React.FC = () => {
                                                                 }}
                                                             />
                                                         </ListItemIcon>
-                                                        <ListItemText
+                                                        <ListItemText 
                                                             primary={`${product.productName} - Cuota ${inst.installmentNumber}`}
                                                             secondary={`${formatCurrency(inst.amount)} - Vence: ${formatLocalDate(inst.dueDate)}`}
                                                         />
@@ -1161,11 +1124,11 @@ const MonthlyBilling: React.FC = () => {
                                         {formatLocalDate(selectedPayment.dueDate)}
                                     </Typography>
                                 </Grid>
-
+                                
                                 <Grid item xs={12}>
                                     <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Desglose del Cobro</Typography>
                                 </Grid>
-
+                                
                                 <Grid item xs={6}>
                                     <Typography variant="subtitle2" color="textSecondary">Plan de Servicio</Typography>
                                     <Typography variant="body1">{formatCurrency(selectedPayment.servicePlanAmount)}</Typography>
@@ -1178,7 +1141,7 @@ const MonthlyBilling: React.FC = () => {
                                     <Typography variant="subtitle2" color="textSecondary">Cuotas de Productos</Typography>
                                     <Typography variant="body1">{formatCurrency(selectedPayment.productInstallmentsAmount)}</Typography>
                                 </Grid>
-
+                                
                                 {/* Desglose de cuotas de productos */}
                                 {selectedPayment.client?.productsSold && selectedPayment.client.productsSold.length > 0 && (
                                     <Grid item xs={12}>
@@ -1188,7 +1151,7 @@ const MonthlyBilling: React.FC = () => {
                                             </AccordionSummary>
                                             <AccordionDetails>
                                                 <List dense>
-                                                    {selectedPayment.client.productsSold.flatMap(product =>
+                                                    {selectedPayment.client.productsSold.flatMap(product => 
                                                         product.installmentPayments
                                                             ?.filter(inst => {
                                                                 // Mostrar cuotas que vencen en este mes de facturación o antes (si están pendientes)
@@ -1199,13 +1162,13 @@ const MonthlyBilling: React.FC = () => {
                                                                 const monthIndex = MONTHS.indexOf(selectedPayment.paymentMonth.toLowerCase());
                                                                 const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 5);
                                                                 const billingPeriodStart = new Date(selectedPayment.paymentYear, monthIndex, 1);
-
+                                                                
                                                                 // Si es un pago histórico, mostrar las que vencían en ese periodo
                                                                 return dueDate <= billingPeriodEnd && (inst.status === 'pending' || inst.status === 'paid');
                                                             })
                                                             .map(inst => (
                                                                 <ListItem key={`${product.id}-${inst.id}`}>
-                                                                    <ListItemText
+                                                                    <ListItemText 
                                                                         primary={`${product.productName} - Cuota ${inst.installmentNumber}`}
                                                                         secondary={`Vence: ${formatLocalDate(inst.dueDate)} - Estado: ${inst.status}`}
                                                                     />

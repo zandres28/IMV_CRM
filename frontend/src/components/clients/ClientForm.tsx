@@ -35,7 +35,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         primaryPhone: '',
         secondaryPhone: '',
         email: '',
-        status: 'pendiente_instalacion',
+        status: 'active',
         suspension_extension_date: ''
     });
 
@@ -246,7 +246,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                                 <MenuItem value="active">Activo</MenuItem>
                                 <MenuItem value="suspended">Suspendido</MenuItem>
                                 <MenuItem value="cancelled">Cancelado</MenuItem>
-                                <MenuItem value="pendiente_instalacion">Pendiente Instalación</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
