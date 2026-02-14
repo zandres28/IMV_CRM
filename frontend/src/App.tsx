@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Box, 
@@ -54,6 +54,31 @@ function App() {
   const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
 
   const user = AuthService.getCurrentUser();
+
+  useEffect(() => {
+    const verify = async () => {
+      try {
+        const API_AUTH = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/me`;
+        await fetch(API_AUTH, { credentials: 'include' });
+      } catch (err) {
+        // If verification fails, force logout and redirect to login
+        AuthService.logout();
+        // useNavigate cannot be called here directly; use location replace
+        window.location.href = '/login';
+      }
+    };
+
+    // Verify on mount
+    verify();
+
+    // Verify when tab becomes visible again
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') verify();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
