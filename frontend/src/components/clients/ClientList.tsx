@@ -965,7 +965,9 @@ export const ClientList: React.FC = () => {
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>
                                     Nombre Completo
                                 </TableCell>
-                                    <TableCell>{client.status === 'cancelled' && client.retirementDate ? new Date(client.retirementDate).toLocaleDateString() : '-'}</TableCell>
+                                <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>
+                                    Retiro
+                                </TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Servicios/Productos</TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>
                                     Ciudad
