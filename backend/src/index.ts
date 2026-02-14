@@ -80,7 +80,7 @@ const PORT = process.env.PORT || 3001;
 AppDataSource.initialize().then(() => {
     console.log("Base de datos conectada exitosamente");
     console.log("Backend reiniciado: " + new Date().toISOString());
-
+    
     app.listen(PORT, () => {
         console.log(`Servidor corriendo en el puerto ${PORT}`);
     });

@@ -523,6 +523,15 @@ export const ClientList: React.FC = () => {
                                         </Typography>
                                     </Box>
 
+                                    {client.status === 'cancelled' && (
+                                        <Box mb={1}>
+                                            <Typography variant="caption" color="text.secondary">Retiro: {client.retirementDate ? new Date(client.retirementDate).toLocaleDateString() : '-'}</Typography>
+                                            {client.retirementReason && (
+                                                <Typography variant="caption" color="text.secondary" display="block">Motivo: {client.retirementReason}</Typography>
+                                            )}
+                                        </Box>
+                                    )}
+
                                     <Box display="flex" flexWrap="wrap" gap={0.5} mt={1}>
                                         {!services ? (
                                             <Typography variant="caption" color="text.secondary">Cargando info...</Typography>
@@ -650,6 +659,7 @@ export const ClientList: React.FC = () => {
                                         Nombre Completo
                                     </TableSortLabel>
                                 </TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Retiro</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Servicios/Productos</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
                                     <TableSortLabel
@@ -955,6 +965,7 @@ export const ClientList: React.FC = () => {
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>
                                     Nombre Completo
                                 </TableCell>
+                                    <TableCell>{client.status === 'cancelled' && client.retirementDate ? new Date(client.retirementDate).toLocaleDateString() : '-'}</TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Servicios/Productos</TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>
                                     Ciudad

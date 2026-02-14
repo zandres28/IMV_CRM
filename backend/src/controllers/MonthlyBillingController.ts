@@ -18,10 +18,6 @@ export class MonthlyBillingController {
      * POST /api/monthly-billing/generate
      */
     static async generateMonthlyBilling(req: AuthRequest, res: Response) {
-        const queryRunner = AppDataSource.createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
         try {
             // Solo admin/operador pueden generar facturación
             if (!hasPermission(req.user || null, PERMISSIONS.BILLING.CREATE)) {
@@ -33,19 +29,16 @@ export class MonthlyBillingController {
                 return res.status(400).json({ message: "Mes y año son requeridos" });
             }
 
-            // Usar el manager de la transacción para todos los repositorios
-            const clientRepository = queryRunner.manager.getRepository(Client);
-            const paymentRepository = queryRunner.manager.getRepository(Payment);
-            const installationRepository = queryRunner.manager.getRepository(Installation);
-            const additionalServiceRepository = queryRunner.manager.getRepository(AdditionalService);
-            const productSoldRepository = queryRunner.manager.getRepository(ProductSold);
-            const installmentRepository = queryRunner.manager.getRepository(ProductInstallment);
-            const outageRepository = queryRunner.manager.getRepository(ServiceOutage);
+            const clientRepository = AppDataSource.getRepository(Client);
+            const paymentRepository = AppDataSource.getRepository(Payment);
+            const installationRepository = AppDataSource.getRepository(Installation);
+            const additionalServiceRepository = AppDataSource.getRepository(AdditionalService);
+            const productSoldRepository = AppDataSource.getRepository(ProductSold);
+            const installmentRepository = AppDataSource.getRepository(ProductInstallment);
 
-            // Obtener todos los clientes (activos e inactivos) pero filtrar aquellos retirados ANTES del mes de facturación
-            // Nota: La lógica detallada de exclusión está más abajo en el filtrado de instalaciones, 
-            // pero podemos optimizar aquí si quisiéramos. Por ahora traemos todos.
+            // Obtener todos los clientes (activos e inactivos) para verificar si tienen cobros pendientes o retiros recientes
             const clients = await clientRepository.find({
+                // where: { status: 'active' }, // Se comenta para permitir facturar clientes retirados en el mes
                 relations: ['installations', 'installations.servicePlan']
             });
 
@@ -58,7 +51,7 @@ export class MonthlyBillingController {
             const firstDayOfMonth = new Date(yearNum, monthIndex, 1);
             const lastDayOfMonth = new Date(yearNum, monthIndex + 1, 0);
             const totalDaysInMonth = lastDayOfMonth.getDate();
-
+            
             // Período de facturación: incluye cuotas con vencimiento hasta el día 5 del mes siguiente
             const billingPeriodEnd = new Date(yearNum, monthIndex + 1, 5);
 
@@ -96,27 +89,21 @@ export class MonthlyBillingController {
                         }
                         return true;
                     }
-
-                    // Si NO está activa (cancelada/suspendida), verificación estricta de fecha de retiro
+                    
+                    // Si NO está activa (cancelada/suspendida), solo incluir si tiene retirementDate dentro del mes o posterior
                     if (inst.retirementDate) {
                         const rDate = parseLocalDate(inst.retirementDate as unknown as string) || new Date(inst.retirementDate);
-
-                        // Si se retiró ANTES de que empiece este mes, NO facturar (obvio)
+                        
+                        // FIX: Problema con Carlota/Consuelo. Retiro el 30 Enero. Facturando Enero (mes actual).
+                        // Si se retiró ANTES de que empiece este mes, NO se debe facturar NADA.
                         if (rDate < firstDayOfMonth) {
-                            return false;
+                             return false; 
                         }
 
-                        // NUEVA REGLA (FEB 2026): Si se retira DURANTE este mes, NO FACTURAR NADA.
-                        // El usuario pidió explícitamente: "Dicho cliente retirado ya no debe salir en la facturación de ese mes en el que se retiró."
-                        if (rDate >= firstDayOfMonth && rDate <= lastDayOfMonth) {
-                            return false;
-                        }
-
-                        // Si se retira DESPUÉS de este mes, facturar normal (porque estuvo activo todo el mes)
-                        return true;
+                        // Si se retiró durante este mes (o después), facturar (prorrateado o completo)
+                        return rDate >= firstDayOfMonth;
                     }
-
-                    // Si no tiene fecha de retiro pero no está activa, no facturar (mejor prevenir)
+                    
                     return false;
                 });
 
@@ -132,7 +119,7 @@ export class MonthlyBillingController {
                             status: 'pending'
                         }
                     });
-
+                    
                     if (existingPayment) {
                         await paymentRepository.remove(existingPayment);
                     }
@@ -179,7 +166,7 @@ export class MonthlyBillingController {
                         // Calcular días (inclusive)
                         const billedDays = Math.floor((billingEndDate.getTime() - billingStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                         billedDaysAgg += billedDays;
-
+                        
                         // Calcular monto prorrateado: siempre usar 30 días y redondear a múltiplos de 500 hacia arriba
                         const monthlyFee = Number(installation.monthlyFee);
                         const dailyRate = Math.ceil((monthlyFee / 30) / 500) * 500;
@@ -236,9 +223,9 @@ export class MonthlyBillingController {
                 }
 
                 // Por defecto, el total del mes NO incluye las futuras para evitar marcarlas como vencidas
-
+                
                 // No incluir fees de instalación en facturación mensual; se manejan por módulo separado
-
+                
                 // Buscar si ya existe un pago MENSUAL para este mes
                 let payment = await paymentRepository.findOne({
                     where: {
@@ -251,8 +238,8 @@ export class MonthlyBillingController {
 
                 // Obtener descuentos pendientes por caídas de servicio del cliente
                 // Incluir también las que ya están aplicadas a este pago (para recalcular correctamente)
-                // NOTA: Reemplazar createQueryBuilder con find del repositorio transaccional si es posible, o usar el queryRunner
-                const outageQuery = outageRepository.createQueryBuilder('outage', queryRunner)
+                const outageRepository = AppDataSource.getRepository(ServiceOutage);
+                const outageQuery = outageRepository.createQueryBuilder('outage')
                     .where('outage.clientId = :clientId', { clientId: client.id })
                     .andWhere(new Brackets(qb => {
                         qb.where('outage.status = :pending', { pending: 'pending' });
@@ -260,14 +247,14 @@ export class MonthlyBillingController {
                             qb.orWhere('outage.appliedToPaymentId = :paymentId', { paymentId: payment.id });
                         }
                     }));
-
+                
                 const pendingOutages = await outageQuery.getMany();
-
+                
                 const outageDiscountAmount = pendingOutages.reduce(
                     (sum, outage) => sum + Number(outage.discountAmount),
                     0
                 );
-
+                
                 const outageDays = pendingOutages.reduce(
                     (sum, outage) => sum + outage.days,
                     0
@@ -320,7 +307,7 @@ export class MonthlyBillingController {
                 payment.notes = isProrated ? `Prorrateo aplicado${futureNote}${outageNote}` : (payment.notes || '') + futureNote + outageNote;
 
                 await paymentRepository.save(payment);
-
+                
                 // Marcar las caídas como aplicadas a este pago
                 if (pendingOutages.length > 0) {
                     for (const outage of pendingOutages) {
@@ -329,11 +316,9 @@ export class MonthlyBillingController {
                         await outageRepository.save(outage);
                     }
                 }
-
+                
                 generatedPayments.push(payment);
             }
-
-            await queryRunner.commitTransaction();
 
             res.json({
                 message: `Se generaron ${generatedPayments.length} cobros para ${monthName} ${yearNum}`,
@@ -341,11 +326,8 @@ export class MonthlyBillingController {
             });
 
         } catch (error) {
-            await queryRunner.rollbackTransaction();
             console.error("Error generando cobros mensuales:", error);
             res.status(500).json({ message: "Error generando cobros mensuales" });
-        } finally {
-            await queryRunner.release();
         }
     }
 
@@ -474,20 +456,20 @@ export class MonthlyBillingController {
                 const yearNum = parseInt(year as string);
                 // Fecha de vencimiento del mes seleccionado (día 5 del mes siguiente)
                 const currentMonthDueDate = new Date(yearNum, monthIndex + 1, 5);
-
+                
                 query.andWhere(
                     new Brackets(qb => {
                         qb.where('(payment.paymentMonth = :month AND payment.paymentYear = :year)', { month, year: yearNum })
-                            .orWhere('(payment.status IN (:...statuses) AND payment.dueDate < :dueDate)', {
-                                statuses: ['pending', 'overdue'],
-                                dueDate: currentMonthDueDate
-                            });
+                          .orWhere('(payment.status IN (:...statuses) AND payment.dueDate < :dueDate)', { 
+                              statuses: ['pending', 'overdue'],
+                              dueDate: currentMonthDueDate 
+                          });
                     })
                 );
             } else {
                 // Modo normal: Solo pagos del mes seleccionado
                 query.andWhere('payment.paymentMonth = :month', { month })
-                    .andWhere('payment.paymentYear = :year', { year: parseInt(year as string) });
+                     .andWhere('payment.paymentYear = :year', { year: parseInt(year as string) });
             }
 
             if (status) {
@@ -499,14 +481,14 @@ export class MonthlyBillingController {
                     // 1. Los que explícitamente tienen status = 'overdue'
                     // 2. Los que están 'pending' pero su fecha de vencimiento ya pasó (dinámico)
                     const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-
+                    today.setHours(0,0,0,0);
+                    
                     query.andWhere(new Brackets(qb => {
                         qb.where('payment.status = :overdueStatus', { overdueStatus: 'overdue' })
-                            .orWhere('(payment.status = :pendingStatus AND payment.dueDate < :today)', {
-                                pendingStatus: 'pending',
-                                today
-                            });
+                          .orWhere('(payment.status = :pendingStatus AND payment.dueDate < :today)', { 
+                              pendingStatus: 'pending',
+                              today
+                          });
                     }));
                 } else {
                     query.andWhere('payment.status = :status', { status });
@@ -526,7 +508,7 @@ export class MonthlyBillingController {
 
             const clientIds = payments.map(p => p.client?.id).filter(id => id); // IDs unicos
             let sentClientIds = new Set<number>();
-
+            
             if (clientIds.length > 0) {
                 const interactionRepository = AppDataSource.getRepository(Interaction);
                 const sentInteractions = await interactionRepository.find({
@@ -611,8 +593,8 @@ export class MonthlyBillingController {
             const { id } = req.params;
             const paymentRepository = AppDataSource.getRepository(Payment);
 
-            const payment = await paymentRepository.findOne({
-                where: { id: parseInt(id), paymentType: 'monthly' },
+                const payment = await paymentRepository.findOne({
+                    where: { id: parseInt(id), paymentType: 'monthly' },
                 relations: [
                     'client',
                     'client.installations',
@@ -647,9 +629,9 @@ export class MonthlyBillingController {
 
             const { id } = req.params;
             const paymentRepository = AppDataSource.getRepository(Payment);
-
-            const payment = await paymentRepository.findOne({
-                where: { id: parseInt(id) }
+            
+            const payment = await paymentRepository.findOne({ 
+                where: { id: parseInt(id) } 
             });
 
             if (!payment) {
@@ -691,7 +673,7 @@ export class MonthlyBillingController {
             payment.status = 'paid';
             payment.paymentDate = paymentDate ? parseLocalDate(paymentDate)! : new Date();
             payment.paymentMethod = paymentMethod;
-
+            
             // Procesar cuotas adicionales
             let extraAmount = 0;
             if (extraInstallmentIds && Array.isArray(extraInstallmentIds) && extraInstallmentIds.length > 0) {
@@ -708,10 +690,10 @@ export class MonthlyBillingController {
                         extraAmount += Number(inst.amount);
                     }
                 }
-
+                
                 // Actualizar el desglose en el pago
                 payment.productInstallmentsAmount = Number(payment.productInstallmentsAmount) + extraAmount;
-
+                
                 // Agregar nota sobre los adicionales
                 const extraNote = ` | Incluye ${installments.length} cuota(s) adicional(es) por $${extraAmount.toLocaleString('es-CO')}`;
                 payment.notes = (payment.notes || '') + extraNote;
@@ -723,7 +705,7 @@ export class MonthlyBillingController {
                 // Si no se envió monto explícito pero hubo extras, sumarlos al total original
                 payment.amount = Number(payment.amount) + extraAmount;
             }
-
+            
             if (notes) {
                 // Si ya agregamos nota de extras, concatenar la nota del usuario
                 if (payment.notes && payment.notes.includes('Incluye')) {
@@ -770,7 +752,7 @@ export class MonthlyBillingController {
             }
 
             payment.status = status;
-
+            
             if (notes) {
                 payment.notes = notes;
             }
@@ -827,21 +809,21 @@ export class MonthlyBillingController {
         try {
             let { clientId } = req.params;
             clientId = clientId.trim();
-
+            
             const clientRepository = AppDataSource.getRepository(Client);
             let client = null;
-
+            
             // Intentar buscar por ID si es numérico
             const idAsNumber = parseInt(clientId);
             if (!isNaN(idAsNumber)) {
                 client = await clientRepository.findOneBy({ id: idAsNumber });
             }
-
+            
             // Si no se encuentra por ID, buscar por cédula
             if (!client) {
                 client = await clientRepository.findOneBy({ identificationNumber: clientId });
             }
-
+            
             if (!client) {
                 return res.status(404).json({ message: "Cliente no encontrado" });
             }
@@ -883,7 +865,7 @@ export class MonthlyBillingController {
     static async getPublicClientBilling(req: Request, res: Response) {
         try {
             const { identificationNumber } = req.params;
-
+            
             if (!identificationNumber) {
                 return res.status(400).json({ message: "Número de identificación requerido" });
             }
@@ -898,7 +880,7 @@ export class MonthlyBillingController {
             }
 
             const paymentRepository = AppDataSource.getRepository(Payment);
-
+            
             // Buscar pagos pendientes o vencidos
             const pendingPayments = await paymentRepository.find({
                 where: [
@@ -940,102 +922,6 @@ export class MonthlyBillingController {
         } catch (error) {
             console.error("Error obteniendo facturación pública:", error);
             res.status(500).json({ message: "Error consultando facturación" });
-        }
-    }
-    /**
-     * Deshace la facturación mensual para un periodo específico.
-     * Elimina los pagos generados (siempre que no estén marcados como pagados)
-     * y restaura el estado de las caídas de servicio aplicadas.
-     * DELETE /api/monthly-billing/rollback
-     */
-    static async rollbackMonthlyBilling(req: AuthRequest, res: Response) {
-        console.log(`[Rollback] Iniciando. Body: ${JSON.stringify(req.body)}`);
-        const queryRunner = AppDataSource.createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            // Solo admin puede deshacer facturación
-            if (!hasPermission(req.user || null, PERMISSIONS.BILLING.DELETE)) {
-                console.log(`[Rollback] Permiso denegado para usuario: ${req.user?.id}`);
-                return res.status(403).json({ message: 'No tienes permiso para eliminar facturación' });
-            }
-
-            const { month, year } = req.body;
-            if (!month || !year) {
-                console.log(`[Rollback] Faltan parámetros. Month: ${month}, Year: ${year}`);
-                return res.status(400).json({ message: "Mes y año son requeridos" });
-            }
-
-            console.log(`[Rollback] Buscando pagos para ${month} ${year}`);
-            const paymentRepository = queryRunner.manager.getRepository(Payment);
-            const outageRepository = queryRunner.manager.getRepository(ServiceOutage);
-
-            // 1. Buscar todos los pagos del mes que NO estén pagados
-            const paymentsToDelete = await paymentRepository.find({
-                where: {
-                    paymentMonth: month,
-                    paymentYear: parseInt(year),
-                    paymentType: 'monthly',
-                    status: In(['pending', 'overdue'])
-                }
-            });
-            console.log(`[Rollback] Pagos encontrados para borrar: ${paymentsToDelete.length}`);
-
-            // 2. Contar si hay pagos ya pagados para informar
-            const paidCount = await paymentRepository.count({
-                where: {
-                    paymentMonth: month,
-                    paymentYear: parseInt(year),
-                    paymentType: 'monthly',
-                    status: 'paid'
-                }
-            });
-
-            if (paymentsToDelete.length === 0 && paidCount === 0) {
-                return res.status(404).json({ message: "No se encontraron cobros para el periodo especificado" });
-            }
-
-            let restoredOutages = 0;
-            let deletedPayments = 0;
-
-            for (const payment of paymentsToDelete) {
-                // Restaurar caídas de servicio vinculadas
-                const linkedOutages = await outageRepository.find({
-                    where: { appliedToPaymentId: payment.id }
-                });
-
-                for (const outage of linkedOutages) {
-                    outage.status = 'pending';
-                    outage.appliedToPaymentId = null as any;
-                    await outageRepository.save(outage);
-                    restoredOutages++;
-                }
-
-                // Eliminar el pago
-                await paymentRepository.remove(payment);
-                deletedPayments++;
-            }
-
-            await queryRunner.commitTransaction();
-
-            res.json({
-                message: "Facturación deshecha con éxito",
-                summary: {
-                    deletedPayments,
-                    restoredOutages,
-                    skippedPaidPayments: paidCount,
-                    month,
-                    year
-                }
-            });
-
-        } catch (error) {
-            await queryRunner.rollbackTransaction();
-            console.error("Error al deshacer facturación:", error);
-            res.status(500).json({ message: "Error interno al deshacer facturación" });
-        } finally {
-            await queryRunner.release();
         }
     }
 }

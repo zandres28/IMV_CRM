@@ -97,16 +97,7 @@ export const ClientController = {
 
             let query = clientRepository
                 .createQueryBuilder('client')
-                .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted', { isDeleted: false })
-                .loadRelationCountAndMap('client.pendingInteractionsCount', 'client.interactions', 'interaction', (qb) => 
-                    qb.where('interaction.status IN (:...statuses)', { statuses: ['pendiente', 'en_progreso'] })
-                )
-                .orderBy(`(
-                    SELECT MAX(inst.installationDate)
-                    FROM installations inst
-                    WHERE inst.clientId = client.id AND inst.isDeleted = false
-                )`, 'DESC')
-                .addOrderBy('client.fullName', 'ASC');
+                .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted', { isDeleted: false });
 
             if (includeDeleted === 'true') {
                 query = query.withDeleted();
@@ -116,7 +107,7 @@ export const ClientController = {
 
             const clients = await query.getMany();
 
-            // Agregar campo latestInstallationDate calculado para cada cliente
+            // Agregar campo latestInstallationDate calculado para cada cliente y ordenar
             const clientsWithLatestDate = clients.map(client => {
                 const latestInstallation = client.installations && client.installations.length > 0
                     ? client.installations.reduce((latest, inst) => {
@@ -132,8 +123,21 @@ export const ClientController = {
                 };
             });
 
+            // Ordenar por latestInstallationDate DESC, luego por fullName ASC
+            clientsWithLatestDate.sort((a, b) => {
+                // Primero por fecha de instalación más reciente (DESC)
+                const dateA = a.latestInstallationDate ? new Date(a.latestInstallationDate).getTime() : 0;
+                const dateB = b.latestInstallationDate ? new Date(b.latestInstallationDate).getTime() : 0;
+                if (dateB !== dateA) {
+                    return dateB - dateA;
+                }
+                // Luego por nombre (ASC)
+                return (a.fullName || '').localeCompare(b.fullName || '');
+            });
+
             return res.json(clientsWithLatestDate);
         } catch (error) {
+            console.error('Error al obtener los clientes:', error);
             return res.status(500).json({ message: "Error al obtener los clientes", error });
         }
     },
