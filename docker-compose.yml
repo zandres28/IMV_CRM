@@ -43,10 +43,6 @@ services:
     restart: always
     ports:
       - "8095:80"
-    volumes:
-      # Mount a host .htpasswd into the nginx container to enable basic auth
-      # On the VPS create the file at ./deploy/nginx/.htpasswd and it will be mounted here
-      - ./deploy/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
     depends_on:
       - backend
 
