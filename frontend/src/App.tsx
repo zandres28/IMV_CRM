@@ -59,11 +59,10 @@ function App() {
     const verify = async () => {
       try {
         const API_AUTH = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/me`;
-        await fetch(API_AUTH, { credentials: 'include' });
+        await axios.get(API_AUTH);
       } catch (err) {
         // If verification fails, force logout and redirect to login
         AuthService.logout();
-        // useNavigate cannot be called here directly; use location replace
         window.location.href = '/login';
       }
     };
