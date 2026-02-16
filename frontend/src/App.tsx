@@ -35,6 +35,7 @@ import {
   ExpandMore
 } from '@mui/icons-material';
 import AuthService from './services/AuthService';
+import axios from 'axios';
 
 import SessionTimeoutHandler from './components/SessionTimeoutHandler';
 
@@ -56,6 +57,10 @@ function App() {
   const user = AuthService.getCurrentUser();
 
   useEffect(() => {
+    if (!AuthService.isAuthenticated()) {
+      return;
+    }
+
     const verify = async () => {
       try {
         const API_AUTH = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/me`;
@@ -72,7 +77,9 @@ function App() {
 
     // Verify when tab becomes visible again
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') verify();
+      if (document.visibilityState === 'visible') {
+        verify();
+      }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
