@@ -132,10 +132,22 @@ export const DashboardController = {
                 };
             };
 
+            const countRetirements = async (startDate: Date, endDate: Date) => {
+                const result = await clientRepository
+                    .createQueryBuilder('client')
+                    .where('client.status = :status', { status: 'cancelled' })
+                    .andWhere('client.retirementDate BETWEEN :start AND :end', { start: startDate, end: endDate })
+                    .getCount();
+                return result;
+            };
+
             const revenueWeek = await getRevenue(startOfWeek, endOfWeek);
             const revenueMonth = await getRevenue(startOfMonth, endOfMonth);
             const revenueYear = await getRevenue(startOfYear, endOfYear);
             const breakdown = await getRevenueBreakdown(startOfMonth, endOfMonth);
+            const retirosMonth = await countRetirements(startOfMonth, endOfMonth);
+            const retirosYear = await countRetirements(startOfYear, endOfYear);
+            const totalRetirements = await clientRepository.count({ where: { status: 'cancelled' } });
 
             return res.json({
                 clients: {
@@ -157,6 +169,11 @@ export const DashboardController = {
                     month: revenueMonth,
                     year: revenueYear,
                     breakdown: breakdown
+                },
+                retiros: {
+                    month: retirosMonth,
+                    year: retirosYear,
+                    total: totalRetirements
                 }
             });
 

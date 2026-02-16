@@ -54,6 +54,13 @@ import { InstallationService, Installation } from '../../services/InstallationSe
 type Order = 'asc' | 'desc';
 type OrderBy = keyof Client;
 
+interface PonEntry {
+    ponId?: string;
+    onuId?: string;
+    nombre?: string;
+    estado?: string;
+}
+
 export const ClientList: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -137,7 +144,7 @@ export const ClientList: React.FC = () => {
     }>>({});
 
     // Mapa de serial ONU -> { ponId, onuId }
-    const [ponMap, setPonMap] = useState<Record<string, { ponId: string; onuId: string }>>({});
+    const [ponMap, setPonMap] = useState<Record<string, PonEntry>>({});
 
     const loadClients = useCallback(async () => {
         try {
@@ -251,7 +258,8 @@ export const ClientList: React.FC = () => {
             try {
                 const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
                 const res = await axios.get(`${apiUrl}/pon-map`);
-                setPonMap(res.data || {});
+                const ponData = res.data as Record<string, PonEntry>;
+                setPonMap(ponData || {});
             } catch (e) {
                 console.warn('No se pudo cargar el mapa PON/ONU:', e);
             }
@@ -477,6 +485,10 @@ export const ClientList: React.FC = () => {
                 <Box>
                     {paginatedClients.map((client) => {
                         const services = clientServices[client.id];
+                        const installations = services?.installations || [];
+                        const instWithSerial = installations.find(inst => inst.isActive && inst.onuSerialNumber) || installations.find(inst => inst.onuSerialNumber);
+                        const serial = instWithSerial?.onuSerialNumber?.toUpperCase();
+                        const ponEntry = serial ? ponMap[serial] : undefined;
                         return (
                             <Card key={client.id} sx={{ mb: 2, boxShadow: 3 }}>
                                 <CardContent onClick={() => navigate(`/clients/${client.id}`)} sx={{ cursor: 'pointer' }}>
@@ -509,12 +521,27 @@ export const ClientList: React.FC = () => {
 
                                     <Divider sx={{ my: 1 }} />
 
-                                    <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                                        <LocationOnIcon fontSize="small" color="action" />
-                                        <Typography variant="body2">
-                                            {client.city} - {client.installationAddress}
-                                        </Typography>
+                                    <Box display="flex" alignItems="flex-start" gap={1} mb={0.5}>
+                                        <LocationOnIcon fontSize="small" color="action" sx={{ mt: 0.4 }} />
+                                        <Box>
+                                            <Typography variant="body2">
+                                                <strong>Dirección:</strong> {client.installationAddress}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                <strong>Ciudad:</strong> {client.city}
+                                            </Typography>
+                                        </Box>
                                     </Box>
+
+                                    {ponEntry?.nombre && (
+                                        <Box mb={1}>
+                                            <Chip
+                                                label={`Etiqueta NAP: ${ponEntry.nombre}`}
+                                                size="small"
+                                                color="info"
+                                            />
+                                        </Box>
+                                    )}
 
                                     <Box display="flex" alignItems="center" gap={1} mb={1}>
                                         <PhoneIcon fontSize="small" color="action" />
@@ -661,6 +688,7 @@ export const ClientList: React.FC = () => {
                                 </TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Retiro</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Servicios/Productos</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Dirección</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
                                     <TableSortLabel
                                         active={orderBy === 'city'}
@@ -675,7 +703,7 @@ export const ClientList: React.FC = () => {
                                         Ciudad
                                     </TableSortLabel>
                                 </TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Dirección</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Etiqueta NAP</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Celular 1</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Celular 2</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
@@ -698,6 +726,10 @@ export const ClientList: React.FC = () => {
                         <TableBody>
                             {paginatedClients.map((client, index) => {
                                 const services = clientServices[client.id];
+                                const installations = services?.installations || [];
+                                const instWithSerial = installations.find(inst => inst.isActive && inst.onuSerialNumber) || installations.find(inst => inst.onuSerialNumber);
+                                const serial = instWithSerial?.onuSerialNumber?.toUpperCase();
+                                const ponEntry = serial ? ponMap[serial] : undefined;
                                 return (
                                     <TableRow
                                         key={client.id}
@@ -817,16 +849,15 @@ export const ClientList: React.FC = () => {
                                                 })}
                                             </Box>
                                         </TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2" sx={{ maxWidth: 200, whiteSpace: 'normal' }}>
+                                                {client.installationAddress}
+                                            </Typography>
+                                        </TableCell>
                                         <TableCell>{client.city}</TableCell>
-                                        <TableCell>{client.installationAddress}</TableCell>
-                                        {(() => {
-                                            return (
-                                                <>
-                                                    <TableCell>{formatPhoneForDisplay(client.primaryPhone)}</TableCell>
-                                                    <TableCell>{formatPhoneForDisplay(client.secondaryPhone)}</TableCell>
-                                                </>
-                                            );
-                                        })()}
+                                        <TableCell>{ponEntry?.nombre || '-'}</TableCell>
+                                        <TableCell>{formatPhoneForDisplay(client.primaryPhone)}</TableCell>
+                                        <TableCell>{formatPhoneForDisplay(client.secondaryPhone)}</TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={getStatusChipProps(client.status).label}
@@ -969,10 +1000,11 @@ export const ClientList: React.FC = () => {
                                     Retiro
                                 </TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Servicios/Productos</TableCell>
+                                <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Dirección</TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>
                                     Ciudad
                                 </TableCell>
-                                <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Dirección</TableCell>
+                                <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Etiqueta NAP</TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Celular 1</TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>Celular 2</TableCell>
                                 <TableCell sx={{ color: 'text.secondary', fontWeight: 'medium' }}>PON ID</TableCell>
@@ -986,6 +1018,10 @@ export const ClientList: React.FC = () => {
                         <TableBody>
                             {paginatedClients.map((client, index) => {
                                 const services = clientServices[client.id];
+                                const installations = services?.installations || [];
+                                const instWithSerial = installations.find(i => i.isActive && i.onuSerialNumber) || installations.find(i => i.onuSerialNumber);
+                                const serial = instWithSerial?.onuSerialNumber?.toUpperCase();
+                                const mapping = serial ? ponMap[serial] : undefined;
                                 return (
                                     <TableRow
                                         key={client.id}
@@ -1093,23 +1129,13 @@ export const ClientList: React.FC = () => {
                                                 })}
                                             </Box>
                                         </TableCell>
-                                        <TableCell>{client.city}</TableCell>
                                         <TableCell>{client.installationAddress}</TableCell>
-                                        {(() => {
-                                            // Seleccionar una instalación con serial (preferir activa)
-                                            const installations = services?.installations || [];
-                                            const instWithSerial = installations.find(i => i.isActive && i.onuSerialNumber) || installations.find(i => i.onuSerialNumber);
-                                            const serial = instWithSerial?.onuSerialNumber?.toUpperCase();
-                                            const mapping = serial ? ponMap[serial] : undefined;
-                                            return (
-                                                <>
-                                                    <TableCell>{client.primaryPhone}</TableCell>
-                                                    <TableCell>{client.secondaryPhone}</TableCell>
-                                                    <TableCell>{mapping?.ponId || '-'}</TableCell>
-                                                    <TableCell>{mapping?.onuId || '-'}</TableCell>
-                                                </>
-                                            );
-                                        })()}
+                                        <TableCell>{client.city}</TableCell>
+                                        <TableCell>{mapping?.nombre || '-'}</TableCell>
+                                        <TableCell>{client.primaryPhone}</TableCell>
+                                        <TableCell>{client.secondaryPhone}</TableCell>
+                                        <TableCell>{mapping?.ponId || '-'}</TableCell>
+                                        <TableCell>{mapping?.onuId || '-'}</TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={getStatusChipProps(client.status).label}

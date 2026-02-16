@@ -28,6 +28,11 @@ export interface DashboardStats {
             products: number;
         };
     };
+    retiros: {
+        month: number;
+        year: number;
+        total: number;
+    };
 }
 
 export const DashboardService = {

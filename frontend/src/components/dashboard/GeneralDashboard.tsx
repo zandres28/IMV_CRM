@@ -188,6 +188,33 @@ export const GeneralDashboard: React.FC = () => {
                     />
                 </Grid>
 
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AttachMoneyIcon color="success" /> Recaudo mensual y acumulado
+                    </Typography>
+                    <Divider sx={{ mb: 2 }} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                        title={`Recaudo del Mes (${months[selectedMonth]} ${selectedYear})`}
+                        value={formatCurrency(stats.revenue.month)}
+                        subtitle="Facturación del mes seleccionado"
+                        icon={<AttachMoneyIcon sx={{ color: '#43a047' }} />}
+                        color="#43a047"
+                        onClick={() => navigate(`/billing?month=${months[selectedMonth].toLowerCase()}&year=${selectedYear}`)}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                        title={`Recaudo Acumulado (${selectedYear})`}
+                        value={formatCurrency(stats.revenue.year)}
+                        subtitle="Total facturación año hasta fecha"
+                        icon={<AttachMoneyIcon sx={{ color: '#2e7d32' }} />}
+                        color="#2e7d32"
+                        onClick={() => navigate(`/billing?year=${selectedYear}`)}
+                    />
+                </Grid>
+
                 {/* Revenue Breakdown Section */}
                 {period === 'month' && stats.revenue.breakdown && (
                     <>
@@ -280,6 +307,43 @@ export const GeneralDashboard: React.FC = () => {
                         icon={<CancelIcon sx={{ color: '#d32f2f' }} />} 
                         color="#d32f2f"
                         onClick={() => navigate(`/clients?status=cancelled&month=${selectedMonth}&year=${selectedYear}`)}
+                    />
+                </Grid>
+
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CancelIcon color="error" /> Retiros
+                    </Typography>
+                    <Divider sx={{ mb: 2 }} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                        title={`Retiros del Mes (${months[selectedMonth]} ${selectedYear})`}
+                        value={stats.retiros.month}
+                        subtitle="Clientes dados de baja este mes"
+                        icon={<CancelIcon sx={{ color: '#e53935' }} />}
+                        color="#e53935"
+                        onClick={() => navigate(`/consultas?reportType=retired&month=${selectedMonth}&year=${selectedYear}`)}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                        title={`Retiros Acumulados (${selectedYear})`}
+                        value={stats.retiros.year}
+                        subtitle="Bajas desde el inicio del año"
+                        icon={<CancelIcon sx={{ color: '#b71c1c' }} />}
+                        color="#b71c1c"
+                        onClick={() => navigate(`/consultas?reportType=retired&year=${selectedYear}`)}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                        title="Retiros Históricos"
+                        value={stats.retiros.total}
+                        subtitle="Total de clientes retirados"
+                        icon={<CancelIcon sx={{ color: '#9e9e9e' }} />}
+                        color="#9e9e9e"
+                        onClick={() => navigate(`/consultas?reportType=retired`)}
                     />
                 </Grid>
 

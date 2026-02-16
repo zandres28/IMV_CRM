@@ -280,10 +280,9 @@ const InstallationBillingList: React.FC = () => {
       {/* Payments Table */}
       <TableContainer component={Paper}>
         <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID Externo</TableCell>
-              <TableCell>Cliente</TableCell>
+            <TableHead>
+                <TableRow>
+                  <TableCell>Cliente</TableCell>
               <TableCell>Servicio</TableCell>
               <TableCell>Fecha Pago</TableCell>
               <TableCell>Monto</TableCell>
@@ -295,7 +294,6 @@ const InstallationBillingList: React.FC = () => {
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
-                <TableCell>{payment.externalId || '-'}</TableCell>
                 <TableCell>
                   <Typography variant="body2">{payment.client.fullName}</Typography>
                   <Typography variant="caption" color="textSecondary">
@@ -339,7 +337,7 @@ const InstallationBillingList: React.FC = () => {
             ))}
             {payments.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={7} align="center">
                   <Typography color="textSecondary" sx={{ py: 3 }}>
                     No se encontraron pagos de instalación
                   </Typography>
@@ -422,14 +420,6 @@ const InstallationBillingList: React.FC = () => {
                   size="small"
                 />
               </Grid>
-              {selectedPayment.externalId && (
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    ID Externo
-                  </Typography>
-                  <Typography variant="body1">{selectedPayment.externalId}</Typography>
-                </Grid>
-              )}
               {selectedPayment.notes && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="textSecondary">
