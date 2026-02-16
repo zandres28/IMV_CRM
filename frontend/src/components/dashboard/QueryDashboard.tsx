@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Box, Paper, Typography, TextField, MenuItem, Button, Grid, Chip, Stack, Alert, CircularProgress } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { ReportService, ReportRow, ReportSummary, ReportType } from '../../services/ReportService';
@@ -23,6 +24,7 @@ export default function QueryDashboard() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [totalRows, setTotalRows] = useState(0);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Cargar planes activos para el filtro
@@ -30,6 +32,41 @@ export default function QueryDashboard() {
       .then(setPlans)
       .catch((e) => console.error('Error cargando planes', e));
   }, []);
+
+  useEffect(() => {
+    const rtParam = searchParams.get('reportType') as ReportType | null;
+    if (rtParam && rtParam !== reportType) {
+      setReportType(rtParam);
+    }
+
+    const statusParam = searchParams.get('clientStatus');
+    if (statusParam && statusParam !== clientStatus && ['active', 'inactive', 'all'].includes(statusParam)) {
+      setClientStatus(statusParam as any);
+    }
+
+    const paymentParam = searchParams.get('paymentStatus');
+    if (paymentParam && paymentParam !== paymentStatus && ['pending', 'completed', 'all'].includes(paymentParam)) {
+      setPaymentStatus(paymentParam as any);
+    }
+
+    const reminderParam = searchParams.get('reminderType');
+    if (reminderParam && reminderParam !== reminderType) {
+      setReminderType(reminderParam as any);
+    }
+
+    const planParam = searchParams.get('planId');
+    if (planParam) {
+      const planValue = planParam === 'all' ? 'all' : Number(planParam);
+      if ((planValue === 'all' || !Number.isNaN(planValue)) && planValue !== planId) {
+        setPlanId(planValue as any);
+      }
+    }
+
+    const serviceParam = searchParams.get('serviceType');
+    if (serviceParam && serviceParam !== serviceType && ['all', 'service', 'product'].includes(serviceParam)) {
+      setServiceType(serviceParam as any);
+    }
+  }, [searchParams, reportType, clientStatus, paymentStatus, reminderType, planId, serviceType]);
 
   // Limpiar filtros al cambiar tipo de reporte
   useEffect(() => {

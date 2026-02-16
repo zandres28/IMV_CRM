@@ -31,7 +31,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         fullName: '',
         identificationNumber: '',
         installationAddress: '',
-        city: '',
+        city: 'Cali',
         primaryPhone: '',
         secondaryPhone: '',
         email: '',
@@ -46,7 +46,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 fullName: client.fullName || '',
                 identificationNumber: client.identificationNumber || '',
                 installationAddress: client.installationAddress || '',
-                city: client.city || '',
+                city: client.city || 'Cali',
                 primaryPhone: formatPhoneForDisplay(client.primaryPhone),
                 secondaryPhone: formatPhoneForDisplay(client.secondaryPhone),
                 email: client.email || '',
@@ -66,7 +66,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 fullName: client.fullName || '',
                 identificationNumber: client.identificationNumber || '',
                 installationAddress: client.installationAddress || '',
-                city: client.city || '',
+                city: client.city || 'Cali',
                 primaryPhone: formatPhoneForDisplay(client.primaryPhone),
                 secondaryPhone: formatPhoneForDisplay(client.secondaryPhone),
                 email: client.email || '',
@@ -173,6 +173,18 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                         />
                     </Grid>
 
+                    <Grid item xs={12}>
+                        <TextField
+                            fullWidth
+                            required
+                            name="installationAddress"
+                            label="Dirección"
+                            value={formData.installationAddress}
+                            onChange={handleInputChange}
+                            disabled={!isEditable}
+                        />
+                    </Grid>
+
                     <Grid item xs={12} sm={6}>
                         <TextField
                             fullWidth
@@ -180,18 +192,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                             name="city"
                             label="Ciudad"
                             value={formData.city}
-                            onChange={handleInputChange}
-                            disabled={!isEditable}
-                        />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                        <TextField
-                            fullWidth
-                            required
-                            name="installationAddress"
-                            label="Dirección de Instalación"
-                            value={formData.installationAddress}
                             onChange={handleInputChange}
                             disabled={!isEditable}
                         />
@@ -212,11 +212,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                     <Grid item xs={12} sm={6}>
                         <TextField
                             fullWidth
+                            required
                             name="secondaryPhone"
                             label="Celular 2"
                             value={formData.secondaryPhone}
                             onChange={handleInputChange}
                             disabled={!isEditable}
+                            helperText="Segundo número obligatorio para notificaciones"
                         />
                     </Grid>
 
