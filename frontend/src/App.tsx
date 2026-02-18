@@ -269,6 +269,13 @@ function App() {
           </ListItem>
         )}
 
+        {AuthService.hasPermission('admin.permissions.manage') && (
+          <ListItem button component={Link} to="/admin/roles" onClick={handleDrawerToggle} selected={location.pathname === '/admin/roles'}>
+            <ListItemIcon><AssignmentIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Roles y Permisos" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+          </ListItem>
+        )}
+
         <ListItem button component={Link} to="/admin/settings" onClick={handleDrawerToggle} selected={location.pathname === '/admin/settings'}>
           <ListItemIcon><SystemIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Configuración" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
