@@ -27,8 +27,8 @@ services:
       - DB_NAME=imv_crm
       - JWT_SECRET=***REMOVED***
       - N8N_API_KEY=***REMOVED***
-    # volumes:
-    #   - ./tmp:/app/tmp
+    volumes:
+      - ./tmp:/app/tmp
     depends_on:
       - db
 
