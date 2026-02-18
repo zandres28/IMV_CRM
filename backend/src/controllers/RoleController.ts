@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../config/database";
 import { Role } from "../entities/Role";
+import { PERMISSIONS } from "../utils/permissions";
 
 const roleRepository = AppDataSource.getRepository(Role);
 
@@ -12,6 +13,39 @@ export const RoleController = {
             return res.json(roles);
         } catch (error) {
             return res.status(500).json({ message: "Error al obtener los roles", error });
+        }
+    },
+    
+    // Obtener la lista de todos los permisos disponibles
+    getAvailablePermissions: (req: Request, res: Response) => {
+        try {
+            // Aplanamos la estructura de PERMISSIONS para enviarla al frontend
+            const permissionList: {id: string, label: string, group: string}[] = [];
+            
+            // Función recursiva para recorrer el objeto de permisos
+            const flattenPermissions = (obj: any, prefix = '') => {
+                for (const key in obj) {
+                    if (typeof obj[key] === 'string') {
+                        // Generar un label más amigable: "clients.list.view" -> "Clients List View"
+                        const id = obj[key] as string;
+                        const group = prefix ? prefix.slice(0, -1) : id.split('.')[0] || 'GENERAL';
+                        
+                        permissionList.push({
+                            id: id,
+                            label: id, 
+                            group: group
+                        });
+                    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                        flattenPermissions(obj[key], prefix + key + '.');
+                    }
+                }
+            };
+
+            flattenPermissions(PERMISSIONS);
+            
+            return res.json(permissionList);
+        } catch (error) {
+            return res.status(500).json({ message: "Error al obtener permisos disponibles", error });
         }
     },
 
@@ -52,7 +86,17 @@ export const RoleController = {
                 return res.status(404).json({ message: "Rol no encontrado" });
             }
 
-            roleRepository.merge(role, req.body);
+            const { name, description, permissions, isActive } = req.body;
+
+            if (role.name === 'admin' && name && name !== 'admin') {
+                return res.status(400).json({ message: "No se puede cambiar el nombre del rol admin" });
+            }
+
+            if (name) role.name = name;
+            if (description !== undefined) role.description = description;
+            if (permissions) role.permissions = permissions;
+            if (typeof isActive === 'boolean') role.isActive = isActive;
+
             const result = await roleRepository.save(role);
             return res.json(result);
         } catch (error) {
@@ -68,6 +112,10 @@ export const RoleController = {
             
             if (!role) {
                 return res.status(404).json({ message: "Rol no encontrado" });
+            }
+
+            if (role.name === 'admin') {
+                return res.status(403).json({ message: "No se puede eliminar el rol de administrador" });
             }
 
             role.isActive = false;
