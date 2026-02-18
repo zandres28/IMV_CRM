@@ -20,6 +20,7 @@ import ApiAccess from '../components/admin/ApiAccess';
 import { SystemSettingsConfig } from '../components/admin/SystemSettingsConfig';
 import { InteractionTypesManager } from '../components/admin/InteractionTypesManager';
 import ServiceRequestForm from '../components/public/ServiceRequestForm';
+import RolesManager from '../components/admin/RolesManager';
 
 const router = createBrowserRouter([
     {
@@ -93,6 +94,10 @@ const router = createBrowserRouter([
             {
                 path: "admin/users",
                 element: <UserManagement />
+            },
+            {
+                path: "admin/roles",
+                element: <RolesManager />
             },
             {
                 path: "admin/api-access",
