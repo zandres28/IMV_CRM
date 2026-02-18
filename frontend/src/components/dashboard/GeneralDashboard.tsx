@@ -1,389 +1,333 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Grid, Typography, CircularProgress, Card, CardContent, Divider, FormControl, InputLabel, Select, MenuItem, Chip } from '@mui/material';
+import {
+  Grid,
+  Paper,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  Divider,
+} from '@mui/material';
+import {
+  TrendingUp,
+  TrendingDown,
+  AttachMoney,
+  People,
+  PersonAdd,
+  PersonRemove,
+  AccountBalanceWallet,
+  AssignmentLate,
+  Router,
+} from '@mui/icons-material';
 import { DashboardService, DashboardStats } from '../../services/DashboardService';
-import PeopleIcon from '@mui/icons-material/People';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import WarningIcon from '@mui/icons-material/Warning';
-import CancelIcon from '@mui/icons-material/Cancel';
-import TvIcon from '@mui/icons-material/Tv';
-import RouterIcon from '@mui/icons-material/Router';
-import OndemandVideoIcon from '@mui/icons-material/OndemandVideo';
-import BuildIcon from '@mui/icons-material/Build';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as ChartTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts';
+
+// --- COLORS ---
+const COLORS = {
+  primary: '#4e73df',
+  success: '#1cc88a',
+  info: '#36b9cc',
+  warning: '#f6c23e',
+  danger: '#e74a3b',
+  secondary: '#858796',
+  light: '#f8f9fc',
+  dark: '#5a5c69',
+};
+
+const PIE_COLORS = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'];
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  subtext?: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtext, icon, color }) => (
+  <Card sx={{ height: '100%', borderLeft: `4px solid ${color}`, boxShadow: 2 }}>
+    <CardContent>
+      <Grid container spacing={2} alignItems="center">
+        <Grid item xs={8}>
+          <Typography variant="overline" display="block" color={color} sx={{ fontWeight: 'bold' }}>
+            {title}
+          </Typography>
+          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: COLORS.dark }}>
+            {value}
+          </Typography>
+          {subtext && (
+             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+              {subtext}
+            </Typography>
+          )}
+        </Grid>
+        <Grid item xs={4} sx={{ textAlign: 'right' }}>
+           <Box sx={{ color: '#dddfeb' }}>{icon}</Box>
+        </Grid>
+      </Grid>
+    </CardContent>
+  </Card>
+);
 
 export const GeneralDashboard: React.FC = () => {
-    const navigate = useNavigate();
-    const [stats, setStats] = useState<DashboardStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedMonth] = useState(new Date().getMonth());
+  const [selectedYear] = useState(new Date().getFullYear());
 
-    const periodLabel = {
-        week: 'Esta Semana',
-        month: 'Este Mes',
-        year: 'Este Año'
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const data = await DashboardService.getStats(selectedMonth, selectedYear);
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchStats();
+  }, [selectedMonth, selectedYear]);
 
-    const months = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-
-    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-
-    useEffect(() => {
-        const fetchStats = async () => {
-            setLoading(true);
-            try {
-                const data = await DashboardService.getStats(selectedMonth, selectedYear);
-                setStats(data);
-            } catch (error) {
-                console.error("Error fetching dashboard stats", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
-    }, [selectedMonth, selectedYear]);
-
-    if (loading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (!stats) {
-        return <Typography color="error">No se pudieron cargar las estadísticas.</Typography>;
-    }
-
-    const StatCard = ({ title, value, subtitle, icon, color, onClick }: { title: string, value: string | number, subtitle?: string, icon: React.ReactNode, color: string, onClick?: () => void }) => (
-        <Card 
-            sx={{ 
-                height: '100%', 
-                borderLeft: `5px solid ${color}`,
-                cursor: onClick ? 'pointer' : 'default',
-                transition: 'transform 0.2s',
-                '&:hover': onClick ? {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4
-                } : {}
-            }}
-            onClick={onClick}
-        >
-            <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                    <Box>
-                        <Typography color="textSecondary" gutterBottom variant="overline">
-                            {title}
-                        </Typography>
-                        <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                            {value}
-                        </Typography>
-                        {subtitle && (
-                            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                                {subtitle}
-                            </Typography>
-                        )}
-                    </Box>
-                    <Box sx={{ 
-                        backgroundColor: `${color}20`, 
-                        borderRadius: '50%', 
-                        p: 1, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center' 
-                    }}>
-                        {icon}
-                    </Box>
-                </Box>
-            </CardContent>
-        </Card>
-    );
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
-    };
-
+  if (loading) {
     return (
-        <Box p={3}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
-                <Typography variant="h4">
-                    Tablero General
-                </Typography>
-                
-                <Box display="flex" gap={2}>
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
-                        <InputLabel>Periodo</InputLabel>
-                        <Select
-                            value={period}
-                            label="Periodo"
-                            onChange={(e) => setPeriod(e.target.value as 'week' | 'month' | 'year')}
-                        >
-                            <MenuItem value="week">Semana</MenuItem>
-                            <MenuItem value="month">Mes</MenuItem>
-                            <MenuItem value="year">Año</MenuItem>
-                        </Select>
-                    </FormControl>
-
-                    {period === 'month' && (
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel>Mes</InputLabel>
-                            <Select
-                                value={selectedMonth}
-                                label="Mes"
-                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                            >
-                                {months.map((month, index) => (
-                                    <MenuItem key={index} value={index}>{month}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    )}
-
-                    {(period === 'month' || period === 'year') && (
-                        <FormControl size="small" sx={{ minWidth: 100 }}>
-                            <InputLabel>Año</InputLabel>
-                            <Select
-                                value={selectedYear}
-                                label="Año"
-                                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            >
-                                {years.map((year) => (
-                                    <MenuItem key={year} value={year}>{year}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    )}
-                </Box>
-            </Box>
-
-            <Grid container spacing={3}>
-                {/* Period Summary Section */}
-                <Grid item xs={12}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TrendingUpIcon color="primary" /> Resumen del Periodo ({period === 'month' ? `${months[selectedMonth]} ${selectedYear}` : (period === 'year' ? `Año ${selectedYear}` : periodLabel[period])})
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={6}>
-                    <StatCard 
-                        title={`Clientes Nuevos (${period === 'year' ? `Año ${selectedYear}` : (period === 'month' ? `${months[selectedMonth]}` : periodLabel[period])})`}
-                        value={stats.clients[period]} 
-                        icon={<PeopleIcon sx={{ color: '#2196f3' }} />} 
-                        color="#2196f3"
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={6}>
-                    <StatCard 
-                        title={`Recaudo (${period === 'year' ? `Año ${selectedYear}` : (period === 'month' ? `${months[selectedMonth]}` : periodLabel[period])})`}
-                        value={formatCurrency(stats.revenue[period])} 
-                        icon={<AttachMoneyIcon sx={{ color: '#66bb6a' }} />} 
-                        color="#66bb6a"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AttachMoneyIcon color="success" /> Recaudo mensual y acumulado
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title={`Recaudo del Mes (${months[selectedMonth]} ${selectedYear})`}
-                        value={formatCurrency(stats.revenue.month)}
-                        subtitle="Facturación del mes seleccionado"
-                        icon={<AttachMoneyIcon sx={{ color: '#43a047' }} />}
-                        color="#43a047"
-                        onClick={() => navigate(`/billing?month=${months[selectedMonth].toLowerCase()}&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title={`Recaudo Acumulado (${selectedYear})`}
-                        value={formatCurrency(stats.revenue.year)}
-                        subtitle="Total facturación año hasta fecha"
-                        icon={<AttachMoneyIcon sx={{ color: '#2e7d32' }} />}
-                        color="#2e7d32"
-                        onClick={() => navigate(`/billing?year=${selectedYear}`)}
-                    />
-                </Grid>
-
-                {/* Revenue Breakdown Section */}
-                {period === 'month' && stats.revenue.breakdown && (
-                    <>
-                        <Grid item xs={12} sx={{ mt: 2 }}>
-                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <AttachMoneyIcon color="success" /> Desglose de Recaudo (Mes)
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6} md={3}>
-                             <StatCard 
-                                title="Planes" 
-                                value={formatCurrency(stats.revenue.breakdown.servicePlan)} 
-                                icon={<RouterIcon sx={{ color: '#1976d2' }} />} 
-                                color="#1976d2"
-                                onClick={() => navigate(`/billing?month=${months[selectedMonth].toLowerCase()}&year=${selectedYear}`)}
-                            />
-                        </Grid>
-                         <Grid item xs={12} sm={6} md={3}>
-                             <StatCard 
-                                title="Instalaciones" 
-                                value={formatCurrency(stats.revenue.breakdown.installations)} 
-                                icon={<BuildIcon sx={{ color: '#ff9800' }} />} 
-                                color="#ff9800"
-                                onClick={() => navigate(`/installation-billing?month=${months[selectedMonth].toLowerCase()}&year=${selectedYear}`)}
-                            />
-                        </Grid>
-                         <Grid item xs={12} sm={6} md={3}>
-                             <StatCard 
-                                title="Productos" 
-                                value={formatCurrency(stats.revenue.breakdown.products)} 
-                                icon={<TvIcon sx={{ color: '#9c27b0' }} />} 
-                                color="#9c27b0"
-                                onClick={() => navigate(`/billing?month=${months[selectedMonth].toLowerCase()}&year=${selectedYear}`)}
-                            />
-                        </Grid>
-                         <Grid item xs={12} sm={6} md={3}>
-                             <StatCard 
-                                title="Servicios Adic." 
-                                value={formatCurrency(stats.revenue.breakdown.additionalServices)} 
-                                icon={<OndemandVideoIcon sx={{ color: '#f44336' }} />} 
-                                color="#f44336"
-                                onClick={() => navigate(`/billing?month=${months[selectedMonth].toLowerCase()}&year=${selectedYear}`)}
-                            />
-                        </Grid>
-                    </>
-                )}
-
-                {/* Client Status Section */}
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CheckCircleIcon color="info" /> Base de Clientes (Total)
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="Total Clientes" 
-                        value={stats.clients.total} 
-                        subtitle="Base total de clientes"
-                        icon={<PeopleIcon sx={{ color: '#4caf50' }} />} 
-                        color="#4caf50"
-                        onClick={() => navigate(`/clients?month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="Activos" 
-                        value={stats.clients.active} 
-                        icon={<CheckCircleIcon sx={{ color: '#2e7d32' }} />} 
-                        color="#2e7d32"
-                        onClick={() => navigate(`/clients?status=active&month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="Suspendidos" 
-                        value={stats.clients.suspended} 
-                        icon={<WarningIcon sx={{ color: '#ed6c02' }} />} 
-                        color="#ed6c02"
-                        onClick={() => navigate(`/clients?status=suspended&month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard 
-                        title="Cancelados" 
-                        value={stats.clients.cancelled} 
-                        icon={<CancelIcon sx={{ color: '#d32f2f' }} />} 
-                        color="#d32f2f"
-                        onClick={() => navigate(`/clients?status=cancelled&month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CancelIcon color="error" /> Retiros
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title={`Retiros del Mes (${months[selectedMonth]} ${selectedYear})`}
-                        value={stats.retiros.month}
-                        subtitle="Clientes dados de baja este mes"
-                        icon={<CancelIcon sx={{ color: '#e53935' }} />}
-                        color="#e53935"
-                        onClick={() => navigate(`/consultas?reportType=retired&month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title={`Retiros Acumulados (${selectedYear})`}
-                        value={stats.retiros.year}
-                        subtitle="Bajas desde el inicio del año"
-                        icon={<CancelIcon sx={{ color: '#b71c1c' }} />}
-                        color="#b71c1c"
-                        onClick={() => navigate(`/consultas?reportType=retired&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Retiros Históricos"
-                        value={stats.retiros.total}
-                        subtitle="Total de clientes retirados"
-                        icon={<CancelIcon sx={{ color: '#9e9e9e' }} />}
-                        color="#9e9e9e"
-                        onClick={() => navigate(`/consultas?reportType=retired`)}
-                    />
-                </Grid>
-
-                {/* Additional Services Section */}
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TvIcon color="secondary" /> Servicios Adicionales (Instalados)
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={4}>
-                    <StatCard 
-                        title="Netflix" 
-                        value={stats.services.netflix} 
-                        icon={<OndemandVideoIcon sx={{ color: '#e50914' }} />} 
-                        color="#e50914"
-                        onClick={() => navigate(`/clients?search=netflix&month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <StatCard 
-                        title="TV Box" 
-                        value={stats.services.tvBox} 
-                        icon={<RouterIcon sx={{ color: '#1976d2' }} />} 
-                        color="#1976d2"
-                        onClick={() => navigate(`/clients?search=box&month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                    <StatCard 
-                        title="Tele Latino" 
-                        value={stats.services.teleLatino} 
-                        icon={<TvIcon sx={{ color: '#9c27b0' }} />} 
-                        color="#9c27b0"
-                        onClick={() => navigate(`/clients?search=latino&month=${selectedMonth}&year=${selectedYear}`)}
-                    />
-                </Grid>
-            </Grid>
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress />
+      </Box>
     );
+  }
+
+  if (!stats) return <Typography>No se pudieron cargar las estadísticas.</Typography>;
+
+  const formatCurrency = (value: number) => 
+    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
+
+  const formatPercentage = (value: number) => `${value}%`;
+
+  // Prepare Chart Data
+  const growthHistoryData = stats.history.growth;
+  const revenueHistoryData = stats.history.revenue;
+  
+  const portfolioData = [
+    { name: '0-30 Días', value: stats.collection.portfolioByAge.range0_30 },
+    { name: '31-60 Días', value: stats.collection.portfolioByAge.range31_60 },
+    { name: '61-90 Días', value: stats.collection.portfolioByAge.range61_90 },
+    { name: '+90 Días', value: stats.collection.portfolioByAge.range90_plus },
+  ];
+
+  return (
+    <Box sx={{ flexGrow: 1, p: 2 }}>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: COLORS.dark }}>
+        Dashboard Ejecutivo
+      </Typography>
+
+      {/* --- EXECUTIVE SUMMARY ROWS --- */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        
+        {/* ROW 1: CLIENTS & GROWTH */}
+        <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="Clientes Activos" 
+             value={stats.growth.totalActiveClients} 
+             icon={<People fontSize="large" />} 
+             color={COLORS.primary} 
+           />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="Nuevos (Mes)" 
+             value={stats.growth.newClientsMonth} 
+             subtext={`Crecimiento Neto: ${stats.growth.netGrowth}`}
+             icon={<PersonAdd fontSize="large" />} 
+             color={COLORS.success} 
+           />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="Retiros (Mes)" 
+             value={stats.retention.retiredClientsMonth} 
+             subtext={`Churn Rate: ${stats.retention.churnRate}%`}
+             icon={<PersonRemove fontSize="large" />} 
+             color={COLORS.danger} 
+           />
+        </Grid>
+         <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="Crecimiento Mensual" 
+             value={formatPercentage(stats.growth.growthRate)} 
+             icon={<TrendingUp fontSize="large" />} 
+             color={COLORS.info} 
+           />
+        </Grid>
+
+        {/* ROW 2: FINANCE */}
+        <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="Facturación (Mes)" 
+             value={formatCurrency(stats.finance.monthlyBilling)} 
+             icon={<AttachMoney fontSize="large" />} 
+             color={COLORS.primary} 
+           />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="Recaudo Real" 
+             value={formatCurrency(stats.collection.realCollection)} 
+             subtext={`Eficiencia: ${stats.collection.collectionEfficiency}%`}
+             icon={<AccountBalanceWallet fontSize="large" />} 
+             color={COLORS.success} 
+           />
+        </Grid>
+         <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="Cartera Vencida" 
+             value={formatCurrency(stats.collection.totalOverdue)} 
+             subtext={`Clientes en Mora: ${stats.collection.clientsInDefault}`}
+             icon={<AssignmentLate fontSize="large" />} 
+             color={COLORS.warning} 
+           />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+           <MetricCard 
+             title="ARPU" 
+             value={formatCurrency(stats.finance.arpu)} 
+             icon={<TrendingUp fontSize="large" />} 
+             color={COLORS.info} 
+           />
+        </Grid>
+      </Grid>
+
+      {/* --- DETAILED SECTIONS --- */}
+      
+      <Grid container spacing={3}>
+        
+        {/* GROWTH & REVENUE CHARTS */}
+        <Grid item xs={12} lg={8}>
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: COLORS.primary, fontWeight: 'bold' }}>
+              Histórico de Crecimiento (Últimos 6 meses)
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={growthHistoryData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <ChartTooltip />
+                <Legend />
+                <Bar dataKey="newClients" name="Nuevos" fill={COLORS.success} />
+                <Bar dataKey="retiredClients" name="Retiros" fill={COLORS.danger} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          <Paper sx={{ p: 2 }}>
+             <Typography variant="h6" sx={{ mb: 2, color: COLORS.primary, fontWeight: 'bold' }}>
+              Facturación vs Recaudo
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={revenueHistoryData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <ChartTooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                <Legend />
+                <Bar dataKey="billed" name="Facturado" fill={COLORS.primary} />
+                <Bar dataKey="collected" name="Recaudado" fill={COLORS.success} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* SIDEBAR CHARTS */}
+        <Grid item xs={12} lg={4}>
+           {/* PLANS DISTRIBUTION */}
+           <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: COLORS.dark, fontWeight: 'bold' }}>
+              Altas por Plan (Mes)
+            </Typography>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie 
+                  data={stats.growth.signupsByPlan} 
+                  dataKey="value" 
+                  nameKey="name" 
+                  cx="50%" 
+                  cy="50%" 
+                  outerRadius={80} 
+                  label 
+                >
+                  {stats.growth.signupsByPlan.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <ChartTooltip />
+                <Legend wrapperStyle={{ fontSize: '12px' }}/>
+              </PieChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* RETIREMENT REASONS */}
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: COLORS.dark, fontWeight: 'bold' }}>
+              Motivos de Retiro
+            </Typography>
+             <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie 
+                  data={stats.retention.retirementReasons} 
+                  dataKey="value" 
+                  nameKey="name" 
+                  cx="50%" 
+                  cy="50%" 
+                  innerRadius={60}
+                  outerRadius={80} 
+                >
+                  {stats.retention.retirementReasons.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <ChartTooltip />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Paper>
+
+           {/* PORTFOLIO AGE */}
+           <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: COLORS.dark, fontWeight: 'bold' }}>
+              Antigüedad de Cartera
+            </Typography>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={portfolioData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tickFormatter={(val) => `$${val/1000}k`} />
+                <YAxis dataKey="name" type="category" width={80} style={{ fontSize: '12px' }} />
+                <ChartTooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                <Bar dataKey="value" name="Monto" fill={COLORS.warning} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+
+        </Grid>
+      </Grid>
+    </Box>
+  );
 };
+
 

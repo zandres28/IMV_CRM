@@ -35,7 +35,7 @@ const ServiceRequestForm: React.FC = () => {
         fullName: '',
         identificationNumber: '',
         installationAddress: '',
-        city: '',
+        city: 'Cali',
         primaryPhone: '',
         secondaryPhone: '',
         planId: ''
@@ -207,7 +207,7 @@ const ServiceRequestForm: React.FC = () => {
                                         onChange={handleChange}
                                         required
                                         variant="outlined"
-                                        helperText="Barrio, Calle, Número, Casa/Apto"
+                                        helperText="dirección, piso, casa/apto, barrio"
                                     />
                                 </Grid>
                                 <Grid item xs={12} md={6}>
@@ -243,10 +243,11 @@ const ServiceRequestForm: React.FC = () => {
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
-                                        label="Celular Secundario (Opcional)"
+                                        label="Celular Secundario"
                                         name="secondaryPhone"
                                         value={formData.secondaryPhone}
                                         onChange={handleChange}
+                                        required
                                         variant="outlined"
                                         type="tel"
                                     />

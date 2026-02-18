@@ -15,14 +15,21 @@ import {
     Snackbar,
     Alert,
     TablePagination,
-    TextField
+    TextField,
+    useMediaQuery,
+    useTheme,
+    Card,
+    CardContent,
+    Divider,
+    Grid
 } from '@mui/material';
 import {
     Add as AddIcon,
     Edit as EditIcon,
     History as HistoryIcon,
     Search as SearchIcon,
-    Delete as DeleteIcon
+    Delete as DeleteIcon,
+    RestartAlt as RestartAltIcon
 } from '@mui/icons-material';
 import { Installation, InstallationService } from '../../services/InstallationService';
 import { InstallationForm } from './InstallationForm';
@@ -34,6 +41,8 @@ interface InstallationsListProps {
 }
 
 export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [installations, setInstallations] = useState<Installation[]>([]);
     const [filteredInstallations, setFilteredInstallations] = useState<Installation[]>([]);
     const [selectedInstallation, setSelectedInstallation] = useState<Installation | null>(null);
@@ -191,6 +200,29 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
         }
     };
 
+    const handleReboot = async (installationId: number) => {
+        const confirmed = window.confirm('¿Estás seguro de que deseas reiniciar la ONU?');
+        if (!confirmed) return;
+
+        try {
+            setNotificationMessage('Iniciando reinicio de ONU...');
+            setNotificationSeverity('info');
+            setNotificationOpen(true);
+
+            await InstallationService.rebootOnu(installationId);
+
+            setNotificationMessage('Comando de reinicio enviado correctamente.');
+            setNotificationSeverity('success');
+            setNotificationOpen(true);
+        } catch (error: any) {
+            console.error('Error al reiniciar la ONU:', error);
+            const msg = error?.response?.data?.message || 'Error al conectar con la OLT o enviar el comando.';
+            setNotificationMessage(msg);
+            setNotificationSeverity('error');
+            setNotificationOpen(true);
+        }
+    };
+
     const getStatusChipProps = (status: string) => {
         const statusMap: Record<string, { label: string; color: 'success' | 'warning' | 'error' }> = {
             active: { label: 'Activo', color: 'success' },
@@ -206,10 +238,10 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
     );
 
     return (
-        <Paper sx={{ p: 2, mb: 2 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">Instalaciones</Typography>
-                <Box display="flex" gap={2}>
+        <Paper sx={{ p: 0, borderRadius: 2, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)', overflow: 'hidden' }}>
+            <Box sx={{ p: 2, borderBottom: '1px solid #e3e6f0', bgcolor: '#f8f9fc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#4e73df', textTransform: 'uppercase', fontSize: '0.75rem' }}>Listado de Instalaciones</Typography>
+                <Box display="flex" gap={1}>
                     <TextField
                         placeholder="Buscar..."
                         variant="outlined"
@@ -217,37 +249,116 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         InputProps={{
-                            startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
+                            startAdornment: <SearchIcon sx={{ mr: 1, color: '#d1d3e2', fontSize: 18 }} />,
+                            sx: { fontSize: '0.75rem', bgcolor: '#fff' }
                         }}
-                        sx={{ width: 250 }}
+                        sx={{ width: 200 }}
                     />
                     <Button
                         variant="contained"
+                        size="small"
                         startIcon={<AddIcon />}
                         onClick={() => {
                             setSelectedInstallation(null);
                             setOpenForm(true);
                         }}
+                        sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
                     >
-                        Nueva Instalación
+                        Nueva
                     </Button>
                 </Box>
             </Box>
 
-            <TableContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow sx={{ backgroundColor: '#1976d2' }}>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tipo de Servicio</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ONU SN</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha Instalación</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Técnico</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PON ID</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ONU ID</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Cuota Mensual</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Costo Instalación</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
+            {isMobile ? (
+                <Box sx={{ p: 1, bgcolor: '#f8f9fc' }}>
+                    {paginatedInstallations.map((installation) => (
+                        <Card 
+                            key={installation.id} 
+                            sx={{ 
+                                mb: 2, 
+                                borderRadius: 2,
+                                borderLeft: `4px solid ${installation.isDeleted ? '#e74a3b' : (installation.serviceStatus === 'active' ? '#1cc88a' : (installation.serviceStatus === 'suspended' ? '#f6c23e' : '#e74a3b'))}`,
+                                boxShadow: '0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1)'
+                            }}
+                        >
+                            <CardContent sx={{ p: '12px !important' }}>
+                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                                    <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: '#4e73df' }}>
+                                        {installation.serviceType}
+                                    </Typography>
+                                    <Chip
+                                        label={installation.isDeleted ? "ELIMINADA" : getStatusChipProps(installation.serviceStatus).label.toUpperCase()}
+                                        size="small"
+                                        sx={{ 
+                                            height: 20, 
+                                            fontSize: '0.6rem', 
+                                            fontWeight: 800,
+                                            bgcolor: installation.isDeleted ? '#e74a3b' : (installation.serviceStatus === 'active' ? '#1cc88a20' : '#f6c23e20'),
+                                            color: installation.isDeleted ? 'white' : (installation.serviceStatus === 'active' ? '#1cc88a' : '#f6c23e'),
+                                            border: installation.isDeleted ? 'none' : `1px solid ${installation.serviceStatus === 'active' ? '#1cc88a' : '#f6c23e'}`
+                                        }}
+                                    />
+                                </Box>
+                                
+                                <Grid container spacing={1}>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>ONU SN</Typography>
+                                        <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#5a5c69' }}>{installation.onuSerialNumber || '-'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>NAP</Typography>
+                                        <Box>{installation.napLabel ? <Chip label={installation.napLabel} size="small" variant="outlined" sx={{ height: 16, fontSize: '0.55rem', fontWeight: 800, borderColor: '#4e73df', color: '#4e73df' }} /> : '-'}</Box>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>Mensual</Typography>
+                                        <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#1cc88a' }}>{formatCurrency(installation.monthlyFee)}</Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>ID (P/O)</Typography>
+                                        <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>{installation.ponId}/{installation.onuId}</Typography>
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ my: 1, opacity: 0.5 }} />
+
+                                <Box display="flex" justifyContent="flex-end" gap={0.5}>
+                                    <IconButton size="small" onClick={() => handleEdit(installation)} disabled={installation.isDeleted} sx={{ color: '#4e73df' }} title="Editar"><EditIcon fontSize="small" /></IconButton>
+                                    <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
+                                    <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
+                                    <IconButton size="small" onClick={() => handleDelete(installation)} disabled={installation.isDeleted} sx={{ color: '#e74a3b' }} title="Eliminar"><DeleteIcon fontSize="small" /></IconButton>
+                                    {installation.isDeleted && (
+                                        <Button size="small" variant="outlined" onClick={() => handleRestore(installation)} sx={{ fontSize: '0.6rem', py: 0 }}>Restaurar</Button>
+                                    )}
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    <TablePagination
+                        rowsPerPageOptions={[5, 10, 25]}
+                        component="div"
+                        count={filteredInstallations.length}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        onPageChange={handleChangePage}
+                        onRowsPerPageChange={handleChangeRowsPerPage}
+                        labelRowsPerPage=""
+                    />
+                </Box>
+            ) : (
+                <TableContainer>
+                <Table size="small">
+                    <TableHead sx={{ bgcolor: '#f8f9fc' }}>
+                        <TableRow>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Servicio</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>ONU SN</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>NAP</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Fecha</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Técnico</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>ID (P/O)</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Mensual</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Costo</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Estado</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -255,62 +366,84 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                             <TableRow 
                                 key={installation.id}
                                 sx={{ 
-                                    backgroundColor: installation.isDeleted ? '#ffebee' : (index % 2 === 0 ? 'white' : '#f5f5f5'),
+                                    backgroundColor: installation.isDeleted ? '#ffebee' : 'transparent',
                                     '&:hover': {
-                                        backgroundColor: installation.isDeleted ? '#ffcdd2' : '#e3f2fd'
-                                    }
+                                        backgroundColor: '#f8f9fc'
+                                    },
+                                    borderBottom: '1px solid #e3e6f0'
                                 }}
                             >
-                                <TableCell>{installation.serviceType}</TableCell>
-                                <TableCell>{installation.onuSerialNumber || '-'}</TableCell>
-                                <TableCell>{formatDate(installation.installationDate)}</TableCell>
-                                <TableCell>{installation.technician}</TableCell>
-                                <TableCell>{installation.ponId || '-'}</TableCell>
-                                <TableCell>{installation.onuId || '-'}</TableCell>
-                                <TableCell>{formatCurrency(installation.monthlyFee)}</TableCell>
-                                <TableCell>{formatCurrency(installation.installationFee || 0)}</TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#5a5c69' }}>{installation.serviceType}</TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem', color: '#4e73df', fontWeight: 600 }}>{installation.onuSerialNumber || '-'}</TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem' }}>
+                                    {installation.napLabel ? <Chip label={installation.napLabel} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, borderColor: '#4e73df', color: '#4e73df' }} /> : '-'}
+                                </TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem' }}>{formatDate(installation.installationDate)}</TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem' }}>{installation.technician}</TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem' }}>{installation.ponId}/{installation.onuId}</TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem', fontWeight: 700 }}>{formatCurrency(installation.monthlyFee)}</TableCell>
+                                <TableCell sx={{ fontSize: '0.7rem', fontWeight: 700 }}>{formatCurrency(installation.installationFee || 0)}</TableCell>
                                 <TableCell>
                                     {installation.isDeleted ? (
-                                        <Chip label="Eliminada" color="error" size="small" />
+                                        <Chip label="ELIMINADA" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#e74a3b', color: 'white' }} size="small" />
                                     ) : (
                                         <Chip
-                                            label={getStatusChipProps(installation.serviceStatus).label}
-                                            color={getStatusChipProps(installation.serviceStatus).color}
+                                            label={getStatusChipProps(installation.serviceStatus).label.toUpperCase()}
+                                            sx={{ 
+                                                height: 18, 
+                                                fontSize: '0.6rem', 
+                                                fontWeight: 800,
+                                                bgcolor: installation.serviceStatus === 'active' ? '#1cc88a20' : installation.serviceStatus === 'suspended' ? '#f6c23e20' : '#e74a3b20',
+                                                color: installation.serviceStatus === 'active' ? '#1cc88a' : installation.serviceStatus === 'suspended' ? '#f6c23e' : '#e74a3b',
+                                                border: `1px solid ${installation.serviceStatus === 'active' ? '#1cc88a' : installation.serviceStatus === 'suspended' ? '#f6c23e' : '#e74a3b'}`
+                                            }}
                                             size="small"
                                         />
                                     )}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell sx={{ py: 0.5 }}>
                                     <IconButton
                                         size="small"
                                         onClick={() => handleEdit(installation)}
                                         title="Editar"
                                         disabled={installation.isDeleted}
+                                        sx={{ color: '#4e73df' }}
                                     >
-                                        <EditIcon />
+                                        <EditIcon fontSize="small" />
                                     </IconButton>
                                     <IconButton
                                         size="small"
                                         onClick={() => handleViewSpeedHistory(installation)}
                                         title="Historial de Velocidad"
                                         disabled={installation.isDeleted}
+                                        sx={{ color: '#36b9cc' }}
                                     >
-                                        <HistoryIcon />
+                                        <HistoryIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => handleReboot(installation.id)}
+                                        title="Reiniciar ONU"
+                                        disabled={installation.isDeleted || !installation.onuSerialNumber}
+                                        sx={{ color: '#f6c23e' }}
+                                    >
+                                        <RestartAltIcon fontSize="small" />
                                     </IconButton>
                                     <IconButton
                                         size="small"
                                         onClick={() => handleDelete(installation)}
                                         title="Eliminar"
-                                        color="error"
                                         disabled={installation.isDeleted}
+                                        sx={{ color: '#e74a3b' }}
                                     >
-                                        <DeleteIcon />
+                                        <DeleteIcon fontSize="small" />
                                     </IconButton>
                                     {installation.isDeleted && (
                                         <Button
                                             size="small"
                                             variant="outlined"
                                             onClick={() => handleRestore(installation)}
+                                            sx={{ ml: 1, fontSize: '0.65rem' }}
                                         >Restaurar</Button>
                                     )}
                                 </TableCell>
@@ -332,6 +465,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                     }
                 />
             </TableContainer>
+            )}
 
             <InstallationForm
                 open={openForm}

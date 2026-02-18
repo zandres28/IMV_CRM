@@ -1,0 +1,95 @@
+
+> netflow-crm-frontend@0.1.0 build
+> react-scripts build
+
+Creating an optimized production build...
+Compiled with warnings.
+
+[eslint] 
+src\App.tsx
+  Line 8:3:    'Container' is defined but never used                        @typescript-eslint/no-unused-vars
+  Line 24:3:   'Tooltip' is defined but never used                          @typescript-eslint/no-unused-vars
+  Line 26:3:   'InputBase' is defined but never used                        @typescript-eslint/no-unused-vars
+  Line 29:3:   'KeyboardArrowDown' is defined but never used                @typescript-eslint/no-unused-vars
+  Line 30:3:   'AccountCircle' is defined but never used                    @typescript-eslint/no-unused-vars
+  Line 40:15:  'SettingsIcon' is defined but never used                     @typescript-eslint/no-unused-vars
+  Line 43:18:  'HelpIcon' is defined but never used                         @typescript-eslint/no-unused-vars
+  Line 49:18:  'FastSaleIcon' is defined but never used                     @typescript-eslint/no-unused-vars
+  Line 51:11:  'HomeIcon' is defined but never used                         @typescript-eslint/no-unused-vars
+  Line 52:22:  'ArrowIcon' is defined but never used                        @typescript-eslint/no-unused-vars
+  Line 72:10:  'clientsMenuAnchor' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  Line 73:10:  'adminMenuAnchor' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 83:10:  'mobileClientsOpen' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  Line 83:29:  'setMobileClientsOpen' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  Line 129:9:  'handleClientsMenuOpen' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  Line 133:9:  'handleClientsMenuClose' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  Line 137:9:  'handleAdminMenuOpen' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  Line 158:9:  'isClientsActive' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  Line 162:9:  'isAdminActive' is assigned a value but never used           @typescript-eslint/no-unused-vars
+
+src\components\admin\ApiAccess.tsx
+  Line 14:5:  'Divider' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\admin\InteractionTypesManager.tsx
+  Line 27:12:  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src\components\billing\MonthlyBilling.tsx
+  Line 1156:71:  'billingPeriodStart' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src\components\clients\ClientDetail.tsx
+  Line 18:97:  'RestoreIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\clients\ClientForm.tsx
+  Line 14:5:  'IconButton' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\components\clients\ClientList.tsx
+  Line 33:5:    'SelectChangeEvent' is defined but never used  @typescript-eslint/no-unused-vars
+  Line 39:5:    'Grid' is defined but never used               @typescript-eslint/no-unused-vars
+  Line 769:63:  'rDate' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+src\components\installation-billing\InstallationBillingList.tsx
+  Line 66:6:  React Hook useEffect has a missing dependency: 'loadPayments'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\components\interactions\InteractionManager.tsx
+  Line 42:27:  'toInputDateString' is defined but never used      @typescript-eslint/no-unused-vars
+  Line 45:12:  'interactions' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src\components\service-outages\ServiceOutageManager.tsx
+  Line 73:6:  React Hook useEffect has a missing dependency: 'loadOutages'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\components\services\ProductForm.tsx
+  Line 15:10:  'ProductSold' is defined but never used  @typescript-eslint/no-unused-vars
+
+src\services\AuthService.ts
+  Line 125:1:  Assign instance to a variable before exporting as module default  import/no-anonymous-default-export
+
+src\services\InstallationBillingService.ts
+  Line 97:1:  Assign instance to a variable before exporting as module default  import/no-anonymous-default-export
+
+src\services\ReportService.ts
+  Line 81:9:  'fields' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src\services\UserService.ts
+  Line 76:1:  Assign instance to a variable before exporting as module default  import/no-anonymous-default-export
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  431.58 kB  build\static\js\main.b1376067.js
+  263 B      build\static\css\main.e6c13ad2.css
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  npm install -g serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+

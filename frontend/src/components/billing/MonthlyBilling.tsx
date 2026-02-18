@@ -413,56 +413,53 @@ const MonthlyBilling: React.FC = () => {
     );
 
     return (
-        <Box sx={{ p: isMobile ? 1 : 3 }}>
-            <Box sx={{ mb: 3, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? 2 : 0 }}>
-                <Typography variant="h4" component="h1">
+        <Box sx={{ p: isMobile ? 1 : 0 }}>
+            <Box sx={{ mb: 3, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? 2 : 0, px: isMobile ? 0 : 3, pt: isMobile ? 0 : 3 }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: '#5a5c69' }}>
                     Facturación Mensual
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
-                    <FormControl sx={{ minWidth: isMobile ? '100%' : 200 }} size="small">
-                        <InputLabel>Modo de Vista</InputLabel>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
                         <Select
                             value={viewMode}
-                            label="Modo de Vista"
                             onChange={(e) => setViewMode(e.target.value as 'month' | 'cumulative')}
-                            size="small"
+                            sx={{ fontSize: '0.75rem', fontWeight: 600, bgcolor: '#fff' }}
                         >
-                            <MenuItem value="month">Facturación del Mes</MenuItem>
-                            <MenuItem value="cumulative">Cartera Acumulada</MenuItem>
+                            <MenuItem value="month" sx={{ fontSize: '0.75rem' }}>Facturación del Mes</MenuItem>
+                            <MenuItem value="cumulative" sx={{ fontSize: '0.75rem' }}>Cartera Acumulada</MenuItem>
                         </Select>
                     </FormControl>
-                    <FormControl sx={{ minWidth: 150 }}>
-                        <InputLabel>Mes</InputLabel>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
                         <Select
                             value={selectedMonth}
-                            label="Mes"
                             onChange={(e) => setSelectedMonth(e.target.value)}
+                            sx={{ fontSize: '0.75rem', fontWeight: 600, bgcolor: '#fff' }}
                         >
                             {MONTHS.map(month => (
-                                <MenuItem key={month} value={month}>
+                                <MenuItem key={month} value={month} sx={{ fontSize: '0.75rem' }}>
                                     {month.charAt(0).toUpperCase() + month.slice(1)}
                                 </MenuItem>
                             ))}
                         </Select>
                     </FormControl>
-                    <FormControl sx={{ minWidth: 120 }}>
-                        <InputLabel>Año</InputLabel>
+                    <FormControl size="small" sx={{ minWidth: 80 }}>
                         <Select
                             value={selectedYear}
-                            label="Año"
                             onChange={(e) => setSelectedYear(Number(e.target.value))}
+                            sx={{ fontSize: '0.75rem', fontWeight: 600, bgcolor: '#fff' }}
                         >
                             {[2024, 2025, 2026, 2027].map(year => (
-                                <MenuItem key={year} value={year}>{year}</MenuItem>
+                                <MenuItem key={year} value={year} sx={{ fontSize: '0.75rem' }}>{year}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
                     <Button
                         variant="contained"
-                        color="primary"
+                        size="small"
                         startIcon={<RefreshIcon />}
                         onClick={handleGenerateBilling}
                         disabled={loading}
+                        sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
                     >
                         Generar Cobros
                     </Button>
@@ -471,116 +468,105 @@ const MonthlyBilling: React.FC = () => {
 
             {/* Estadísticas */}
             {stats && (
-                <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid container spacing={3} sx={{ mb: 4, px: isMobile ? 0 : 3 }}>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card>
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
+                        <Card sx={{ borderLeft: '4px solid #4e73df', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#4e73df', textTransform: 'uppercase', mb: 1 }}>
                                     Total Clientes
                                 </Typography>
-                                <Typography variant="h4">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {stats.total}
                                 </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card>
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
+                        <Card sx={{ borderLeft: '4px solid #36b9cc', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#36b9cc', textTransform: 'uppercase', mb: 1 }}>
                                     Total a Cobrar
                                 </Typography>
-                                <Typography variant="h5">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalAmount)}
                                 </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ bgcolor: 'success.light' }}>
-                            <CardContent>
-                                <Typography color="white" gutterBottom>
-                                    Cobrado
+                        <Card sx={{ borderLeft: '4px solid #1cc88a', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#1cc88a', textTransform: 'uppercase', mb: 1 }}>
+                                    Recaudado
                                 </Typography>
-                                <Typography variant="h5" color="white">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.paidAmount)}
                                 </Typography>
-                                <Typography variant="body2" color="white">
-                                    {stats.paid} pagos
-                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ bgcolor: 'warning.light' }}>
-                            <CardContent>
-                                <Typography color="white" gutterBottom>
+                        <Card sx={{ borderLeft: '4px solid #e74a3b', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#e74a3b', textTransform: 'uppercase', mb: 1 }}>
                                     Pendiente
                                 </Typography>
-                                <Typography variant="h5" color="white">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.pendingAmount)}
-                                </Typography>
-                                <Typography variant="body2" color="white">
-                                    {stats.pending + stats.overdue} pagos
                                 </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
-                    
-                    {/* Nuevas tarjetas de desglose */}
+                </Grid>
+            )}
+
+            {/* Nuevas tarjetas de desglose */}
+            {stats && (
+                <Grid container spacing={3} sx={{ mb: 4, px: isMobile ? 0 : 3 }}>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card variant="outlined">
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    Total Planes de Servicio
+                        <Card sx={{ borderLeft: '4px solid #f6c23e', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#f6c23e', textTransform: 'uppercase', mb: 1 }}>
+                                    Planes de Servicio
                                 </Typography>
-                                <Typography variant="h6">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalServicePlan)}
                                 </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card variant="outlined">
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    Total Servicios Adicionales
+                        <Card sx={{ borderLeft: '4px solid #6f42c1', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#6f42c1', textTransform: 'uppercase', mb: 1 }}>
+                                    Servicios Adicionales
                                 </Typography>
-                                <Typography variant="h6" color="secondary">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalAdditionalServices)}
                                 </Typography>
-                                <Typography variant="caption" color="textSecondary">
-                                    (Netflix, TVBox, etc.)
-                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card variant="outlined">
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    Total Productos/Cuotas
+                        <Card sx={{ borderLeft: '4px solid #4e73df', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#4e73df', textTransform: 'uppercase', mb: 1 }}>
+                                    Productos/Cuotas
                                 </Typography>
-                                <Typography variant="h6" color="primary">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalProducts)}
                                 </Typography>
-                                <Typography variant="caption" color="textSecondary">
-                                    (Routers, Antenas, etc.)
-                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card variant="outlined" sx={{ bgcolor: 'info.light' }}>
-                            <CardContent>
-                                <Typography color="white" gutterBottom>
-                                    Total Instalaciones
+                        <Card sx={{ borderLeft: '4px solid #36b9cc', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#36b9cc', textTransform: 'uppercase', mb: 1 }}>
+                                    Instalaciones
                                 </Typography>
-                                <Typography variant="h6" color="white">
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalInstallationFees || 0)}
-                                </Typography>
-                                <Typography variant="caption" color="white">
-                                    (Recaudos por nuevas instalaciones)
                                 </Typography>
                             </CardContent>
                         </Card>
@@ -589,68 +575,73 @@ const MonthlyBilling: React.FC = () => {
             )}
 
             {/* Filtro */}
-            <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-                <TextField
-                    label="Buscar cliente (Nombre o Cédula)"
-                    variant="outlined"
-                    size="small"
-                    value={searchTerm}
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setPage(0); // Resetear a la primera página al buscar
-                    }}
-                    InputProps={{
-                        startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-                    }}
-                    sx={{ minWidth: 300 }}
-                />
-                <FormControl sx={{ minWidth: 200 }}>
-                    <InputLabel>Estado</InputLabel>
-                    <Select
-                        value={filterStatus}
-                        label="Estado"
-                        onChange={(e) => setFilterStatus(e.target.value)}
+            <Paper sx={{ mb: 3, mx: isMobile ? 0 : 3, p: 2, borderRadius: 2, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)', borderBottom: '1px solid #e3e6f0' }}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <TextField
+                        placeholder="Buscar cliente (Nombre o Cédula)..."
+                        variant="outlined"
+                        size="small"
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setPage(0);
+                        }}
+                        InputProps={{
+                            startAdornment: <SearchIcon sx={{ color: '#d1d3e2', mr: 1, fontSize: 18 }} />,
+                            sx: { fontSize: '0.75rem' }
+                        }}
+                        sx={{ minWidth: 300 }}
+                    />
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <Select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            sx={{ fontSize: '0.75rem' }}
+                        >
+                            <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>Todos los estados</MenuItem>
+                            <MenuItem value="pending" sx={{ fontSize: '0.75rem' }}>Pendiente</MenuItem>
+                            <MenuItem value="paid" sx={{ fontSize: '0.75rem' }}>Pagado</MenuItem>
+                            <MenuItem value="overdue" sx={{ fontSize: '0.75rem' }}>Vencido</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<ClearIcon />}
+                        onClick={handleClearFilters}
+                        disabled={!searchTerm && filterStatus === 'all'}
+                        sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
                     >
-                        <MenuItem value="all">Todos</MenuItem>
-                        <MenuItem value="pending">Pendiente</MenuItem>
-                        <MenuItem value="paid">Pagado</MenuItem>
-                        <MenuItem value="overdue">Vencido</MenuItem>
-                    </Select>
-                </FormControl>
-                <Button
-                    variant="outlined"
-                    startIcon={<ClearIcon />}
-                    onClick={handleClearFilters}
-                    disabled={!searchTerm && filterStatus === 'all'}
-                >
-                    Limpiar
-                </Button>
-            </Box>
+                        Limpiar Filtros
+                    </Button>
+                </Box>
+            </Paper>
 
             {/* Tabla de pagos (Desktop) o Tarjetas (Mobile) */}
             {isMobile ? renderMobileCards() : (
-            <TableContainer component={Paper}>
-                <Table size="small">
-                    <TableHead>
-                        <TableRow sx={{ backgroundColor: '#1976d2' }}>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold', width: 48 }}>
-                                <Tooltip title={allSelected ? 'Deseleccionar todos' : 'Seleccionar todos (solo pendientes)'}>
-                                    <Checkbox
-                                        indeterminate={someSelected}
-                                        checked={allSelected}
-                                        onChange={toggleSelectAll}
-                                        sx={{ color: 'white' }}
-                                    />
-                                </Tooltip>
-                            </TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Cliente</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Servicio</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha Instalación</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Acciones</TableCell>
-                        </TableRow>
-                    </TableHead>
+            <Paper sx={{ mb: 4, mx: 3, borderRadius: 2, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)', overflow: 'hidden' }}>
+                <TableContainer>
+                    <Table size="small">
+                        <TableHead sx={{ bgcolor: '#f8f9fc' }}>
+                            <TableRow>
+                                <TableCell sx={{ width: 48 }}>
+                                    <Tooltip title={allSelected ? 'Deseleccionar todos' : 'Seleccionar todos (solo pendientes)'}>
+                                        <Checkbox
+                                            indeterminate={someSelected}
+                                            checked={allSelected}
+                                            onChange={toggleSelectAll}
+                                            size="small"
+                                        />
+                                    </Tooltip>
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Cliente</TableCell>
+                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Servicios/Productos</TableCell>
+                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Monto Total</TableCell>
+                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Estado</TableCell>
+                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Fecha Cobro</TableCell>
+                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }} align="center">Acciones</TableCell>
+                            </TableRow>
+                        </TableHead>
                     <TableBody>
                         {paginatedPayments.map((payment, index) => (
                             <TableRow 
@@ -833,6 +824,7 @@ const MonthlyBilling: React.FC = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+            </Paper>
             )}
 
             <TablePagination

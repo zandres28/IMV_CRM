@@ -21,6 +21,7 @@ export interface Installation {
     onuSerialNumber?: string;
     ponId?: string;
     onuId?: string;
+    napLabel?: string;
     ipAddress?: string;
     technician: string;
     notes?: string;
@@ -77,6 +78,11 @@ export const InstallationService = {
 
     restore: async (id: number) => {
         const response = await axios.patch(`${API_URL}/installations/${id}/restore`);
+        return response.data;
+    },
+
+    rebootOnu: async (id: number) => {
+        const response = await axios.post(`${API_URL}/installations/${id}/reboot`);
         return response.data;
     }
 };

@@ -18,7 +18,12 @@ import {
   Divider, 
   useTheme, 
   useMediaQuery,
-  Collapse
+  Collapse,
+  Chip,
+  ListSubheader,
+  Tooltip,
+  Avatar,
+  InputBase
 } from '@mui/material';
 import { 
   KeyboardArrowDown, 
@@ -30,14 +35,39 @@ import {
   Receipt as ReceiptIcon,
   Router as RouterIcon,
   Search as SearchIcon,
-  AdminPanelSettings as AdminIcon,
   ExpandLess,
-  ExpandMore
+  ExpandMore,
+  Settings as SettingsIcon,
+  AccountTree as EnvironmentIcon,
+  Notifications as NotificationsIcon,
+  HelpOutline as HelpIcon,
+  Lan as NetworkIcon,
+  BarChart as ReportsIcon,
+  SupportAgent as SupportIcon,
+  Inventory as ProductsIcon,
+  Payment as PaymentIcon,
+  PointOfSale as FastSaleIcon,
+  Settings as SystemIcon,
+  Home as HomeIcon,
+  ArrowForwardIos as ArrowIcon,
+  Warning as WarningIcon,
+  Assignment as AssignmentIcon,
+  SyncAlt as TransferIcon,
+  Build as ParameterIcon,
+  PeopleAlt as UsersIcon,
+  Handyman as TechnicianIcon,
+  Assessment as ChartIcon
 } from '@mui/icons-material';
 import AuthService from './services/AuthService';
 import axios from 'axios';
 
 import SessionTimeoutHandler from './components/SessionTimeoutHandler';
+
+const ENVIRONMENTS = [
+  { id: 'prod', name: 'Producción (IMV)', color: '#1976d2' },
+  { id: 'test', name: 'Entorno de Pruebas', color: '#ed6c02' },
+  { id: 'dev', name: 'Desarrollo Local', color: '#9c27b0' }
+];
 
 function App() {
   const location = useLocation();
@@ -46,15 +76,30 @@ function App() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [drawerCollapsed, setDrawerCollapsed] = useState(false);
   const [clientsMenuAnchor, setClientsMenuAnchor] = useState<null | HTMLElement>(null);
   const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+
+  // Environment state (default to prod or from localStorage)
+  const [currentEnv, setCurrentEnv] = useState(() => {
+    const saved = localStorage.getItem('crm_env');
+    return ENVIRONMENTS.find(e => e.id === saved) || ENVIRONMENTS[0];
+  });
   
   // Mobile menu states
   const [mobileClientsOpen, setMobileClientsOpen] = useState(false);
   const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
+  const [paramsOpen, setParamsOpen] = useState(false);
 
   const user = AuthService.getCurrentUser();
+
+  const handleEnvChange = (env: typeof ENVIRONMENTS[0]) => {
+    setCurrentEnv(env);
+    localStorage.setItem('crm_env', env.id);
+    handleAdminMenuClose();
+    // Opcional: recargar datos o mostrar notificación
+  };
 
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
@@ -125,109 +170,129 @@ function App() {
 
   const isAdminActive = location.pathname.startsWith('/admin');
 
+  const drawerWidth = drawerCollapsed ? 0 : 240;
+
   const drawer = (
-    <Box sx={{ width: 250 }} role="presentation">
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          NetFlow CRM
-        </Typography>
+    <Box sx={{ p: 0, height: '100%', overflowX: 'hidden' }}>
+      {/* Brand Logo */}
+      <Box sx={{ 
+        p: 2, 
+        mb: 2, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        height: 70
+      }}>
+        <Box 
+          component="img" 
+          src="/logo_imv.png" 
+          alt="IMV Logo" 
+          sx={{ maxHeight: 50, maxWidth: '100%', objectFit: 'contain' }} 
+        />
       </Box>
-      <Divider />
-      <List>
-        <ListItem button component={Link} to="/dashboard" onClick={handleDrawerToggle}>
-          <ListItemIcon><DashboardIcon /></ListItemIcon>
-          <ListItemText primary="Tablero" />
+
+      <List sx={{ px: 1 }}>
+        <ListItem button component={Link} to="/dashboard" onClick={handleDrawerToggle} selected={location.pathname === '/dashboard'}>
+          <ListItemIcon><DashboardIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="INICIO" primaryTypographyProps={{ sx: { fontSize: '0.85rem', fontWeight: 700 } }} />
         </ListItem>
 
+        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
+          CLIENTES
+        </ListSubheader>
+        
         {AuthService.hasPermission('clients.list.view') && (
-          <>
-            <ListItem button onClick={() => setMobileClientsOpen(!mobileClientsOpen)}>
-              <ListItemIcon><PeopleIcon /></ListItemIcon>
-              <ListItemText primary="Clientes" />
-              {mobileClientsOpen ? <ExpandLess /> : <ExpandMore />}
-            </ListItem>
-            <Collapse in={mobileClientsOpen} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                <ListItem button sx={{ pl: 4 }} component={Link} to="/clients" onClick={handleDrawerToggle}>
-                  <ListItemText primary="Lista de Clientes" />
-                </ListItem>
-                {AuthService.hasPermission('clients.crm.view') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/interactions" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Interacciones CRM" />
-                  </ListItem>
-                )}
-                {AuthService.hasPermission('clients.outages.view') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/service-outages" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Caídas de Servicio" />
-                  </ListItem>
-                )}
-                <ListItem button sx={{ pl: 4 }} component={Link} to="/service-transfers" onClick={handleDrawerToggle}>
-                  <ListItemText primary="Traslados" />
-                </ListItem>
-                <ListItem button sx={{ pl: 4 }} component={Link} to="/solicitud" target="_blank" onClick={handleDrawerToggle}>
-                  <ListItemText primary="Formulario Web Solicitud" />
-                </ListItem>
-              </List>
-            </Collapse>
-          </>
-        )}
-
-        {AuthService.hasPermission('billing.view') && (
-          <ListItem button component={Link} to="/billing" onClick={handleDrawerToggle}>
-            <ListItemIcon><ReceiptIcon /></ListItemIcon>
-            <ListItemText primary="Facturación" />
+          <ListItem button component={Link} to="/clients" onClick={handleDrawerToggle} selected={location.pathname === '/clients'}>
+            <ListItemIcon><PeopleIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Clientes" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
           </ListItem>
         )}
 
         {AuthService.hasPermission('installations.view') && (
-          <ListItem button component={Link} to="/installation-billing" onClick={handleDrawerToggle}>
-            <ListItemIcon><RouterIcon /></ListItemIcon>
-            <ListItemText primary="Instalaciones" />
+          <ListItem button component={Link} to="/installation-billing" onClick={handleDrawerToggle} selected={location.pathname === '/installation-billing'}>
+            <ListItemIcon><RouterIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Instalaciones" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
           </ListItem>
         )}
 
-        {AuthService.hasPermission('queries.view') && (
-          <ListItem button component={Link} to="/consultas" onClick={handleDrawerToggle}>
-            <ListItemIcon><SearchIcon /></ListItemIcon>
-            <ListItemText primary="Consultas" />
+        {AuthService.hasPermission('clients.crm.view') && (
+          <ListItem button component={Link} to="/interactions" onClick={handleDrawerToggle} selected={location.pathname === '/interactions'}>
+            <ListItemIcon><SupportIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Solicitudes CRM" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
           </ListItem>
         )}
 
-        {(AuthService.hasPermission('admin.users.view') || 
-          AuthService.hasPermission('admin.plans.view') || 
-          AuthService.hasPermission('admin.technicians.view')) && (
+        {AuthService.hasPermission('clients.outages.view') && (
+          <ListItem button component={Link} to="/service-outages" onClick={handleDrawerToggle} selected={location.pathname === '/service-outages'}>
+            <ListItemIcon><WarningIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Caidas de Servicio" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+          </ListItem>
+        )}
+
+        <ListItem button component={Link} to="/service-transfers" onClick={handleDrawerToggle} selected={location.pathname === '/service-transfers'}>
+          <ListItemIcon><TransferIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Traslados" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        <ListItem button component={Link} to="/solicitud" target="_blank" onClick={handleDrawerToggle}>
+          <ListItemIcon><AssignmentIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Formulario Web Solicitud" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
+          FACTURACIÓN
+        </ListSubheader>
+        
+        {AuthService.hasPermission('billing.view') && (
+          <ListItem button component={Link} to="/billing" onClick={handleDrawerToggle} selected={location.pathname === '/billing'}>
+            <ListItemIcon><ReceiptIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Generar Cobros" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+          </ListItem>
+        )}
+
+        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
+
+        <ListItem button component={Link} to="/consultas" onClick={handleDrawerToggle} selected={location.pathname === '/consultas'}>
+          <ListItemIcon><SearchIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="CONSULTAS" primaryTypographyProps={{ sx: { fontSize: '0.85rem', fontWeight: 700 } }} />
+        </ListItem>
+
+        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
+          ADMINISTRACIÓN
+        </ListSubheader>
+        
+        {AuthService.hasPermission('admin.users.view') && (
+          <ListItem button component={Link} to="/admin/users" onClick={handleDrawerToggle} selected={location.pathname === '/admin/users'}>
+            <ListItemIcon><UsersIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Usuarios" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+          </ListItem>
+        )}
+
+        <ListItem button component={Link} to="/admin/settings" onClick={handleDrawerToggle} selected={location.pathname === '/admin/settings'}>
+          <ListItemIcon><SystemIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Configuración" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        {(AuthService.hasPermission('admin.plans.view') || AuthService.hasPermission('admin.technicians.view')) && (
           <>
-            <ListItem button onClick={() => setMobileAdminOpen(!mobileAdminOpen)}>
-              <ListItemIcon><AdminIcon /></ListItemIcon>
-              <ListItemText primary="Administración" />
-              {mobileAdminOpen ? <ExpandLess /> : <ExpandMore />}
+            <ListItem button onClick={() => setParamsOpen(!paramsOpen)}>
+              <ListItemIcon><ParameterIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+              <ListItemText primary="Parametrización" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+              {paramsOpen ? <ExpandLess sx={{ fontSize: 14 }} /> : <ExpandMore sx={{ fontSize: 14 }} />}
             </ListItem>
-            <Collapse in={mobileAdminOpen} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                {AuthService.hasPermission('admin.users.view') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/users" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Usuarios" />
-                  </ListItem>
-                )}
-                <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/api-access" onClick={handleDrawerToggle}>
-                  <ListItemText primary="Acceso API" />
-                </ListItem>
-                <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/settings" onClick={handleDrawerToggle}>
-                  <ListItemText primary="Configuración" />
-                </ListItem>
-                {AuthService.hasPermission('manage_interaction_types') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/interaction-types" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Tipos de Interacción" />
-                  </ListItem>
-                )}
+            <Collapse in={paramsOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
                 {AuthService.hasPermission('admin.plans.view') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/service-plans" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Planes de Servicio" />
+                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/service-plans" onClick={handleDrawerToggle} selected={location.pathname === '/admin/service-plans'}>
+                    <ListItemIcon><EnvironmentIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+                    <ListItemText primary="Planes de servicio" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
                   </ListItem>
                 )}
                 {AuthService.hasPermission('admin.technicians.view') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/technicians" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Técnicos" />
+                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/technicians" onClick={handleDrawerToggle} selected={location.pathname === '/admin/technicians'}>
+                    <ListItemIcon><TechnicianIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+                    <ListItemText primary="Técnicos" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
                   </ListItem>
                 )}
               </List>
@@ -235,278 +300,120 @@ function App() {
           </>
         )}
       </List>
-      <Divider />
-      <List>
-        <ListItem>
-          <ListItemText 
-            primary={`${user?.firstName} ${user?.lastName}`} 
-            secondary={user?.email} 
-          />
-        </ListItem>
-        <ListItem button onClick={() => { handleLogout(); handleDrawerToggle(); }}>
-          <ListItemIcon><Logout /></ListItemIcon>
-          <ListItemText primary="Cerrar Sesión" />
-        </ListItem>
-      </List>
+      
+      <Box sx={{ position: 'absolute', bottom: 10, left: 10, opacity: 0.3 }}>
+        <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>ArgusBlack v3.1.5 (NetFlow)</Typography>
+      </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8f9fc' }}>
       <SessionTimeoutHandler />
-      <AppBar position="static">
-        <Toolbar>
-          {isMobile && (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            NetFlow CRM
-          </Typography>
-
-          {!isMobile && (
-            <>
-              {/* Dashboard General */}
-              <Button 
-                color="inherit" 
-                component={Link} 
-                to="/dashboard"
-                startIcon={<DashboardIcon />}
-                sx={{ mr: 1, backgroundColor: location.pathname.startsWith('/dashboard') ? 'rgba(255,255,255,0.1)' : 'transparent' }}
-              >
-                Tablero
-              </Button>
-              
-              {/* Menú Clientes */}
-              {AuthService.hasPermission('clients.list.view') && (
-                <>
-                  <Button 
-                    color="inherit"
-                    onClick={handleClientsMenuOpen}
-                    endIcon={<KeyboardArrowDown />}
-                    sx={{ backgroundColor: isClientsActive ? 'rgba(255,255,255,0.1)' : 'transparent' }}
-                  >
-                    Clientes
-                  </Button>
-                  <Menu
-                    anchorEl={clientsMenuAnchor}
-                    open={Boolean(clientsMenuAnchor)}
-                    onClose={handleClientsMenuClose}
-                  >
-                    <MenuItem 
-                      component={Link} 
-                      to="/clients" 
-                      onClick={handleClientsMenuClose}
-                    >
-                      Lista de Clientes
-                    </MenuItem>
-                    {AuthService.hasPermission('clients.crm.view') && (
-                      <MenuItem 
-                        component={Link} 
-                        to="/interactions" 
-                        onClick={handleClientsMenuClose}
-                      >
-                        Interacciones CRM
-                      </MenuItem>
-                    )}
-                    {AuthService.hasPermission('clients.outages.view') && (
-                      <MenuItem 
-                        component={Link} 
-                        to="/service-outages" 
-                        onClick={handleClientsMenuClose}
-                      >
-                        Caídas de Servicio
-                      </MenuItem>
-                    )}
-                    <MenuItem 
-                      component={Link} 
-                      to="/service-transfers" 
-                      onClick={handleClientsMenuClose}
-                    >
-                      Traslados
-                    </MenuItem>
-                    <MenuItem 
-                      component={Link} 
-                      to="/solicitud" 
-                      target="_blank"
-                      onClick={handleClientsMenuClose}
-                    >
-                      Formulario Web Solicitud
-                    </MenuItem>
-                  </Menu>
-                </>
-              )}
-
-              {/* Facturación Mensual */}
-              {AuthService.hasPermission('billing.view') && (
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/billing"
-                  sx={{ ml: 1, backgroundColor: location.pathname.startsWith('/billing') ? 'rgba(255,255,255,0.1)' : 'transparent' }}
-                >
-                  Facturación
-                </Button>
-              )}
-
-              {/* Instalaciones */}
-              {AuthService.hasPermission('installations.view') && (
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/installation-billing"
-                  sx={{ ml: 1, backgroundColor: location.pathname.startsWith('/installation-billing') ? 'rgba(255,255,255,0.1)' : 'transparent' }}
-                >
-                  Instalaciones
-                </Button>
-              )}
-
-              {/* Consultas */}
-              {AuthService.hasPermission('queries.view') && (
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/consultas"
-                  sx={{ ml: 1, backgroundColor: location.pathname.startsWith('/consultas') ? 'rgba(255,255,255,0.1)' : 'transparent' }}
-                >
-                  Consultas
-                </Button>
-              )}
-
-              {/* Menú Administración */}
-              {(AuthService.hasPermission('admin.users.view') || 
-                AuthService.hasPermission('admin.plans.view') || 
-                AuthService.hasPermission('admin.technicians.view')) && (
-                <>
-                  <Button 
-                    color="inherit"
-                    onClick={handleAdminMenuOpen}
-                    endIcon={<KeyboardArrowDown />}
-                    sx={{ ml: 1, backgroundColor: isAdminActive ? 'rgba(255,255,255,0.1)' : 'transparent' }}
-                  >
-                    Administración
-                  </Button>
-                  <Menu
-                    anchorEl={adminMenuAnchor}
-                    open={Boolean(adminMenuAnchor)}
-                    onClose={handleAdminMenuClose}
-                  >
-                    {AuthService.hasPermission('admin.users.view') && (
-                      <MenuItem 
-                        component={Link} 
-                        to="/admin/users" 
-                        onClick={handleAdminMenuClose}
-                      >
-                        Usuarios
-                      </MenuItem>
-                    )}
-                    <MenuItem 
-                      component={Link} 
-                      to="/admin/api-access" 
-                      onClick={handleAdminMenuClose}
-                    >
-                      Acceso API
-                    </MenuItem>
-                    <MenuItem 
-                      component={Link} 
-                      to="/admin/settings" 
-                      onClick={handleAdminMenuClose}
-                    >
-                      Configuración
-                    </MenuItem>
-                    {AuthService.hasPermission('manage_interaction_types') && (
-                      <MenuItem 
-                        component={Link} 
-                        to="/admin/interaction-types" 
-                        onClick={handleAdminMenuClose}
-                      >
-                        Tipos de Interacción
-                      </MenuItem>
-                    )}
-                    {AuthService.hasPermission('admin.plans.view') && (
-                      <MenuItem 
-                        component={Link} 
-                        to="/admin/service-plans" 
-                        onClick={handleAdminMenuClose}
-                      >
-                        Planes de Servicio
-                      </MenuItem>
-                    )}
-                    {AuthService.hasPermission('admin.technicians.view') && (
-                      <MenuItem 
-                        component={Link} 
-                        to="/admin/technicians" 
-                        onClick={handleAdminMenuClose}
-                      >
-                        Técnicos
-                      </MenuItem>
-                    )}
-                  </Menu>
-                </>
-              )}
-
-              {/* Usuario y Logout */}
-              <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
-                <IconButton
-                  color="inherit"
-                  onClick={handleUserMenuOpen}
-                  sx={{ ml: 2 }}
-                >
-                  <AccountCircle />
-                </IconButton>
-                <Menu
-                  anchorEl={userMenuAnchor}
-                  open={Boolean(userMenuAnchor)}
-                  onClose={handleUserMenuClose}
-                >
-                  <MenuItem disabled>
-                    <Typography variant="body2">
-                      {user?.firstName} {user?.lastName}
-                    </Typography>
-                  </MenuItem>
-                  <MenuItem disabled>
-                    <Typography variant="caption" color="text.secondary">
-                      {user?.email}
-                    </Typography>
-                  </MenuItem>
-                  <MenuItem onClick={handleLogout}>
-                    <Logout fontSize="small" sx={{ mr: 1 }} />
-                    Cerrar Sesión
-                  </MenuItem>
-                </Menu>
-              </Box>
-            </>
-          )}
-        </Toolbar>
-      </AppBar>
       
+      {/* Sidebar - Desktop Permanent, Mobile Drawer */}
       <Drawer
-        variant="temporary"
-        open={mobileOpen}
+        variant={isMobile ? "temporary" : "persistent"}
+        open={isMobile ? mobileOpen : !drawerCollapsed}
         onClose={handleDrawerToggle}
-        ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
-        }}
+        ModalProps={{ keepMounted: true }}
         sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 250 },
+          flexShrink: 0,
+          width: isMobile ? 'auto' : drawerWidth,
+          [`& .MuiDrawer-paper`]: { 
+            width: isMobile ? 240 : drawerWidth, 
+            boxSizing: 'border-box',
+            transition: theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+          },
+          display: isMobile ? 'block' : (drawerCollapsed ? 'none' : 'flex')
         }}
       >
         {drawer}
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <Container maxWidth="lg">
-          <Outlet />
-        </Container>
+      <Box sx={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        width: isMobile ? '100%' : `calc(100% - ${drawerWidth}px)`,
+        transition: theme.transitions.create(['margin', 'width'], {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.leavingScreen,
+        }),
+      }}>
+        {/* Top Header */}
+        <AppBar position="static" elevation={0} sx={{ 
+          bgcolor: '#fff', 
+          color: '#5a5c69', 
+          borderBottom: '1px solid #e3e6f0',
+          height: 70, 
+          justifyContent: 'center',
+          boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)'
+        }}>
+          <Toolbar sx={{ px: 3 }}>
+            <IconButton 
+              color="inherit" 
+              onClick={isMobile ? handleDrawerToggle : () => setDrawerCollapsed(!drawerCollapsed)} 
+              edge="start" 
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#5a5c69', fontSize: '1rem', display: { xs: 'none', md: 'block' } }}>
+                {location.pathname.includes('/clients') ? 'Gestión de Clientes' : 
+                 location.pathname.includes('/billing') ? 'Centro de Facturación' : 
+                 location.pathname.includes('/dashboard') ? 'Panel Principal' : 'Argus Black CRM'}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip 
+                label={currentEnv.name} 
+                size="small"
+                sx={{ 
+                  mr: 1, 
+                  fontWeight: 800, 
+                  fontSize: '0.6rem', 
+                  bgcolor: currentEnv.id === 'prod' ? '#e74a3b20' : '#4e73df20',
+                  color: currentEnv.id === 'prod' ? '#e74a3b' : '#4e73df',
+                  border: `1px solid ${currentEnv.id === 'prod' ? '#e74a3b' : '#4e73df'}`,
+                  textTransform: 'uppercase'
+                }}
+              />
+              
+              <IconButton size="small" sx={{ color: '#d1d3e2' }}>
+                <NotificationsIcon fontSize="small" />
+                <Box sx={{ position: 'absolute', top: 5, right: 5, width: 8, height: 8, bgcolor: '#e74a3b', borderRadius: '50%', border: '2px solid #fff' }} />
+              </IconButton>
+              
+              <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 32, alignSelf: 'center', borderColor: '#e3e6f0' }} />
+              
+              <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleUserMenuOpen}>
+                <Box sx={{ textAlign: 'right', mr: 1, display: { xs: 'none', sm: 'block' } }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1, fontSize: '0.8rem', color: '#5a5c69' }}>{user?.firstName || 'Usuario'}</Typography>
+                </Box>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: '#4e73df', fontSize: '0.8rem', fontWeight: 700 }}>
+                  {user?.firstName?.charAt(0) || 'U'}
+                </Avatar>
+              </Box>
+
+              <Menu anchorEl={userMenuAnchor} open={Boolean(userMenuAnchor)} onClose={handleUserMenuClose}>
+                <MenuItem onClick={handleLogout} sx={{ fontSize: '0.85rem' }}>
+                  <Logout fontSize="small" sx={{ mr: 1 }} /> Cerrar Sesión
+                </MenuItem>
+              </Menu>
+            </Box>
+          </Toolbar>
+        </AppBar>
+
+        <Box component="main" sx={{ p: { xs: 2, md: 4 }, flexGrow: 1 }}>
+           <Outlet />
+        </Box>
       </Box>
     </Box>
   );

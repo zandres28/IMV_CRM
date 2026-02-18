@@ -9,6 +9,7 @@ import { Payment } from '../entities/Payment';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { hasPermission, PERMISSIONS, getDataScopeForUser } from '../utils/permissions';
 import { createNoteInteraction } from '../utils/interactionUtils';
+import { OltService } from '../services/OltService';
 
 export class InstallationController {
     private installationRepository = AppDataSource.getRepository(Installation);
@@ -47,6 +48,7 @@ export class InstallationController {
                 installationDate,
                 ponId,
                 onuId,
+                napLabel,
                 installationFee,
             } = req.body;
 
@@ -63,6 +65,7 @@ export class InstallationController {
                 onuSerialNumber,
                 ponId,
                 onuId,
+                napLabel,
                 ipAddress,
                 technician,
                 notes,
@@ -202,6 +205,7 @@ export class InstallationController {
                 retirementDate,
                 ponId,
                 onuId,
+                napLabel,
             } = req.body;
 
             const installation = await this.installationRepository.findOne({
@@ -265,6 +269,7 @@ export class InstallationController {
             };
             if (ponId !== undefined) updateFields.ponId = ponId;
             if (onuId !== undefined) updateFields.onuId = onuId;
+            if (napLabel !== undefined) updateFields.napLabel = napLabel;
             if (monthlyFee !== undefined) {
                 updateFields.monthlyFee = monthlyFee;
             }

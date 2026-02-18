@@ -2,13 +2,15 @@ import { Response } from "express";
 import { AppDataSource } from "../config/database";
 import { Client } from "../entities/Client";
 import { Payment } from "../entities/Payment";
-import { AdditionalService } from "../entities/AdditionalService";
+import { Installation } from "../entities/Installation";
+import { ServicePlan } from "../entities/ServicePlan";
 import { AuthRequest } from "../middlewares/auth.middleware";
-import { Between, MoreThanOrEqual, Like, Brackets } from "typeorm";
+import { Between, LessThan, MoreThanOrEqual } from "typeorm";
 
 const clientRepository = AppDataSource.getRepository(Client);
 const paymentRepository = AppDataSource.getRepository(Payment);
-const additionalServiceRepository = AppDataSource.getRepository(AdditionalService);
+const installationRepository = AppDataSource.getRepository(Installation);
+const planRepository = AppDataSource.getRepository(ServicePlan);
 
 export const DashboardController = {
     getStats: async (req: AuthRequest, res: Response) => {
@@ -16,170 +18,297 @@ export const DashboardController = {
             const { month, year } = req.query;
             const now = new Date();
             
+            // Default to current month/year if not provided
             const currentYear = year ? parseInt(year as string) : now.getFullYear();
             const currentMonth = month ? parseInt(month as string) : now.getMonth(); // 0-11
 
-            // Helper to get start/end of periods
-            const getPeriodDates = () => {
-                // Month
-                const startOfMonth = new Date(currentYear, currentMonth, 1);
-                const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-
-                // Year
-                const startOfYear = new Date(currentYear, 0, 1);
-                const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
-
-                // Week - Calculate based on the first day of the requested month/year
-                // or current date if no params provided? 
-                // Let's use the current date if no params, otherwise use the 1st of the month.
-                const refDate = (month || year) ? new Date(currentYear, currentMonth, 1) : new Date();
-                
-                const day = refDate.getDay(); // 0 (Sun) - 6 (Sat)
-                const diff = refDate.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-                const startOfWeek = new Date(refDate);
-                startOfWeek.setDate(diff);
-                startOfWeek.setHours(0, 0, 0, 0);
-                
-                const endOfWeek = new Date(startOfWeek);
-                endOfWeek.setDate(startOfWeek.getDate() + 6);
-                endOfWeek.setHours(23, 59, 59, 999);
-
-                return { startOfMonth, endOfMonth, startOfYear, endOfYear, startOfWeek, endOfWeek };
-            };
-
-            const { startOfMonth, endOfMonth, startOfYear, endOfYear, startOfWeek, endOfWeek } = getPeriodDates();
-
-            // Helper to count unique clients with installations in a date range
-            const countClientsByInstallationDate = async (start: Date, end: Date, status?: string) => {
-                const query = clientRepository.createQueryBuilder('client')
-                    .innerJoin('client.installations', 'installation')
-                    .where('installation.installationDate BETWEEN :start AND :end', { start, end })
-                    .andWhere('installation.isDeleted = :isDeleted', { isDeleted: false });
-                
-                if (status) {
-                    query.andWhere('client.status = :status', { status });
-                }
-
-                const result = await query.select("COUNT(DISTINCT client.id)", "count").getRawOne();
-                return parseInt(result.count || '0');
-            };
-
-            // --- Clients Stats (Based on Installation Date) ---
-            const newClientsWeek = await countClientsByInstallationDate(startOfWeek, endOfWeek);
-            const newClientsMonth = await countClientsByInstallationDate(startOfMonth, endOfMonth);
-            const newClientsYear = await countClientsByInstallationDate(startOfYear, endOfYear);
+            // Helper for date ranges
+            const startOfMonth = new Date(currentYear, currentMonth, 1);
+            const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
             
-            // Total clients for the selected month (same as newClientsMonth in this context)
-            const totalClients = newClientsMonth; 
+            const startOfYear = new Date(currentYear, 0, 1);
+            const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
 
-            // Status breakdown for clients installed in the selected month
-            const activeClients = await countClientsByInstallationDate(startOfMonth, endOfMonth, 'active');
-            const suspendedClients = await countClientsByInstallationDate(startOfMonth, endOfMonth, 'suspended');
-            const cancelledClients = await countClientsByInstallationDate(startOfMonth, endOfMonth, 'cancelled');
+            // --- 1. GROWTH MODULE ---
 
-            // --- Additional Services Stats (Filtered by Client Installation Date) ---
-            const countServices = async (patterns: string[]) => {
-                const query = additionalServiceRepository.createQueryBuilder('service')
-                    .innerJoin('service.client', 'client')
-                    .innerJoin('client.installations', 'installation')
-                    .where('service.status = :status', { status: 'active' })
-                    .andWhere('installation.installationDate BETWEEN :start AND :end', { start: startOfMonth, end: endOfMonth })
-                    .andWhere('installation.isDeleted = :isDeleted', { isDeleted: false });
+            // Active Clients (Current Snapshot)
+            const totalActiveClients = await clientRepository.count({
+                where: { status: 'active' }
+            });
 
-                query.andWhere(new Brackets(qb => {
-                    patterns.forEach((pattern, idx) => {
-                        const paramName = `pat${idx}`;
-                        if (idx === 0) qb.where(`service.serviceName LIKE :${paramName}`, { [paramName]: pattern });
-                        else qb.orWhere(`service.serviceName LIKE :${paramName}`, { [paramName]: pattern });
-                    });
-                }));
+            // New Clients (This Month)
+            const newClientsMonth = await clientRepository.count({
+                where: {
+                    created_at: Between(startOfMonth, endOfMonth)
+                }
+            });
 
-                const result = await query.select("COUNT(DISTINCT service.id)", "count").getRawOne();
-                return parseInt(result.count || '0');
+            // New Clients (YTD)
+            const newClientsYTD = await clientRepository.count({
+                where: {
+                    created_at: Between(startOfYear, endOfYear)
+                }
+            });
+
+            // Retirements (This Month)
+            const retiredClientsMonth = await clientRepository.count({
+                where: {
+                    retirementDate: Between(startOfMonth, endOfMonth)
+                }
+            });
+
+             // Retirements (YTD)
+             const retiredClientsYTD = await clientRepository.count({
+                where: {
+                    retirementDate: Between(startOfYear, endOfYear)
+                }
+            });
+
+            // Net Growth
+            const netGrowth = newClientsMonth - retiredClientsMonth;
+
+            // Clients Start of Month (Approximate for Churn/Growth Rate)
+            const clientsStartOfMonth = totalActiveClients - newClientsMonth + retiredClientsMonth;
+            
+            // Growth Rate
+            const growthRate = clientsStartOfMonth > 0 
+                ? ((totalActiveClients - clientsStartOfMonth) / clientsStartOfMonth) * 100 
+                : 0;
+
+            // Sign-ups by Plan (This Month)
+            const signupsByPlanRaw = await installationRepository.createQueryBuilder("installation")
+                .leftJoin("installation.servicePlan", "plan")
+                .where("installation.installationDate BETWEEN :start AND :end", { start: startOfMonth, end: endOfMonth })
+                .select("plan.name", "name")
+                .addSelect("COUNT(installation.id)", "count")
+                .groupBy("plan.name")
+                .getRawMany();
+
+            const signupsByPlan = signupsByPlanRaw.map(r => ({ name: r.name || 'Sin Plan', value: parseInt(r.count) }));
+
+            // --- 2. RETENTION & CHURN MODULE ---
+
+            // Churn Rate (Monthly)
+            const churnRate = clientsStartOfMonth > 0 
+                ? (retiredClientsMonth / clientsStartOfMonth) * 100 
+                : 0;
+
+            // Retirement Reasons
+            const retirementReasonsRaw = await clientRepository.createQueryBuilder("client")
+                .select("client.retirementReason", "reason")
+                .addSelect("COUNT(client.id)", "count")
+                .where("client.retirementDate BETWEEN :start AND :end", { start: startOfMonth, end: endOfMonth })
+                .groupBy("client.retirementReason")
+                .getRawMany();
+
+            const retirementReasons = retirementReasonsRaw.map(r => ({ name: r.reason || 'No especificado', value: parseInt(r.count) }));
+
+            // Retirements by Plan
+             const retirementsByPlanRaw = await clientRepository.createQueryBuilder("client")
+                .leftJoin("client.installations", "installation")
+                .leftJoin("installation.servicePlan", "plan")
+                .select("plan.name", "name")
+                .addSelect("COUNT(DISTINCT client.id)", "count")
+                .where("client.retirementDate BETWEEN :start AND :end", { start: startOfMonth, end: endOfMonth })
+                .groupBy("plan.name")
+                .getRawMany();
+            
+            const retirementsByPlan = retirementsByPlanRaw.map(r => ({ name: r.name || 'Sin Plan', value: parseInt(r.count) }));
+
+            // --- 3. FINANCIAL MODULE ---
+
+            // Monthly Billing (Facturación del mes - generated invoices/payments)
+            // Assuming we check payments due in this month
+            // or created in this month. For 'Facturación', it's usually payments where month/year matches
+            const monthlyBillingRaw = await paymentRepository.createQueryBuilder("payment")
+                .select("SUM(payment.amount)", "total")
+                .where("payment.paymentMonth = :month", { month: (currentMonth + 1).toString() }) 
+                .andWhere("payment.paymentYear = :year", { year: currentYear })
+                .getRawOne();
+            
+            const monthlyBilling = parseFloat(monthlyBillingRaw?.total || '0');
+
+            // Accumulated Billing (YTD)
+            const yearlyBillingRaw = await paymentRepository.createQueryBuilder("payment")
+                .select("SUM(payment.amount)", "total")
+                .where("payment.paymentYear = :year", { year: currentYear })
+                .getRawOne();
+            const yearlyBilling = parseFloat(yearlyBillingRaw?.total || '0');
+
+            // Real Collection (Recaudo Real del Mes - Money received)
+            const realCollectionRaw = await paymentRepository.createQueryBuilder("payment")
+                .select("SUM(payment.amount)", "total")
+                .where("payment.paymentDate BETWEEN :start AND :end", { start: startOfMonth, end: endOfMonth })
+                .andWhere("payment.status = 'paid'")
+                .getRawOne();
+            const realCollection = parseFloat(realCollectionRaw?.total || '0');
+
+            // ARPU
+            const arpu = totalActiveClients > 0 ? monthlyBilling / totalActiveClients : 0;
+
+            // Projected Revenue (Next Month)
+            // Sum of active plans
+            const projectedRevenueRaw = await installationRepository.createQueryBuilder("installation")
+                .leftJoin("installation.servicePlan", "plan")
+                .leftJoin("installation.client", "client")
+                .select("SUM(plan.monthlyFee)", "total")
+                .where("client.status = :status", { status: 'active' })
+                .andWhere("installation.serviceStatus = :svcStatus", { svcStatus: 'active' })
+                .getRawOne();
+            const projectedRevenue = parseFloat(projectedRevenueRaw?.total || '0');
+
+
+            // --- 4. COLLECTION & PORTFOLIO ---
+
+            // Collection Efficiency
+            const collectionEfficiency = monthlyBilling > 0 
+                ? (realCollection / monthlyBilling) * 100 
+                : 0;
+
+            // Portfolio (Cartera Vencida - Total Overdue)
+            // Status 'overdue' or 'pending' with dueDate < now
+            const totalOverdueRaw = await paymentRepository.createQueryBuilder("payment")
+                .select("SUM(payment.amount)", "total")
+                .where("payment.status IN (:...statuses)", { statuses: ['overdue', 'pending'] })
+                .andWhere("payment.dueDate < :now", { now: new Date() })
+                .getRawOne();
+            const totalOverdue = parseFloat(totalOverdueRaw?.total || '0');
+
+            // Portfolio by Age
+            // 0-30, 31-60, 61-90, 90+
+            // We can do this with conditional sums in SQL
+            // Using DATEDIFF in MySQL/MariaDB: DATEDIFF(expr1, expr2) returns expr1 - expr2
+            // We want (NOW - dueDate) > X
+            
+            const portfolioAgeQuery = paymentRepository.createQueryBuilder("payment")
+            .select("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 0 AND 30 THEN payment.amount ELSE 0 END)", "range0_30")
+            .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 31 AND 60 THEN payment.amount ELSE 0 END)", "range31_60")
+            .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 61 AND 90 THEN payment.amount ELSE 0 END)", "range61_90")
+            .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) > 90 THEN payment.amount ELSE 0 END)", "range90_plus")
+            .where("payment.status IN (:...statuses)", { statuses: ['overdue', 'pending'] })
+            .andWhere("payment.dueDate < :now", { now: new Date() });
+
+            const portfolioAgeRaw = await portfolioAgeQuery.getRawOne();
+            
+            const portfolioByAge = {
+                range0_30: parseFloat(portfolioAgeRaw?.range0_30 || '0'),
+                range31_60: parseFloat(portfolioAgeRaw?.range31_60 || '0'),
+                range61_90: parseFloat(portfolioAgeRaw?.range61_90 || '0'),
+                range90_plus: parseFloat(portfolioAgeRaw?.range90_plus || '0')
             };
 
-            const netflixCount = await countServices(['%netflix%']);
-            const tvBoxCount = await countServices(['%tv%box%', '%tvbox%']);
-            const teleLatinoCount = await countServices(['%tele%latino%']);
+            // Clients in Default (Clientes en Mora)
+            const clientsInDefaultRaw = await paymentRepository.createQueryBuilder("payment")
+                .select("COUNT(DISTINCT payment.clientId)", "count")
+                .where("payment.status = 'overdue'") // Or check dueDate < now + pending
+                .getRawOne();
+            const clientsInDefault = parseInt(clientsInDefaultRaw?.count || '0');
 
-            // --- Revenue Stats ---
-            const getRevenue = async (fromDate: Date, toDate: Date) => {
-                const result = await paymentRepository
-                    .createQueryBuilder("payment")
-                    .select("SUM(payment.amount)", "total")
-                    .where("payment.status = :status", { status: "paid" })
-                    .andWhere("payment.paymentDate BETWEEN :fromDate AND :toDate", { fromDate, toDate })
-                    .getRawOne();
-                return result.total ? parseFloat(result.total) : 0;
-            };
+             // --- 5. OPERATIONS (Basic) ---
+            const installationsMonth = await installationRepository.count({
+                where: {
+                    installationDate: Between(startOfMonth, endOfMonth)
+                }
+            });
 
-            const getRevenueBreakdown = async (fromDate: Date, toDate: Date) => {
-                const result = await paymentRepository
-                    .createQueryBuilder("payment")
-                    .select("SUM(payment.servicePlanAmount)", "servicePlanAmount")
-                    .addSelect("SUM(payment.installationFeeAmount)", "installationFeeAmount")
-                    .addSelect("SUM(payment.additionalServicesAmount)", "additionalServicesAmount")
-                    .addSelect("SUM(payment.productInstallmentsAmount)", "productInstallmentsAmount")
-                    .where("payment.status = :status", { status: "paid" })
-                    .andWhere("payment.paymentDate BETWEEN :fromDate AND :toDate", { fromDate, toDate })
-                    .getRawOne();
+             // --- 6. HISTORICAL DATA FOR CHARTS ---
+             // Last 6 months growth
+            const growthHistory = [];
+            for (let i = 5; i >= 0; i--) {
+                // Calculate month offset manually to avoid date-fns dependency if not present, but simple JS Date math works
+                const d = new Date(currentYear, currentMonth - i, 1); 
+                const s = new Date(d.getFullYear(), d.getMonth(), 1);
+                const e = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
                 
-                return {
-                    servicePlan: result.servicePlanAmount ? parseFloat(result.servicePlanAmount) : 0,
-                    installations: result.installationFeeAmount ? parseFloat(result.installationFeeAmount) : 0,
-                    additionalServices: result.additionalServicesAmount ? parseFloat(result.additionalServicesAmount) : 0,
-                    products: result.productInstallmentsAmount ? parseFloat(result.productInstallmentsAmount) : 0
-                };
-            };
+                const newC = await clientRepository.count({ where: { created_at: Between(s, e) } });
+                const retC = await clientRepository.count({ where: { retirementDate: Between(s, e) } });
+                
+                const monthName = s.toLocaleString('default', { month: 'short' });
+                
+                growthHistory.push({
+                    month: monthName,
+                    newClients: newC,
+                    retiredClients: retC,
+                    netGrowth: newC - retC
+                });
+            }
 
-            const countRetirements = async (startDate: Date, endDate: Date) => {
-                const result = await clientRepository
-                    .createQueryBuilder('client')
-                    .where('client.status = :status', { status: 'cancelled' })
-                    .andWhere('client.retirementDate BETWEEN :start AND :end', { start: startDate, end: endDate })
-                    .getCount();
-                return result;
-            };
+            // --- 7. REVENUE HISTORY ---
+            const revenueHistory = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(currentYear, currentMonth - i, 1); 
+                // Using paymentMonth based query to be consistent with 'Billing'
+                const pMonth = (d.getMonth() + 1).toString();
+                const pYear = d.getFullYear();
 
-            const revenueWeek = await getRevenue(startOfWeek, endOfWeek);
-            const revenueMonth = await getRevenue(startOfMonth, endOfMonth);
-            const revenueYear = await getRevenue(startOfYear, endOfYear);
-            const breakdown = await getRevenueBreakdown(startOfMonth, endOfMonth);
-            const retirosMonth = await countRetirements(startOfMonth, endOfMonth);
-            const retirosYear = await countRetirements(startOfYear, endOfYear);
-            const totalRetirements = await clientRepository.count({ where: { status: 'cancelled' } });
+                const billingRaw = await paymentRepository.createQueryBuilder("payment")
+                .select("SUM(payment.amount)", "total")
+                .where("payment.paymentMonth = :month", { month: pMonth }) 
+                .andWhere("payment.paymentYear = :year", { year: pYear })
+                .getRawOne();
 
-            return res.json({
-                clients: {
-                    week: newClientsWeek,
-                    month: newClientsMonth,
-                    year: newClientsYear,
-                    total: totalClients,
-                    active: activeClients,
-                    suspended: suspendedClients,
-                    cancelled: cancelledClients
+                const collectedRaw = await paymentRepository.createQueryBuilder("payment")
+                .select("SUM(payment.amount)", "total")
+                .where("payment.paymentDate BETWEEN :start AND :end", { 
+                    start: new Date(d.getFullYear(), d.getMonth(), 1), 
+                    end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59) 
+                })
+                .andWhere("payment.status = 'paid'")
+                .getRawOne();
+
+                const monthName = d.toLocaleString('default', { month: 'short' });
+             
+                revenueHistory.push({
+                    month: monthName,
+                    billed: parseFloat(billingRaw?.total || '0'),
+                    collected: parseFloat(collectedRaw?.total || '0')
+                });
+            }
+
+
+            res.json({
+                growth: {
+                    newClientsMonth,
+                    newClientsYTD,
+                    totalActiveClients,
+                    netGrowth,
+                    growthRate: parseFloat(growthRate.toFixed(2)),
+                    signupsByPlan
                 },
-                services: {
-                    netflix: netflixCount,
-                    tvBox: tvBoxCount,
-                    teleLatino: teleLatinoCount
+                retention: {
+                    retiredClientsMonth,
+                    churnRate: parseFloat(churnRate.toFixed(2)),
+                    churnYTD: retiredClientsYTD, 
+                    retirementReasons,
+                    retirementsByPlan,
+                    // avgTenure: TODO 
                 },
-                revenue: {
-                    week: revenueWeek,
-                    month: revenueMonth,
-                    year: revenueYear,
-                    breakdown: breakdown
+                finance: {
+                    monthlyBilling,
+                    yearlyBilling,
+                    arpu: parseFloat(arpu.toFixed(2)),
+                    projectedRevenue,
+                    // revenueByPlan: [] 
                 },
-                retiros: {
-                    month: retirosMonth,
-                    year: retirosYear,
-                    total: totalRetirements
+                collection: {
+                    realCollection,
+                    collectionEfficiency: parseFloat(collectionEfficiency.toFixed(2)),
+                    totalOverdue,
+                    portfolioByAge,
+                    clientsInDefault
+                },
+                operations: {
+                    installationsMonth
+                },
+                history: {
+                    growth: growthHistory,
+                    revenue: revenueHistory
                 }
             });
 
         } catch (error) {
-            console.error("Error getting dashboard stats:", error);
-            return res.status(500).json({ message: "Error al obtener estadísticas del tablero", error });
+            console.error("Error fetching dashboard stats:", error);
+            res.status(500).json({ message: "Error fetching dashboard stats" });
         }
     }
 };

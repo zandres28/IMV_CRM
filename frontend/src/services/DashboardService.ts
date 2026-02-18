@@ -3,35 +3,54 @@ import axios from 'axios';
 const API_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/dashboard`;
 
 export interface DashboardStats {
-    clients: {
-        week: number;
-        month: number;
-        year: number;
-        total: number;
-        active: number;
-        suspended: number;
-        cancelled: number;
+    growth: {
+        newClientsMonth: number;
+        newClientsYTD: number;
+        totalActiveClients: number;
+        netGrowth: number;
+        growthRate: number;
+        signupsByPlan: { name: string; value: number }[];
     };
-    services: {
-        netflix: number;
-        tvBox: number;
-        teleLatino: number;
+    retention: {
+        retiredClientsMonth: number;
+        churnRate: number;
+        churnYTD: number;
+        retirementReasons: { name: string; value: number }[];
+        retirementsByPlan: { name: string; value: number }[];
     };
-    revenue: {
-        week: number;
-        month: number;
-        year: number;
-        breakdown: {
-            servicePlan: number;
-            installations: number;
-            additionalServices: number;
-            products: number;
+    finance: {
+        monthlyBilling: number;
+        yearlyBilling: number;
+        arpu: number;
+        projectedRevenue: number;
+    };
+    collection: {
+        realCollection: number; // Recaudo real
+        collectionEfficiency: number; // %
+        totalOverdue: number; // Cartera vencida total
+        portfolioByAge: {
+            range0_30: number;
+            range31_60: number;
+            range61_90: number;
+            range90_plus: number;
         };
+        clientsInDefault: number;
     };
-    retiros: {
-        month: number;
-        year: number;
-        total: number;
+    operations: {
+        installationsMonth: number;
+    };
+    history: {
+        growth: {
+            month: string;
+            newClients: number;
+            retiredClients: number;
+            netGrowth: number;
+        }[];
+        revenue: {
+            month: string;
+            billed: number;
+            collected: number;
+        }[];
     };
 }
 
