@@ -178,7 +178,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                             fullWidth
                             required
                             name="installationAddress"
-                            label="Dirección"
+                            label="dirección, piso, casa/apto, barrio"
                             value={formData.installationAddress}
                             onChange={handleInputChange}
                             disabled={!isEditable}
@@ -218,7 +218,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                             value={formData.secondaryPhone}
                             onChange={handleInputChange}
                             disabled={!isEditable}
-                            helperText="Segundo número obligatorio para notificaciones"
+                            helperText="Segundo número obligatorio"
                         />
                     </Grid>
 

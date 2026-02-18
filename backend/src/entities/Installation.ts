@@ -45,6 +45,9 @@ export class Installation {
     onuId?: string;
 
     @Column({ nullable: true })
+    napLabel?: string;
+
+    @Column({ nullable: true })
     ipAddress!: string;
 
     @Column()

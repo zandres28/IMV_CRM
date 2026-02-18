@@ -408,6 +408,7 @@ export const N8nIntegrationController = {
                 clientId: client.id,
                 subject: 'Recordatorio WhatsApp Automático',
                 interactionType: type,
+                status: 'completado',
                 notes: `Se envió recordatorio automático de pago para el cliente ${client.fullName}.`,
                 description: `Se envió recordatorio automático de pago vía N8N el ${new Date().toLocaleString()}.`,
             });

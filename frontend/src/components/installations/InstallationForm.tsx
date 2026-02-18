@@ -251,6 +251,16 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
                         <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
+                                label="Etiqueta NAP"
+                                name="napLabel"
+                                value={(formData as any).napLabel || ''}
+                                onChange={handleInputChange}
+                                placeholder="Ej: NAP-01-04"
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <TextField
+                                fullWidth
                                 label="PON ID"
                                 name="ponId"
                                 value={(formData as any).ponId || ''}
