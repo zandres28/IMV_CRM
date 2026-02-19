@@ -1,6 +1,8 @@
 import "reflect-metadata";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { AppDataSource } from "./config/database";
 import * as dotenv from "dotenv";
 
@@ -35,12 +37,45 @@ import oltRoutes from "./routes/olt";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { requireRoles } from "./middlewares/roles.middleware";
 import { apiKeyMiddleware } from "./middlewares/apiKey.middleware";
+import { publicApiLimiter } from "./middlewares/rateLimit.middleware";
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors());
+
+// SEGURIDAD 1: Implementar Helmet (Cabeceras de Seguridad)
+app.use(helmet());
+
+// SEGURIDAD 2: Configurar CORS Estricto
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:8095',
+    'http://localhost',
+    'http://127.0.0.1',
+    process.env.FRONTEND_URL // URL de producción desde variables de entorno
+].filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Permitir requests sin origen (server-to-server, curl, etc)
+        if (!origin) return callback(null, true);
+        
+        // Permitir localhost, IP local y dominio de producción
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://192.168.') || origin.includes('149.130.162.188')) {
+            callback(null, true);
+        } else {
+            console.warn(`Bloqueo de CORS para origen: ${origin}`);
+            callback(new Error('No permitido por la política de CORS'));
+        }
+    },
+    credentials: true
+}));
+
+// SEGURIDAD 3: Rate Limiting
+app.use("/api/auth", publicApiLimiter); // Limite estricto para login (fuerza bruta)
+
+// Configuración general
 app.use(express.json());
 
 // Rutas públicas (sin autenticación)
