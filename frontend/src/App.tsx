@@ -241,6 +241,15 @@ function App() {
         </ListItem>
 
         <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
+          INFRAESTRUCTURA
+        </ListSubheader>
+
+        <ListItem button component={Link} to="/network/mikrotik" onClick={handleDrawerToggle} selected={location.pathname === '/network/mikrotik'}>
+          <ListItemIcon><NetworkIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Monitor Mikrotik" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
           FACTURACIÓN
         </ListSubheader>
         
