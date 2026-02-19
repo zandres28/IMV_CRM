@@ -185,6 +185,14 @@ export const ClientList: React.FC = () => {
                 if (client.deletedAt) {
                     return false;
                 }
+                // Lógica mejorada para "Pendiente Inst.":
+                // 1. Estado explícito 'pendiente_instalacion'
+                // 2. Estado 'active' PERO sin instalaciones registradas
+                if (statusFilter === 'pendiente_instalacion') {
+                    const hasActiveInstallations = clientDetails?.installations && clientDetails.installations.length > 0;
+                    return client.status === 'pendiente_instalacion' || (client.status === 'active' && !hasActiveInstallations);
+                }
+                
                 return statusFilter === 'all' || client.status === statusFilter;
             })();
 
