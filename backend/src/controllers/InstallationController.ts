@@ -79,9 +79,17 @@ export class InstallationController {
 
             // Validate ONU-SN uniqueness if provided
             if (onuSerialNumber) {
-                const existing = await this.installationRepository.findOne({ where: { onuSerialNumber } });
+                // Check if SN exists in ACTIVE or SUSPENDED installations (not retired/cancelled)
+                const existing = await this.installationRepository.findOne({ 
+                    where: { 
+                        onuSerialNumber,
+                        serviceStatus: In(['active', 'suspended']), // Only consider active services
+                        isDeleted: false
+                    } 
+                });
+                
                 if (existing) {
-                    return res.status(409).json({ message: 'El ONU-SN ya está asignado a otra instalación' });
+                    return res.status(409).json({ message: 'El ONU-SN ya está asignado a otra instalación activa' });
                 }
             }
 
@@ -240,9 +248,16 @@ export class InstallationController {
 
             // Validate ONU-SN uniqueness if changed/provided
             if (onuSerialNumber && onuSerialNumber !== installation.onuSerialNumber) {
-                const existing = await this.installationRepository.findOne({ where: { onuSerialNumber } });
+                const existing = await this.installationRepository.findOne({ 
+                    where: { 
+                        onuSerialNumber,
+                        serviceStatus: In(['active', 'suspended']), // Only consider active services
+                        isDeleted: false
+                    } 
+                });
+                
                 if (existing && existing.id !== installation.id) {
-                    return res.status(409).json({ message: 'El ONU-SN ya está asignado a otra instalación' });
+                    return res.status(409).json({ message: 'El ONU-SN ya está asignado a otra instalación activa' });
                 }
                 installation.onuSerialNumber = onuSerialNumber;
             }
