@@ -208,10 +208,49 @@ export const ClientController = {
                     message: 'No tienes permiso para crear clientes' 
                 });
             }
+
+            const { identificationNumber } = req.body;
+
+            // Verificar si ya existe un cliente con este documento (incluso eliminado)
+            const existingClient = await clientRepository.findOne({
+                where: { identificationNumber },
+                withDeleted: true
+            });
+
+            if (existingClient) {
+                if (existingClient.deletedAt) {
+                    return res.status(409).json({
+                        message: `Ya existe un cliente eliminado con este documento (${identificationNumber}).`,
+                        hint: 'El cliente existe pero está en la papelera. Contacte al administrador si desea restaurarlo.',
+                        existingClient: {
+                            id: existingClient.id,
+                            fullName: existingClient.fullName,
+                            deletedAt: existingClient.deletedAt
+                        }
+                    });
+                } else {
+                    return res.status(409).json({
+                        message: `Ya existe un cliente activo con este documento (${identificationNumber}).`,
+                        existingClient: {
+                            id: existingClient.id,
+                            fullName: existingClient.fullName
+                        }
+                    });
+                }
+            }
+
             const newClient = clientRepository.create(req.body);
             const result = await clientRepository.save(newClient);
             return res.status(201).json(result);
-        } catch (error) {
+        } catch (error: any) {
+            console.error("Error al crear cliente:", error);
+            // Capturar error de duplicado (MySQL Error 1062)
+            if (error.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ 
+                    message: "Ya existe un cliente con este número de identificación (posiblemente eliminado).",
+                    error: error.sqlMessage 
+                });
+            }
             return res.status(500).json({ message: "Error al crear el cliente", error });
         }
     },
