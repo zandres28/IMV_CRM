@@ -81,17 +81,26 @@ export const OltController = {
             if (action === 'enable') {
                 output = await oltService.activateOnu(installation.ponId, installation.onuId);
                 messageAction = 'activado';
+                installation.serviceStatus = 'active';
+                await AppDataSource.getRepository(Installation).save(installation);
             } else if (action === 'disable') {
                 output = await oltService.deactivateOnu(installation.ponId, installation.onuId);
                 messageAction = 'cortado';
+                installation.serviceStatus = 'suspended';
+                await AppDataSource.getRepository(Installation).save(installation);
             } else if (action === 'reboot' || action === 'restart') {
                 output = await oltService.rebootOnu(installation.ponId, installation.onuId);
                 messageAction = 'reiniciado';
             }
 
             return res.json({ 
-                message: `Servicio ${messageAction} exitosamente`,
-                details: { ponId: installation.ponId, onuId: installation.onuId, sn: installation.onuSerialNumber },
+                message: `Servicio ${messageAction} exitosamente. Estado actualizado en CRM.`,
+                details: { 
+                    ponId: installation.ponId, 
+                    onuId: installation.onuId, 
+                    sn: installation.onuSerialNumber,
+                    newStatus: installation.serviceStatus
+                },
                 log: output 
             });
 

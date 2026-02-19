@@ -84,5 +84,10 @@ export const InstallationService = {
     rebootOnu: async (id: number) => {
         const response = await axios.post(`${API_URL}/installations/${id}/reboot`);
         return response.data;
+    },
+
+    toggleOltService: async (id: number, action: 'enable' | 'disable') => {
+        const response = await axios.post(`${API_URL}/installations/${id}/olt-service`, { action });
+        return response.data;
     }
 };

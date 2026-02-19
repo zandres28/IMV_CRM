@@ -31,4 +31,7 @@ router.patch('/:id/restore', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), 
 // Reiniciar ONU/ONT desde OLT
 router.post('/:installationId/reboot', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), OltController.rebootOnu);
 
+// Activar/Desactivar servicio en OLT
+router.post('/:installationId/olt-service', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), OltController.toggleService);
+
 export default router;

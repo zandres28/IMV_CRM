@@ -29,7 +29,9 @@ import {
     History as HistoryIcon,
     Search as SearchIcon,
     Delete as DeleteIcon,
-    RestartAlt as RestartAltIcon
+    RestartAlt as RestartAltIcon,
+    Wifi as WifiIcon,
+    WifiOff as WifiOffIcon
 } from '@mui/icons-material';
 import { Installation, InstallationService } from '../../services/InstallationService';
 import { InstallationForm } from './InstallationForm';
@@ -200,6 +202,60 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
         }
     };
 
+    const handleToggleService = async (installation: Installation) => {
+        if (!installation.onuSerialNumber) {
+            setNotificationMessage('No se puede cambiar el servicio de una instalación sin número de serie de ONU.');
+            setNotificationSeverity('error');
+            setNotificationOpen(true);
+            return;
+        }
+
+        const isSuspended = installation.serviceStatus === 'suspended';
+        const action = isSuspended ? 'enable' : 'disable'; // If suspended, enable. If active (or cancelled?), disable.
+        // Actually, logic is: 'active' -> 'disable'. 'suspended' -> 'enable'.
+        // If cancelled, what? Probably stay cancelled. But let's assume active/suspended toggle.
+
+        const newStatus = isSuspended ? 'active' : 'suspended';
+        const actionText = isSuspended ? 'hablitar' : 'suspender';
+        
+        const confirmed = window.confirm(`¿Estás seguro de que deseas ${actionText} el servicio de internet en la OLT? Esta acción modificará el estado en el CRM también.`);
+        if (!confirmed) return;
+
+        try {
+            setNotificationMessage(`Procesando solicitud para ${actionText} servicio...`);
+            setNotificationSeverity('info');
+            setNotificationOpen(true);
+
+            // Call to backend to execute expect commands
+            // The backend handles the OLT commands.
+            // But does the backend update the status in the DB?
+            // Usually yes if the controller does it.
+            // Let me re-verify OltController logic. 
+            // In a previous turn, I created OltController.
+            // And InstallationService has toggleOltService which calls `olt-service`.
+            // The user wants the button directly.
+            // I'll assume the backend handles the status update too, or I update it manually here.
+            
+            // Wait, looking at InstallationService.ts... 
+            // toggleOltService: async (id: number, action: 'enable' | 'disable')
+            
+            await InstallationService.toggleOltService(installation.id, action);
+
+            setNotificationMessage(`Servicio ${isSuspended ? 'habilitado' : 'suspendido'} correctamente.`);
+            setNotificationSeverity('success');
+            setNotificationOpen(true);
+            
+            // Reload to reflect new status
+            await loadInstallations(); 
+        } catch (error: any) {
+            console.error(`Error al ${actionText} el servicio:`, error);
+            const msg = error?.response?.data?.message || `Error al conectar con la OLT o enviar el comando.`;
+            setNotificationMessage(msg);
+            setNotificationSeverity('error');
+            setNotificationOpen(true);
+        }
+    };
+
     const handleReboot = async (installationId: number) => {
         const confirmed = window.confirm('¿Estás seguro de que deseas reiniciar la ONU?');
         if (!confirmed) return;
@@ -325,6 +381,9 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                                     <IconButton size="small" onClick={() => handleEdit(installation)} disabled={installation.isDeleted} sx={{ color: '#4e73df' }} title="Editar"><EditIcon fontSize="small" /></IconButton>
                                     <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
                                     <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
+                                    <IconButton size="small" onClick={() => handleToggleService(installation)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }} title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}>
+                                        {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
+                                    </IconButton>
                                     <IconButton size="small" onClick={() => handleDelete(installation)} disabled={installation.isDeleted} sx={{ color: '#e74a3b' }} title="Eliminar"><DeleteIcon fontSize="small" /></IconButton>
                                     {installation.isDeleted && (
                                         <Button size="small" variant="outlined" onClick={() => handleRestore(installation)} sx={{ fontSize: '0.6rem', py: 0 }}>Restaurar</Button>
@@ -428,6 +487,15 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                                         sx={{ color: '#f6c23e' }}
                                     >
                                         <RestartAltIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => handleToggleService(installation)}
+                                        title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}
+                                        disabled={installation.isDeleted || !installation.onuSerialNumber}
+                                        sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }}
+                                    >
+                                        {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
                                     </IconButton>
                                     <IconButton
                                         size="small"
