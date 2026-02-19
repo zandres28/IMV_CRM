@@ -21,6 +21,7 @@ import { SystemSettingsConfig } from '../components/admin/SystemSettingsConfig';
 import { InteractionTypesManager } from '../components/admin/InteractionTypesManager';
 import ServiceRequestForm from '../components/public/ServiceRequestForm';
 import RolesManager from '../components/admin/RolesManager';
+import { MikrotikGraphs } from '../components/network/MikrotikGraphs';
 
 const router = createBrowserRouter([
     {
@@ -74,6 +75,10 @@ const router = createBrowserRouter([
             {
                 path: "service-transfers",
                 element: <ServiceTransferList />
+            },
+            {
+                path: "network/mikrotik",
+                element: <MikrotikGraphs />
             },
             {
                 path: "dashboard",
