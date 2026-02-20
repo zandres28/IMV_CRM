@@ -10,6 +10,18 @@ import { SystemSetting } from '../entities/SystemSetting';
 import { InteractionType } from '../entities/InteractionType';
 import { In, Between, Like } from 'typeorm';
 
+// Helper: Formatear teléfono para WhatsApp (Evolution API requiere código país 57)
+const formatPhoneForWhatsapp = (phone: string | null | undefined): string => {
+    if (!phone) return '';
+    let clean = phone.replace(/\D/g, ''); // Eliminar no numéricos
+    // Si ya tiene 57 y longitud 12 (57+10 digitos), dejarlo
+    if (clean.startsWith('57') && clean.length === 12) return clean;
+    // Si tiene 10 dígitos y empieza por 3 (móvil Colombia), agregar 57
+    if (clean.length === 10 && clean.startsWith('3')) return `57${clean}`;
+    // Si no cumple, devolver limpio por si acaso
+    return clean;
+};
+
 export const N8nIntegrationController = {
     // Endpoint para obtener datos de recordatorios de pago para n8n
     getPaymentReminders: async (req: Request, res: Response) => {
@@ -294,8 +306,8 @@ export const N8nIntegrationController = {
                     const reminderData = {
                         'ID Cliente': `CL-${String(client.id).padStart(4, '0')}`,
                         'Nombre Completo': client.fullName,
-                        'Celular 1': client.primaryPhone,
-                        'Celular 2': client.secondaryPhone || '',
+                        'Celular 1': formatPhoneForWhatsapp(client.primaryPhone),
+                        'Celular 2': formatPhoneForWhatsapp(client.secondaryPhone) || '',
                         'PLAN': installation.servicePlan?.name || installation.serviceType,
                         'MES': queryMonth,
                         'FECHA_LIMITE': formattedDeadline,
@@ -445,10 +457,12 @@ export const N8nIntegrationController = {
                 return res.status(401).json({ message: 'Invalid or missing API Key' });
             }
 
-            const { message, images } = req.body as { message?: string; images?: string[] };
+            // Aceptamos 'message' (caption) y 'media' (url o base64). 'mediatype' opcional (default image)
+            const { message, media, mediatype } = req.body as { message?: string; media?: string; mediatype?: string };
 
-            if (!message && !images) {
-                return res.status(400).json({ message: 'message or images required' });
+            // Si hay media, message es caption. Si no hay media, message es text.
+            if (!message && !media) {
+                return res.status(400).json({ message: 'message or media required' });
             }
 
             const clientRepository = AppDataSource.getRepository(Client);
@@ -465,18 +479,55 @@ export const N8nIntegrationController = {
                 .where('client.status = :status', { status: 'active' })
                 .getMany();
 
-            // Filtrar clientes con teléfono y que tengan instalación activa
+            // Filtrar clientes con teléfono y formatearlos para Evolution API
             const recipients = clients
                 .filter(c => (c.primaryPhone && c.primaryPhone.trim() !== '') && (c.installations && c.installations.length > 0))
-                .map(c => ({
-                    clientId: c.id,
-                    fullName: c.fullName,
-                    phone: c.primaryPhone,
-                    message: message || '',
-                    images: Array.isArray(images) ? images : []
-                }));
+                .map(c => {
+                    const phone = formatPhoneForWhatsapp(c.primaryPhone);
+                    
+                    // Estructura lista para Evolution API v2 (/message/sendMedia o /message/sendText)
+                    if (media) {
+                        return {
+                            number: phone,
+                            options: {
+                                delay: 1200,
+                                presence: "composing"
+                            },
+                            mediaMessage: {
+                                mediatype: mediatype || "image",
+                                caption: message || "",
+                                media: media
+                        },
+                        // Custom data for N8N processing
+                        clientData: {
+                            id: c.id,
+                            name: c.fullName,
+                            status: c.status,
+                            phone: c.primaryPhone
+                        }
+                    };
+                } else {
+                    return {
+                        number: phone,
+                        options: {
+                            delay: 1200,
+                            presence: "composing"
+                        },
+                        textMessage: {
+                            text: message || ""
+                        },
+                        // Custom data for N8N processing
+                        clientData: {
+                            id: c.id,
+                            name: c.fullName,
+                            status: c.status,
+                            phone: c.primaryPhone
+                        }
+                    };
+                }
+            });
 
-            return res.json({ count: recipients.length, recipients });
+            return res.json(recipients); // Array directo listo para iterar en n8n
         } catch (error) {
             console.error('Error sendPromotions:', error);
             return res.status(500).json({ message: 'Internal error', error: error instanceof Error ? error.message : 'unknown' });

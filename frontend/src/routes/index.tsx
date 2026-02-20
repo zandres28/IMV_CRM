@@ -22,6 +22,7 @@ import { InteractionTypesManager } from '../components/admin/InteractionTypesMan
 import ServiceRequestForm from '../components/public/ServiceRequestForm';
 import RolesManager from '../components/admin/RolesManager';
 import { MikrotikGraphs } from '../components/network/MikrotikGraphs';
+import { PromotionsManager } from '../components/admin/PromotionsManager';
 
 const router = createBrowserRouter([
     {
@@ -103,6 +104,10 @@ const router = createBrowserRouter([
             {
                 path: "admin/roles",
                 element: <RolesManager />
+            },
+            {
+                path: "admin/promotions",
+                element: <PromotionsManager />
             },
             {
                 path: "admin/api-access",

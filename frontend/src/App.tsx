@@ -56,7 +56,9 @@ import {
   Build as ParameterIcon,
   PeopleAlt as UsersIcon,
   Handyman as TechnicianIcon,
-  Assessment as ChartIcon
+  Assessment as ChartIcon,
+  Code as ApiIcon,
+  Image as ImageIcon
 } from '@mui/icons-material';
 import AuthService from './services/AuthService';
 import axios from 'axios';
@@ -288,6 +290,16 @@ function App() {
         <ListItem button component={Link} to="/admin/settings" onClick={handleDrawerToggle} selected={location.pathname === '/admin/settings'}>
           <ListItemIcon><SystemIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Configuración" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        <ListItem button component={Link} to="/admin/promotions" onClick={handleDrawerToggle} selected={location.pathname === '/admin/promotions'}>
+          <ListItemIcon><ImageIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Imágenes Promocionales" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        <ListItem button component={Link} to="/admin/api-access" onClick={handleDrawerToggle} selected={location.pathname === '/admin/api-access'}>
+          <ListItemIcon><ApiIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Accesos API" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
         </ListItem>
 
         {(AuthService.hasPermission('admin.plans.view') || AuthService.hasPermission('admin.technicians.view')) && (
