@@ -32,6 +32,8 @@ import dashboardRoutes from "./routes/dashboard";
 import systemSettingsRoutes from "./routes/system-settings.routes";
 import interactionTypeRoutes from "./routes/interaction-types";
 import oltRoutes from "./routes/olt";
+import promotionRoutes from "./routes/promotions";
+import path from "path";
 
 // Middleware
 import { authMiddleware } from "./middlewares/auth.middleware";
@@ -78,6 +80,9 @@ app.use("/api/auth", publicApiLimiter); // Limite estricto para login (fuerza br
 // Configuración general
 app.use(express.json());
 
+// Servir archivos estáticos (imágenes promocionales, etc.)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Rutas públicas (sin autenticación)
 app.use("/api/auth", authRoutes);
 app.use("/api/public", publicRoutes);
@@ -98,6 +103,7 @@ app.use("/api/permissions", authMiddleware, permissionRoutes);
 app.use("/api/products", authMiddleware, productRoutes);
 app.use("/api/additional-services", authMiddleware, additionalServiceRoutes);
 app.use("/api/installations", authMiddleware, installationRoutes);
+app.use("/api/promotions", authMiddleware, promotionRoutes);
 app.use("/api/service-plans", authMiddleware, servicePlanRoutes);
 app.use("/api/technicians", authMiddleware, technicianRoutes);
 app.use("/api/monthly-billing", authMiddleware, monthlyBillingRoutes);

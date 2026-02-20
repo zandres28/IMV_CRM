@@ -234,6 +234,86 @@ const ApiAccess: React.FC = () => {
             params: 'month (0-11), year (YYYY)',
             example: `curl -X GET "http://localhost:3001/api/dashboard/stats?month=10&year=2025" \\
 -H "Authorization: Bearer ${token}"`
+        },
+
+        // --- N8N INTEGRATION ---
+        {
+            method: 'GET',
+            path: '/api/n8n/payment-reminders',
+            description: '[N8N] Obtener clientes para recordatorio de pago (usado por flujo de cobranza)',
+            example: `curl -X GET "http://localhost:3001/api/n8n/payment-reminders" \\
+-H "Authorization: Bearer ${token}"`
+        },
+        {
+            method: 'POST',
+            path: '/api/n8n/mark-sent',
+            description: '[N8N] Marcar recordatorio como enviado',
+            body: `{
+  "clientId": 1,
+  "type": "whatsapp",
+  "result": "success"
+}`,
+            example: `curl -X POST "http://localhost:3001/api/n8n/mark-sent" \\
+-H "Content-Type: application/json" \\
+-H "Authorization: Bearer ${token}" \\
+-d '{
+  "clientId": 1,
+  "type": "whatsapp",
+  "result": "success"
+}'`
+        },
+        {
+            method: 'GET',
+            path: '/api/n8n/suspension-candidates',
+            description: '[N8N] Obtener clientes para suspensión automática (día 6)',
+            example: `curl -X GET "http://localhost:3001/api/n8n/suspension-candidates" \\
+-H "Authorization: Bearer ${token}"`
+        },
+        {
+            method: 'POST',
+            path: '/api/n8n/register-payment',
+            description: '[WEBHOOK] Registrar pago (Requiere Phone para identificar cliente)',
+            body: `{
+  "phone": "573001234567",
+  "amount": 50000,
+  "reference": "REF123", 
+  "paymentMethod": "nequi",
+  "date": "2025-02-20T10:00:00Z"
+}`,
+            example: `curl -X POST "http://localhost:3001/api/n8n/register-payment" \\
+-H "Content-Type: application/json" \\
+-H "x-api-key: TU_API_KEY_N8N" \\
+-d '{
+  "phone": "573001234567",
+  "amount": 50000,
+  "reference": "REF123",
+  "paymentMethod": "nequi"
+}'`
+        },
+
+        // --- OLT CONTROL ---
+        {
+            method: 'POST',
+            path: '/api/olt/service/:id',
+            description: '[N8N/MANUAL] Activar o Suspender servicio en OLT',
+            params: ':id (Installation ID)',
+            body: `{
+  "action": "enable" // o "disable"
+}`,
+            example: `curl -X POST "http://localhost:3001/api/olt/service/123" \\
+-H "Content-Type: application/json" \\
+-H "Authorization: Bearer ${token}" \\
+-d '{
+  "action": "disable"
+}'`
+        },
+        {
+            method: 'POST',
+            path: '/api/olt/reboot/:id',
+            description: '[N8N/MANUAL] Reiniciar ONU en OLT',
+            params: ':id (Installation ID)',
+            example: `curl -X POST "http://localhost:3001/api/olt/reboot/123" \\
+-H "Authorization: Bearer ${token}"`
         }
     ];
 
