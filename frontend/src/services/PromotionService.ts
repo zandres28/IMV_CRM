@@ -1,10 +1,14 @@
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// Base URL for static files (remove /api suffix)
+const BASE_URL = API_URL.replace('/api', '');
 
 export interface PromotionImage {
+    id: number;
     filename: string;
-    url: string;
+    path: string; // Relative path from server root (e.g. /uploads/promotions/...)
+    description?: string;
     createdAt: string;
     size: number;
 }
@@ -19,9 +23,10 @@ export const PromotionService = {
         return response.data;
     },
 
-    upload: async (file: File): Promise<PromotionImage> => {
+    upload: async (file: File, description: string): Promise<PromotionImage> => {
         const formData = new FormData();
         formData.append('image', file);
+        formData.append('description', description);
 
         const response = await axios.post(`${API_URL}/promotions/upload`, formData, {
             headers: {
@@ -38,5 +43,11 @@ export const PromotionService = {
                 Authorization: `Bearer ${localStorage.getItem('token')}`
             }
         });
+    },
+    
+    // Helper to get full URL
+    getImageUrl: (relativePath: string) => {
+        if (relativePath.startsWith('http')) return relativePath;
+        return `${BASE_URL}${relativePath}`;
     }
 };
