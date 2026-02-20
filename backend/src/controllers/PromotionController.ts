@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { AppDataSource } from '../config/database';
+import { Promotion } from '../entities/Promotion';
 
 // Configuración de almacenamiento
 const storage = multer.diskStorage({
@@ -46,17 +48,30 @@ export class PromotionController {
                 return res.status(400).json({ message: 'No se ha subido ninguna imagen' });
             }
 
-            // Construir la URL de acceso público
-            // Asumimos que se sirve la carpeta uploads en /uploads
-            const baseUrl = `${req.protocol}://${req.get('host')}`;
-            const imageUrl = `${baseUrl}/uploads/promotions/${req.file.filename}`;
+            const { description } = req.body;
+            const promotionRepository = AppDataSource.getRepository(Promotion);
+
+            const newPromotion = promotionRepository.create({
+                filename: req.file.filename,
+                originalName: req.file.originalname,
+                mimeType: req.file.mimetype,
+                size: req.file.size,
+                description: description || '',
+            });
+
+            await promotionRepository.save(newPromotion);
+
+            // Construir la URL relativa (para que el frontend la complete)
+            const relativePath = `/uploads/promotions/${req.file.filename}`;
 
             return res.status(201).json({
                 message: 'Imagen subida correctamente',
-                filename: req.file.filename,
-                url: imageUrl,
-                originalName: req.file.originalname,
-                size: req.file.size
+                id: newPromotion.id,
+                filename: newPromotion.filename,
+                path: relativePath, // Usar path relativo
+                description: newPromotion.description,         
+                originalName: newPromotion.originalName,
+                size: newPromotion.size
             });
 
         } catch (error) {
@@ -67,29 +82,19 @@ export class PromotionController {
 
     static async getImages(req: Request, res: Response) {
         try {
-            const uploadPath = path.join(__dirname, '../../uploads/promotions');
-            
-            if (!fs.existsSync(uploadPath)) {
-                return res.status(200).json([]);
-            }
-
-            const files = fs.readdirSync(uploadPath);
-            const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-            const images = files.map(file => {
-                const filePath = path.join(uploadPath, file);
-                const stats = fs.statSync(filePath);
-                
-                return {
-                    filename: file,
-                    url: `${baseUrl}/uploads/promotions/${file}`,
-                    createdAt: stats.birthtime,
-                    size: stats.size
-                };
+            const promotionRepository = AppDataSource.getRepository(Promotion);
+            const promotions = await promotionRepository.find({
+                order: { createdAt: 'DESC' }
             });
 
-            // Ordenar por fecha de creación (más recientes primero)
-            images.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            const images = promotions.map(promo => ({
+                id: promo.id,
+                filename: promo.filename,
+                path: `/uploads/promotions/${promo.filename}`,
+                description: promo.description,
+                createdAt: promo.createdAt,
+                size: promo.size
+            }));
 
             return res.status(200).json(images);
 
@@ -106,13 +111,18 @@ export class PromotionController {
                 return res.status(400).json({ message: 'Nombre de archivo requerido' });
             }
 
-            const filePath = path.join(__dirname, '../../uploads/promotions', filename);
+            const promotionRepository = AppDataSource.getRepository(Promotion);
+            const promo = await promotionRepository.findOneBy({ filename });
 
-            if (!fs.existsSync(filePath)) {
-                return res.status(404).json({ message: 'Imagen no encontrada' });
+            if (promo) {
+                await promotionRepository.remove(promo);
             }
 
-            fs.unlinkSync(filePath);
+            // Intentar borrar del disco aunque no esté en DB (limpieza)
+            const filePath = path.join(__dirname, '../../uploads/promotions', filename);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
 
             return res.status(200).json({ message: 'Imagen eliminada correctamente' });
 
