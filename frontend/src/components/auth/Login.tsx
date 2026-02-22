@@ -46,7 +46,7 @@ const Login: React.FC = () => {
           alignItems: 'center'
         }}
       >
-        <Card sx={{ width: '100%', maxWidth: 400 }}>
+        <Card sx={{ width: '100%', maxWidth: 400, bgcolor: '#0f0f0f', color: '#fff' }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
               {/* Logo opcional si se desea imagen */}
@@ -54,12 +54,9 @@ const Login: React.FC = () => {
                 component="img"
                 src="/nexum_logo.png"
                 alt="Nexum Logo"
-                sx={{ maxHeight: 60, mb: 2, display: 'block', mx: 'auto' }}
+                sx={{ maxHeight: 80, mb: 2, display: 'block', mx: 'auto' }}
               />
-              <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2' }}>
-                NEXUM CRM
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                 Inicia sesión para continuar
               </Typography>
             </Box>
@@ -81,6 +78,16 @@ const Login: React.FC = () => {
                 required
                 autoFocus
                 disabled={loading}
+                sx={{ 
+                  input: { color: 'white' }, 
+                  label: { color: '#ffffff' }, // Color del label
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#90caf9' }, // Color al estar enfocado
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                    '&:hover fieldset': { borderColor: 'white' },
+                    '&.Mui-focused fieldset': { borderColor: '#90caf9' },
+                  }
+                }}
               />
 
               <TextField
@@ -92,6 +99,16 @@ const Login: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                sx={{ 
+                  input: { color: 'white' }, 
+                  label: { color: '#ffffff' }, 
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#90caf9' },
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.4)' },
+                    '&:hover fieldset': { borderColor: 'white' },
+                    '&.Mui-focused fieldset': { borderColor: '#90caf9' },
+                  }
+                }}
               />
 
               <Button
@@ -109,14 +126,6 @@ const Login: React.FC = () => {
                 )}
               </Button>
             </form>
-
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Typography variant="caption" color="text.secondary">
-                Credenciales por defecto:
-                <br />
-                admin@netflow.com / admin123
-              </Typography>
-            </Box>
           </CardContent>
         </Card>
       </Box>
