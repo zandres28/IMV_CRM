@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, CircularProgress } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ClientForm } from './ClientForm';
 import { ClientRetirementDialog } from './ClientRetirementDialog';
@@ -15,7 +15,7 @@ import { AdditionalService, ProductSold } from '../../types/AdditionalServices';
 import { AdditionalServiceService } from '../../services/AdditionalServiceService';
 import { ProductService } from '../../services/ProductService';
 import { Payment } from '../../services/MonthlyBillingService';
-import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, Restore as RestoreIcon } from '@mui/icons-material';
+import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, Restore as RestoreIcon, PowerSettingsNew as PowerIcon, RestartAlt as RestartIcon } from '@mui/icons-material';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -55,6 +55,7 @@ export const ClientDetail: React.FC = () => {
     // Estado para confirmación de eliminación
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [paymentToDelete, setPaymentToDelete] = useState<number | null>(null);
+    const [loadingAction, setLoadingAction] = useState(false);
 
     const loadClient = useCallback(async () => {
         try {
@@ -225,6 +226,52 @@ export const ClientDetail: React.FC = () => {
         }
     };
 
+    // --- ACCIONES RÁPIDAS (OLT / ESTADO) ---
+    // Buscar la instalación principal (prioridad: activa > suspendida > la primera que no esté eliminada)
+    const activeInstallation = installations.find(i => i.serviceStatus === 'active' && !i.isDeleted) 
+                            || installations.find(i => i.serviceStatus === 'suspended' && !i.isDeleted)
+                            || installations.find(i => !i.isDeleted) 
+                            || null;
+
+    const handleRebootOnu = async () => {
+        if (!activeInstallation) return;
+        if (!window.confirm('¿Reiniciar ONU del cliente? Esto interrumpirá el servicio momentáneamente.')) return;
+        
+        setLoadingAction(true);
+        try {
+            await InstallationService.rebootOnu(activeInstallation.id);
+            alert('Comando enviado a la OLT con éxito.');
+        } catch (error) {
+            console.error(error);
+            alert('Error al reiniciar la ONU. Verifique conexión.');
+        } finally {
+            setLoadingAction(false);
+        }
+    };
+
+    const handleToggleServiceStatus = async () => {
+        if (!activeInstallation) return;
+        const currentStatus = activeInstallation.serviceStatus;
+        const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+        const actionText = newStatus === 'active' ? 'ACTIVAR' : 'SUSPENDER';
+
+        if (!window.confirm(`¿Seguro que deseas ${actionText} el servicio de este cliente?`)) return;
+
+        setLoadingAction(true);
+        try {
+            await InstallationService.changeStatus(activeInstallation.id, newStatus);
+            // Recargar todo para actualizar estado
+            await loadInstallations();
+            await loadClient();
+            alert(`Servicio ${newStatus === 'active' ? 'activado' : 'suspendido'} correctamente.`);
+        } catch (error) {
+            console.error(error);
+            alert(`Error al intentar ${newStatus === 'active' ? 'activar' : 'suspender'}.`);
+        } finally {
+            setLoadingAction(false);
+        }
+    };
+
     return (
         <Box sx={{ width: '100%' }}>
             <Box mb={2}>
@@ -357,6 +404,37 @@ export const ClientDetail: React.FC = () => {
                                 color={getStatusColor(client.status)}
                                 sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}
                             />
+                            
+                            {/* --- BOTONES DE ACCIÓN RÁPIDA (OLT) --- */}
+                            {activeInstallation && (
+                                <>
+                                    <Tooltip title="Reiniciar ONU">
+                                        <IconButton 
+                                            onClick={handleRebootOnu} 
+                                            disabled={loadingAction}
+                                            color="warning"
+                                            size="small"
+                                            sx={{ border: '1px solid', borderColor: 'warning.main', ml: 1 }}
+                                        >
+                                            <RestartIcon />
+                                        </IconButton>
+                                    </Tooltip>
+
+                                    <Tooltip title={activeInstallation.serviceStatus === 'active' ? 'Suspender Servicio' : 'Activar Servicio'}>
+                                        <IconButton 
+                                            onClick={handleToggleServiceStatus}
+                                            disabled={loadingAction}
+                                            color={activeInstallation.serviceStatus === 'active' ? 'error' : 'success'}
+                                            size="small"
+                                            sx={{ border: '1px solid', borderColor: activeInstallation.serviceStatus === 'active' ? 'error.main' : 'success.main', ml: 1 }}
+                                        >
+                                            <PowerIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                </>
+                            )}
+                            {/* ------------------------------------- */}
+
                             {client.status === 'cancelled' && (
                                 <Box ml={2} textAlign="right">
                                     <Typography variant="caption" display="block">Retiro: {client.retirementDate ? new Date(client.retirementDate).toLocaleDateString() : '-'}</Typography>

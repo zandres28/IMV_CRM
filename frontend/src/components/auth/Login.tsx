@@ -49,8 +49,15 @@ const Login: React.FC = () => {
         <Card sx={{ width: '100%', maxWidth: 400 }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Typography variant="h4" component="h1" gutterBottom>
-                NetFlow CRM
+              {/* Logo opcional si se desea imagen */}
+               <Box 
+                component="img"
+                src="/nexum_logo.png"
+                alt="Nexum Logo"
+                sx={{ maxHeight: 60, mb: 2, display: 'block', mx: 'auto' }}
+              />
+              <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                NEXUM CRM
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Inicia sesión para continuar
