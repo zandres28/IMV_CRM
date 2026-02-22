@@ -96,6 +96,28 @@ function App() {
 
   const user = AuthService.getCurrentUser();
 
+  const getPageTitle = (path: string) => {
+    if (path.includes('/dashboard')) return 'Panel Principal';
+    if (path.includes('/clients')) return 'Gestión de Clientes';
+    if (path.includes('/installation-billing')) return 'Facturación de Instalaciones';
+    if (path.includes('/interactions')) return 'Solicitudes CRM';
+    if (path.includes('/service-outages')) return 'Caídas de Servicio';
+    if (path.includes('/service-transfers')) return 'Traslados';
+    if (path.includes('/network/mikrotik')) return 'Monitor Mikrotik';
+    if (path.includes('/billing')) return 'Centro de Facturación';
+    if (path.includes('/consultas')) return 'Consultas Avanzadas';
+    if (path.includes('/admin/users')) return 'Gestión de Usuarios';
+    if (path.includes('/admin/roles')) return 'Roles y Permisos';
+    if (path.includes('/admin/settings')) return 'Configuración del Sistema';
+    if (path.includes('/admin/api-access')) return 'Accesos API';
+    if (path.includes('/admin/service-plans')) return 'Planes de Servicio';
+    if (path.includes('/admin/technicians')) return 'Gestión de Técnicos';
+    if (path.includes('/admin/promotions')) return 'Gestor de Imágenes Promocionales';
+    if (path.includes('/admin/interaction-types')) return 'Tipos de Interacción';
+    
+    return 'Nexum CRM';
+  };
+
   const handleEnvChange = (env: typeof ENVIRONMENTS[0]) => {
     setCurrentEnv(env);
     localStorage.setItem('crm_env', env.id);
@@ -188,8 +210,8 @@ function App() {
       }}>
         <Box 
           component="img" 
-          src="/logo_imv.png" 
-          alt="IMV Logo" 
+          src="/nexum_logo.png" 
+          alt="Nexum Logo" 
           sx={{ maxHeight: 50, maxWidth: '100%', objectFit: 'contain' }} 
         />
       </Box>
@@ -330,7 +352,7 @@ function App() {
       </List>
       
       <Box sx={{ position: 'absolute', bottom: 10, left: 10, opacity: 0.3 }}>
-        <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>ArgusBlack v3.1.5 (NetFlow)</Typography>
+        <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>ArgusBlack v3.1.5 (Nexum)</Typography>
       </Box>
     </Box>
   );
@@ -393,9 +415,7 @@ function App() {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#5a5c69', fontSize: '1rem', display: { xs: 'none', md: 'block' } }}>
-                {location.pathname.includes('/clients') ? 'Gestión de Clientes' : 
-                 location.pathname.includes('/billing') ? 'Centro de Facturación' : 
-                 location.pathname.includes('/dashboard') ? 'Panel Principal' : 'Argus Black CRM'}
+                {getPageTitle(location.pathname)}
               </Typography>
             </Box>
 

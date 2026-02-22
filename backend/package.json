@@ -1,7 +1,7 @@
 {
-  "name": "netflow-crm-backend",
+  "name": "nexum-crm-backend",
   "version": "1.0.0",
-  "description": "NetFlow CRM - Backend para gestión de proveedores de internet",
+  "description": "Nexum CRM - Backend para gestión de proveedores de internet",
   "main": "index.js",
   "scripts": {
     "start": "node build/index.js",
