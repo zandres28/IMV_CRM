@@ -5,9 +5,11 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 import { hasPermission, PERMISSIONS } from "../utils/permissions";
 import { createNoteInteraction } from "../utils/interactionUtils";
 import { ServicePlan } from "../entities/ServicePlan";
+import { PublicConsentLog } from "../entities/PublicConsentLog";
 
 const clientRepository = AppDataSource.getRepository(Client);
 const servicePlanRepository = AppDataSource.getRepository(ServicePlan);
+const consentLogRepository = AppDataSource.getRepository(PublicConsentLog);
 
 export const ClientController = {
     // Registro público de clientes
@@ -20,12 +22,18 @@ export const ClientController = {
                 city, 
                 primaryPhone, 
                 secondaryPhone,
-                planId 
+                planId,
+                dataPolicyAccepted,
+                policyUrl
             } = req.body;
 
             // Validaciones básicas
             if (!fullName || !identificationNumber || !primaryPhone || !planId) {
                 return res.status(400).json({ message: "Faltan datos requeridos" });
+            }
+
+            if (dataPolicyAccepted !== true) {
+                return res.status(400).json({ message: "Debes autorizar el tratamiento de datos personales" });
             }
 
             // Verificar si el cliente ya existe
@@ -57,6 +65,19 @@ export const ClientController = {
             });
 
             await clientRepository.save(newClient);
+
+            const consentLog = consentLogRepository.create({
+                identificationNumber: identificationNumber.trim(),
+                fullName: fullName.toUpperCase().trim(),
+                source: 'solicitud',
+                accepted: true,
+                policyUrl: policyUrl ? String(policyUrl).trim() : '/Politica_Tratamiento_Datos_IMV.pdf',
+                clientId: newClient.id,
+                ipAddress: req.ip || null,
+                userAgent: req.headers['user-agent'] || null
+            });
+
+            await consentLogRepository.save(consentLog);
 
             // Crear nota/interacción con el plan solicitado
             const noteContent = `Solicitud de Servicio desde Web.\nPlan solicitado: ${plan.name} (${plan.speedMbps} Mbps) - ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(plan.monthlyFee)}\nCliente registrado automáticamente.`;

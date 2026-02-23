@@ -15,7 +15,10 @@ import {
     InputLabel,
     Select,
     SelectChangeEvent,
-    FormHelperText
+    FormHelperText,
+    FormControlLabel,
+    Checkbox,
+    Link as MuiLink
 } from '@mui/material';
 import { Send as SendIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -40,6 +43,7 @@ const ServiceRequestForm: React.FC = () => {
         secondaryPhone: '',
         planId: ''
     });
+    const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
 
     const [plans, setPlans] = useState<ServicePlan[]>([]);
     const [loadingPlans, setLoadingPlans] = useState(true);
@@ -74,13 +78,20 @@ const ServiceRequestForm: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!acceptDataPolicy) {
+            setError('Debes autorizar el tratamiento de datos personales para continuar.');
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
 
         try {
             await axios.post(`${API_URL}/public/register`, {
                 ...formData,
-                planId: parseInt(formData.planId)
+                planId: parseInt(formData.planId),
+                dataPolicyAccepted: acceptDataPolicy,
+                policyUrl: '/Politica_Tratamiento_Datos_IMV.pdf'
             });
             setSuccess(true);
         } catch (err: any) {
@@ -293,6 +304,30 @@ const ServiceRequestForm: React.FC = () => {
                                 </Grid>
 
                                 <Grid item xs={12} sx={{ mt: 2, textAlign: 'center' }}>
+                                    <Box sx={{ textAlign: 'left', mb: 2 }}>
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    checked={acceptDataPolicy}
+                                                    onChange={(e) => setAcceptDataPolicy(e.target.checked)}
+                                                    required
+                                                />
+                                            }
+                                            label={
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Autorizo de manera libre, previa, expresa e informada a IMV Internet para el tratamiento de mis datos personales conforme a la{' '}
+                                                    <MuiLink
+                                                        href="/Politica_Tratamiento_Datos_IMV.pdf"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        Política de Tratamiento de Datos Personales
+                                                    </MuiLink>
+                                                    , incluyendo el contacto por WhatsApp y otros medios electrónicos para fines contractuales y comerciales.
+                                                </Typography>
+                                            }
+                                        />
+                                    </Box>
                                     <Button
                                         type="submit"
                                         variant="contained"
