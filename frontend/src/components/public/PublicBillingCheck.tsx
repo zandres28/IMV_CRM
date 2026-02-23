@@ -17,7 +17,10 @@ import {
     Paper,
     Container,
     Collapse,
-    Chip
+    Chip,
+    FormControlLabel,
+    Checkbox,
+    Link as MuiLink
 } from '@mui/material';
 import { Search as SearchIcon, ReceiptLong as ReceiptIcon, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import axios from 'axios';
@@ -175,6 +178,7 @@ const PublicBillingCheck: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<BillingResult | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
     
     // Simple Math Captcha
     const [captcha, setCaptcha] = useState({ num1: Math.floor(Math.random() * 10), num2: Math.floor(Math.random() * 10) });
@@ -185,6 +189,11 @@ const PublicBillingCheck: React.FC = () => {
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!identificationNumber.trim()) return;
+
+        if (!acceptDataPolicy) {
+            setError('Debes autorizar el tratamiento de datos personales para continuar.');
+            return;
+        }
 
         // Verify Captcha
         if (parseInt(captchaInput) !== captcha.num1 + captcha.num2) {
@@ -199,6 +208,13 @@ const PublicBillingCheck: React.FC = () => {
         setResult(null);
 
         try {
+            await axios.post(`${API_URL}/public/consent-log`, {
+                identificationNumber: identificationNumber.trim(),
+                source: 'consulta-pagos',
+                accepted: true,
+                policyUrl: '/Politica_Tratamiento_Datos_IMV.pdf'
+            });
+
             const response = await axios.get(`${API_URL}/public/billing/${identificationNumber}`);
             setResult(response.data);
         } catch (err: any) {
@@ -276,11 +292,32 @@ const PublicBillingCheck: React.FC = () => {
                                     variant="contained"
                                     size="large"
                                     startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
-                                    disabled={loading || !identificationNumber.trim() || !captchaInput}
+                                    disabled={loading || !identificationNumber.trim() || !captchaInput || !acceptDataPolicy}
                                     sx={{ height: 56, alignSelf: { sm: 'flex-start' } }}
                                 >
                                     {loading ? 'Buscando...' : 'Consultar'}
                                 </Button>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={acceptDataPolicy}
+                                            onChange={(e) => setAcceptDataPolicy(e.target.checked)}
+                                        />
+                                    }
+                                    label={
+                                        <Typography variant="body2" color="text.secondary">
+                                            Autorizo de manera libre, previa, expresa e informada a IMV Internet para el tratamiento de mis datos personales conforme a la{' '}
+                                            <MuiLink
+                                                href="/Politica_Tratamiento_Datos_IMV.pdf"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Política de Tratamiento de Datos Personales
+                                            </MuiLink>
+                                            , incluyendo el contacto por WhatsApp y otros medios electrónicos para fines contractuales y comerciales.
+                                        </Typography>
+                                    }
+                                />
                             </Box>
                         </form>
                     </CardContent>

@@ -25,9 +25,25 @@ export const DashboardController = {
             // Helper for date ranges
             const startOfMonth = new Date(currentYear, currentMonth, 1);
             const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-            
+
             const startOfYear = new Date(currentYear, 0, 1);
             const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+
+            // --- 0. HELPER FUNCTION ---
+            // Function to get count of new clients based on first installation date
+            const countNewClientsByInstallDate = async (start: Date, end: Date) => {
+                const result = await installationRepository.query(`
+                    SELECT COUNT(DISTINCT i1.clientId) as count
+                    FROM installations i1
+                    WHERE i1.installationDate BETWEEN ? AND ?
+                    AND i1.installationDate = (
+                        SELECT MIN(i2.installationDate)
+                        FROM installations i2
+                        WHERE i2.clientId = i1.clientId
+                    )
+                `, [start, end]);
+                return parseInt(result[0].count || '0');
+            };
 
             // --- 1. GROWTH MODULE ---
 
@@ -37,18 +53,10 @@ export const DashboardController = {
             });
 
             // New Clients (This Month)
-            const newClientsMonth = await clientRepository.count({
-                where: {
-                    created_at: Between(startOfMonth, endOfMonth)
-                }
-            });
+            const newClientsMonth = await countNewClientsByInstallDate(startOfMonth, endOfMonth);
 
             // New Clients (YTD)
-            const newClientsYTD = await clientRepository.count({
-                where: {
-                    created_at: Between(startOfYear, endOfYear)
-                }
-            });
+            const newClientsYTD = await countNewClientsByInstallDate(startOfYear, endOfYear);
 
             // Retirements (This Month)
             const retiredClientsMonth = await clientRepository.count({
@@ -219,10 +227,11 @@ export const DashboardController = {
                 const d = new Date(currentYear, currentMonth - i, 1); 
                 const s = new Date(d.getFullYear(), d.getMonth(), 1);
                 const e = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-                
-                const newC = await clientRepository.count({ where: { created_at: Between(s, e) } });
+
+                // Use helper function for consistent calculation
+                const newC = await countNewClientsByInstallDate(s, e);
                 const retC = await clientRepository.count({ where: { retirementDate: Between(s, e) } });
-                
+
                 const monthName = s.toLocaleString('default', { month: 'short' });
                 
                 growthHistory.push({
@@ -232,7 +241,6 @@ export const DashboardController = {
                     netGrowth: newC - retC
                 });
             }
-
             // --- 7. REVENUE HISTORY ---
             const revenueHistory = [];
             for (let i = 5; i >= 0; i--) {
