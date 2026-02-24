@@ -18,12 +18,17 @@ export const MikrotikController = {
             const response = await axios({
                 method: 'get',
                 url: imageUrl,
-                responseType: 'stream'
+                responseType: 'stream',
+                timeout: 5000 // 5 segundos máximo para conectar
             });
 
             response.data.pipe(res);
-        } catch (error) {
-            console.error("Error proxying Mikrotik graph:", error);
+        } catch (error: any) {
+            console.error("Error proxying Mikrotik graph:", error.message);
+            // Si es timeout o network error
+            if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+                return res.status(504).send("Gateway Timeout: Cannot reach Mikrotik Router");
+            }
             res.status(500).send("Error fetching graph");
         }
     }
