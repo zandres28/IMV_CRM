@@ -33,6 +33,7 @@ import systemSettingsRoutes from "./routes/system-settings.routes";
 import interactionTypeRoutes from "./routes/interaction-types";
 import oltRoutes from "./routes/olt";
 import promotionRoutes from "./routes/promotions";
+import mikrotikRoutes from "./routes/mikrotik";
 import path from "path";
 
 // Middleware
@@ -118,6 +119,7 @@ app.use("/api/products", authMiddleware, productRoutes);
 app.use("/api/additional-services", authMiddleware, additionalServiceRoutes);
 app.use("/api/installations", authMiddleware, installationRoutes);
 app.use("/api/promotions", authMiddleware, promotionRoutes);
+app.use("/api/mikrotik", authMiddleware, mikrotikRoutes);
 app.use("/api/service-plans", authMiddleware, servicePlanRoutes);
 app.use("/api/technicians", authMiddleware, technicianRoutes);
 app.use("/api/monthly-billing", authMiddleware, monthlyBillingRoutes);
