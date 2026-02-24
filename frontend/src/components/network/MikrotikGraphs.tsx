@@ -11,12 +11,25 @@ const AuthenticatedImage = ({ src, alt, style, onError }: { src: string, alt: st
         const fetchImage = async () => {
             try {
                 const token = localStorage.getItem('token');
+                // Si no hay token, no intentamos fetch
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+
+                console.log(`Fetching Mikrotik Graph: ${src}`);
+                
                 const response = await fetch(src, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                if (!response.ok) throw new Error('Network response was not ok');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`Error fetching graph (${response.status}):`, errorText);
+                    throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+                }
+                
                 const blob = await response.blob();
                 if (isMounted) {
                     const url = URL.createObjectURL(blob);
