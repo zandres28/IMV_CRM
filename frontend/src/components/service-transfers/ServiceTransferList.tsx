@@ -239,13 +239,20 @@ export const ServiceTransferList: React.FC = () => {
                             <Autocomplete
                                 options={clients}
                                 getOptionLabel={(option) => `${option.fullName} - ${option.identificationNumber}`}
-                                onChange={(_, newValue) => {
+                                onChange={async (_, newValue) => {
+                                    let newCost = 0;
+                                    if (newValue) {
+                                        try {
+                                            const { cost } = await ServiceTransferService.checkCost(newValue.id);
+                                            newCost = cost;
+                                        } catch (error) {
+                                            console.error("Error calculating cost", error);
+                                        }
+                                    }
                                     setFormData({
                                         ...formData,
                                         clientId: newValue ? newValue.id : 0,
-                                        // Pre-fill current address if available?
-                                        // The backend handles previousAddress automatically on create, 
-                                        // but we could show it here if we wanted.
+                                        cost: newCost
                                     });
                                 }}
                                 renderInput={(params) => <TextField {...params} label="Cliente" fullWidth />}

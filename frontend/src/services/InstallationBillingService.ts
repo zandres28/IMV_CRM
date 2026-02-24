@@ -88,6 +88,11 @@ class InstallationBillingService {
     return response.data;
   }
 
+  async updatePayment(id: number, data: { paymentDate?: string; paymentMethod?: string; notes?: string }): Promise<InstallationPayment> {
+    const response = await axios.put(`${API_URL}/installation-billing/${id}`, data);
+    return response.data;
+  }
+
   async createManualPayment(data: CreateManualPaymentRequest): Promise<InstallationPayment> {
     const response = await axios.post(`${API_URL}/installation-billing/manual`, data);
     return response.data;

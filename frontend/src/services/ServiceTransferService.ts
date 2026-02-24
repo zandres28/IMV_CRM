@@ -45,5 +45,10 @@ export const ServiceTransferService = {
 
     delete: async (id: number): Promise<void> => {
         await axios.delete(`${API_URL}/${id}`);
+    },
+
+    checkCost: async (clientId: number): Promise<{ cost: number, count: number }> => {
+        const response = await axios.get(`${API_URL}/cost/${clientId}`);
+        return response.data;
     }
 };
