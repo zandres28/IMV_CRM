@@ -31,6 +31,7 @@ import {
   Payment as PaymentIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import InstallationBillingService, {
   InstallationPayment,
@@ -56,6 +57,16 @@ const InstallationBillingList: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<InstallationPayment | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editData, setEditData] = useState<{
+    paymentDate: string;
+    paymentMethod: string;
+    notes: string;
+  }>({
+    paymentDate: '',
+    paymentMethod: '',
+    notes: '',
+  });
   const [paymentData, setPaymentData] = useState<MarkPaidRequest>({
     paymentMethod: 'efectivo',
     paymentDate: new Date().toISOString().split('T')[0],
@@ -85,6 +96,28 @@ const InstallationBillingList: React.FC = () => {
       setDetailDialogOpen(true);
     } catch (error) {
       console.error('Error al cargar detalle:', error);
+    }
+  };
+
+  const handleOpenEditDialog = (payment: InstallationPayment) => {
+    setSelectedPayment(payment);
+    setEditData({
+      paymentDate: payment.paymentDate ? new Date(payment.paymentDate).toISOString().split('T')[0] : '',
+      paymentMethod: payment.paymentMethod || 'efectivo',
+      notes: payment.notes || '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdatePayment = async () => {
+    if (!selectedPayment) return;
+
+    try {
+      await InstallationBillingService.updatePayment(selectedPayment.id, editData);
+      setEditDialogOpen(false);
+      loadPayments();
+    } catch (error) {
+      console.error('Error al actualizar pago:', error);
     }
   };
 
@@ -322,6 +355,14 @@ const InstallationBillingList: React.FC = () => {
                   >
                     <VisibilityIcon />
                   </IconButton>
+                  <IconButton
+                    size="small"
+                    color="info"
+                    onClick={() => handleOpenEditDialog(payment)}
+                    title="Editar pago"
+                  >
+                    <EditIcon />
+                  </IconButton>
                   {payment.status === 'pending' && (
                     <IconButton
                       size="small"
@@ -433,6 +474,63 @@ const InstallationBillingList: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Editar Pago de Instalación</DialogTitle>
+        <DialogContent>
+          {selectedPayment && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                Cliente: {selectedPayment.client.fullName}
+              </Typography>
+              
+              <TextField
+                fullWidth
+                type="date"
+                label="Fecha de Pago"
+                value={editData.paymentDate}
+                onChange={(e) => setEditData({ ...editData, paymentDate: e.target.value })}
+                sx={{ mt: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>Método de Pago</InputLabel>
+                <Select
+                  value={editData.paymentMethod}
+                  label="Método de Pago"
+                  onChange={(e) => setEditData({ ...editData, paymentMethod: e.target.value })}
+                >
+                    <MenuItem value=""><em>Seleccione...</em></MenuItem>
+                  <MenuItem value="efectivo">Efectivo</MenuItem>
+                  <MenuItem value="transferencia">Transferencia</MenuItem>
+                  <MenuItem value="nequi">Nequi</MenuItem>
+                  <MenuItem value="daviplata">Daviplata</MenuItem>
+                  <MenuItem value="bancolombia">Bancolombia</MenuItem>
+                  <MenuItem value="otro">Otro</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField 
+                fullWidth
+                multiline
+                rows={3}
+                label="Notas"
+                value={editData.notes}
+                onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                sx={{ mt: 2 }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={handleUpdatePayment} variant="contained" color="primary">
+            Guardar Cambios
+          </Button>
         </DialogActions>
       </Dialog>
 

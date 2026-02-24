@@ -7,6 +7,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get("/", ServiceTransferController.getAll);
+router.get("/cost/:clientId", ServiceTransferController.checkCost as any);
 router.get("/client/:clientId", ServiceTransferController.getByClient);
 router.post("/", ServiceTransferController.create);
 router.put("/:id", ServiceTransferController.update);

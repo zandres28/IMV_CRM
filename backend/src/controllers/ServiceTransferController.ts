@@ -4,6 +4,7 @@ import { ServiceTransfer } from "../entities/ServiceTransfer";
 import { Client } from "../entities/Client";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { createNoteInteraction } from "../utils/interactionUtils";
+import { Not } from "typeorm";
 
 const transferRepository = AppDataSource.getRepository(ServiceTransfer);
 const clientRepository = AppDataSource.getRepository(Client);
@@ -53,6 +54,18 @@ export const ServiceTransferController = {
                 return res.status(404).json({ message: "Cliente no encontrado" });
             }
 
+            // Calcular costo si no se proporciona
+            let finalCost = cost;
+            if (finalCost === undefined || finalCost === null) {
+                const count = await transferRepository.count({
+                    where: { 
+                        clientId: parseInt(clientId.toString()),
+                        status: Not('cancelled')
+                    }
+                });
+                finalCost = count === 0 ? 0 : 50000;
+            }
+
             const transfer = transferRepository.create({
                 clientId,
                 previousAddress: client.installationAddress, // Dirección actual
@@ -60,7 +73,7 @@ export const ServiceTransferController = {
                 requestDate: requestDate ? new Date(requestDate) : new Date(),
                 scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
                 status: status || 'pending',
-                cost: cost || 0,
+                cost: finalCost,
                 notes,
                 technicianId: technicianId ? parseInt(technicianId) : null
             } as any);
@@ -80,6 +93,22 @@ export const ServiceTransferController = {
             return res.status(201).json(result);
         } catch (error) {
             return res.status(500).json({ message: "Error al crear la solicitud de traslado", error });
+        }
+    },
+
+    checkCost: async (req: AuthRequest, res: Response) => {
+        try {
+            const { clientId } = req.params;
+            const count = await transferRepository.count({
+                where: { 
+                    clientId: parseInt(clientId),
+                    status: Not('cancelled')
+                }
+            });
+            const cost = count === 0 ? 0 : 50000;
+            return res.json({ cost, count });
+        } catch (error) {
+            return res.status(500).json({ message: "Error al verificar costo", error });
         }
     },
 

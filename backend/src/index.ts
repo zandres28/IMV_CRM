@@ -45,9 +45,21 @@ dotenv.config();
 
 const app = express();
 
+// Trust Proxy (Necesario cuando se usa Nginx Proxy Manager)
+app.set('trust proxy', 1);
+
+// Debug Logging Middleware - Primero que todo
+app.use((req, res, next) => {
+    console.log(`[Request Debug] Method: ${req.method} | URL: ${req.url} | Origin: ${req.headers.origin} | IP: ${req.ip}`);
+    next();
+});
 
 // SEGURIDAD 1: Implementar Helmet (Cabeceras de Seguridad)
 app.use(helmet());
+
+// Debug CORS - Log origins
+// Removed duplicate logging middleware
+// app.use((req, res, next) => { ... });
 
 // SEGURIDAD 2: Configurar CORS Estricto
 const allowedOrigins = [
@@ -64,14 +76,16 @@ app.use(cors({
         if (!origin) return callback(null, true);
         
         // Permitir localhost, IP local y dominio de producción
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://192.168.') || origin.includes('149.130.162.188')) {
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://192.168.') || origin.includes('149.130.162.188') || origin.includes('duckdns.org')) {
             callback(null, true);
         } else {
             console.warn(`Bloqueo de CORS para origen: ${origin}`);
             callback(new Error('No permitido por la política de CORS'));
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
 // SEGURIDAD 3: Rate Limiting

@@ -36,6 +36,10 @@ export class InstallationBillingController {
       }
 
       if (status) query.andWhere('payment.status = :status', { status: String(status) });
+      
+      // Ordenar por fecha de pago descendente
+      query.orderBy('payment.paymentDate', 'DESC');
+      query.addOrderBy('payment.created_at', 'DESC');
 
       const payments = await query.getMany();
 
@@ -105,13 +109,40 @@ export class InstallationBillingController {
   }
 
   /**
+   * Actualizar detalles de pago (fecha, método)
+   * PUT /api/installation-billing/:id
+   */
+  static async update(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { paymentDate, paymentMethod, status, notes } = req.body;
+      const paymentRepo = AppDataSource.getRepository(Payment);
+      
+      const payment = await paymentRepo.findOne({ where: { id: parseInt(id) } });
+
+      if (!payment) return res.status(404).json({ message: 'Pago no encontrado' });
+
+      if (paymentDate) payment.paymentDate = new Date(paymentDate);
+      if (paymentMethod) payment.paymentMethod = paymentMethod;
+      if (status) payment.status = status;
+      if (notes) payment.notes = notes;
+
+      const updatedPayment = await paymentRepo.save(payment);
+      res.json({ message: 'Pago actualizado correctamente', payment: updatedPayment });      
+    } catch (err) {
+      console.error('Error actualizando pago:', err);
+      res.status(500).json({ message: 'Error actualizando pago' });
+    }
+  }
+
+  /**
    * Crear pago de instalación manual (en caso de que no se haya creado automáticamente)
    * POST /api/installation-billing/manual
    * body: { clientId, installationId, amount, date, notes }
    */
   static async createManual(req: Request, res: Response) {
     try {
-      const { clientId, installationId, amount, date, notes } = req.body;
+      const { clientId, installationId, amount, date, notes, paymentMethod } = req.body;
       if (!clientId || !installationId || !amount) {
         return res.status(400).json({ message: 'clientId, installationId y amount son requeridos' });
       }
@@ -130,6 +161,7 @@ export class InstallationBillingController {
         dueDate: dateObj,
         status: 'paid',
         paymentDate: dateObj,
+        paymentMethod: paymentMethod || 'efectivo',
         paymentType: 'installation',
         servicePlanAmount: 0,
         additionalServicesAmount: 0,
