@@ -49,6 +49,12 @@ const app = express();
 // Trust Proxy (Necesario cuando se usa Nginx Proxy Manager)
 app.set('trust proxy', 1);
 
+// Middleware de Logging básico
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
 // Debug Logging Middleware - Primero que todo
 app.use((req, res, next) => {
     console.log(`[Request Debug] Method: ${req.method} | URL: ${req.url} | Origin: ${req.headers.origin} | IP: ${req.ip}`);
