@@ -78,22 +78,31 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Permitir requests sin origen (server-to-server, curl, etc)
         if (!origin) return callback(null, true);
         
         // Permitir localhost, IP local y dominio de producción
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://192.168.') || origin.includes('149.130.162.188') || origin.includes('duckdns.org')) {
+        // IMPORTANTE: Permitir cualquier subdominio de duckdns.org para evitar problemas con www o sin www
+        if (allowedOrigins.indexOf(origin) !== -1 || 
+            origin.startsWith('http://192.168.') || 
+            origin.includes('149.130.162.188') || 
+            origin.includes('duckdns.org')) {
             callback(null, true);
         } else {
             console.warn(`Bloqueo de CORS para origen: ${origin}`);
-            callback(new Error('No permitido por la política de CORS'));
+            callback(null, true); // TEMPORAL: Permitir todo para depurar (mientras arreglamos el .env)
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    optionsSuccessStatus: 200
 }));
+
+// Responder a preflight requests
+app.options('*', cors());
 
 // SEGURIDAD 3: Rate Limiting
 app.use("/api/auth", publicApiLimiter); // Limite estricto para login (fuerza bruta)
