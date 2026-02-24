@@ -10,13 +10,16 @@ const AuthenticatedImage = ({ src, alt, style, onError }: { src: string, alt: st
         let isMounted = true;
         const fetchImage = async () => {
             try {
-                const token = localStorage.getItem('token');
+                // AuthService usa 'accessToken', no 'token'
+                const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
                 // Si no hay token, no intentamos fetch
                 if (!token) {
                     throw new Error('No authentication token found');
                 }
 
-                console.log(`Fetching Mikrotik Graph: ${src}`);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log(`Fetching Mikrotik Graph: ${src}`);
+                }
                 
                 const response = await fetch(src, {
                     headers: {
