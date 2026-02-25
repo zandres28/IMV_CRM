@@ -64,7 +64,7 @@ import AuthService from './services/AuthService';
 import axios from 'axios';
 
 import SessionTimeoutHandler from './components/SessionTimeoutHandler';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 const ENVIRONMENTS = [
   { id: 'prod', name: 'Producción (IMV)', color: '#1976d2' },
@@ -135,7 +135,7 @@ function App() {
         return;
       }
       try {
-        const decoded: any = jwt_decode(token);
+        const decoded: any = jwtDecode(token);
         if (decoded.exp && Date.now() >= decoded.exp * 1000) {
           AuthService.logout();
           window.location.href = '/login';
