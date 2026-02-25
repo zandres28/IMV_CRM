@@ -102,7 +102,7 @@ app.use(cors({
 }));
 
 // Responder a preflight requests
-app.options('*', cors());
+// app.options('*', cors()); // Comentado por conflicto con path-to-regexp v8/express 5 o similar
 
 // SEGURIDAD 3: Rate Limiting
 app.use("/api/auth", publicApiLimiter); // Limite estricto para login (fuerza bruta)
