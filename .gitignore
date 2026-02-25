@@ -35,3 +35,4 @@ backend/n8n_workflows/
 backups/
 *.sql
 *.sql.gz
+docker-compose.yml
