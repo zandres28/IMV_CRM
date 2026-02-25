@@ -32,8 +32,8 @@ export class MonthlyBillingController {
             // --- RESET DE RECORDATORIOS ENVIADOS DEL MES ---
             // Elimina interacciones de tipo 'Recordatorio WhatsApp Automático' para el mes/año facturado
             const interactionRepository = AppDataSource.getRepository(Interaction);
-            const monthIndex = getMonthIndex(month);
-            const yearNum = parseInt(year);
+            let monthIndex = getMonthIndex(month);
+            let yearNum = parseInt(year);
             const startMonth = new Date(yearNum, monthIndex, 1);
             const endMonth = new Date(yearNum, monthIndex + 1, 0);
             endMonth.setHours(23, 59, 59, 999);
@@ -58,10 +58,10 @@ export class MonthlyBillingController {
 
             const generatedPayments = [];
             const monthName = month; // e.g., "octubre"
-            const yearNum = parseInt(year);
+            // yearNum ya está declarado arriba
 
             // Calcular el primer y último día del mes
-            const monthIndex = getMonthIndex(month);
+            // monthIndex ya está declarado arriba
             const firstDayOfMonth = new Date(yearNum, monthIndex, 1);
             const lastDayOfMonth = new Date(yearNum, monthIndex + 1, 0);
             const totalDaysInMonth = lastDayOfMonth.getDate();
@@ -576,8 +576,8 @@ export class MonthlyBillingController {
 
             // Obtener recaudos por instalaciones en este mes (basado en fecha de instalación)
             const installationRepository = AppDataSource.getRepository(Installation);
-            const monthIndex = getMonthIndex(month as string);
-            const yearNum = parseInt(year as string);
+            let monthIndex = getMonthIndex(month as string);
+            let yearNum = parseInt(year as string);
             const startDate = new Date(yearNum, monthIndex, 1);
             const endDate = new Date(yearNum, monthIndex + 1, 0);
 
