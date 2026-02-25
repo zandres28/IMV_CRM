@@ -223,7 +223,7 @@ function App() {
           alt="Nexum Logo" 
           sx={{ maxHeight: 50, maxWidth: '100%', objectFit: 'contain' }} 
         />
-      </Box
+      </Box>
 
       <List sx={{ px: 1 }}>
         <ListItem button component={Link} to="/dashboard" onClick={handleDrawerToggle} selected={location.pathname === '/dashboard'}>
