@@ -79,8 +79,8 @@ const ApiAccess: React.FC = () => {
             method: 'GET',
             path: '/api/clients',
             description: 'Obtener lista de clientes paginada',
-            params: 'page (number), limit (number), search (string)',
-            example: `curl -X GET "http://localhost:3001/api/clients?page=1&limit=10&search=Juan" \\
+            params: 'page (number), limit (number), search (string, por nombre/cedula), status (active, suspended, retired)',
+            example: `curl -X GET "http://localhost:3001/api/clients?page=1&limit=10&search=Juan&status=active" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
@@ -142,8 +142,8 @@ const ApiAccess: React.FC = () => {
             method: 'GET',
             path: '/api/monthly-billing',
             description: 'Obtener facturación mensual',
-            params: 'month (0-11), year (YYYY), status (pending, paid, overdue)',
-            example: `curl -X GET "http://localhost:3001/api/monthly-billing?month=10&year=2025&status=pending" \\
+            params: 'month (nombre o index), year (YYYY), status (pending, overdue, paid), viewMode (cumulative: acumula deudas pasadas)',
+            example: `curl -X GET "http://localhost:3001/api/monthly-billing?month=Febrero&year=2025&status=pending&viewMode=cumulative" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
@@ -240,8 +240,9 @@ const ApiAccess: React.FC = () => {
         {
             method: 'GET',
             path: '/api/n8n/payment-reminders',
-            description: '[N8N] Obtener clientes para recordatorio de pago (usado por flujo de cobranza)',
-            example: `curl -X GET "http://localhost:3001/api/n8n/payment-reminders" \\
+            description: '[N8N] Listar clientes/saldos para notificaciones de cobranza (WhatsApp)',
+            params: 'paymentStatus (pay [pendientes+vencidos] | paid | all), clientStatus (active | inactive | all), sentFilter (true/false: excluir si ya enviado este mes), month (Ej: FEBRERO), year (2026)',
+            example: `curl -X GET "http://localhost:3001/api/n8n/payment-reminders?paymentStatus=pay&sentFilter=false&month=FEBRERO&year=2026" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
