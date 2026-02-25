@@ -64,6 +64,7 @@ import AuthService from './services/AuthService';
 import axios from 'axios';
 
 import SessionTimeoutHandler from './components/SessionTimeoutHandler';
+import jwt_decode from 'jwt-decode';
 
 const ENVIRONMENTS = [
   { id: 'prod', name: 'Producción (IMV)', color: '#1976d2' },
@@ -126,33 +127,37 @@ function App() {
   };
 
   useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      return;
-    }
-
-    const verify = async () => {
+    const checkTokenExpiry = () => {
+      const token = AuthService.getAccessToken();
+      if (!token) {
+        AuthService.logout();
+        window.location.href = '/login';
+        return;
+      }
       try {
-        const API_AUTH = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/me`;
-        await axios.get(API_AUTH);
-      } catch (err) {
-        // If verification fails, force logout and redirect to login
+        const decoded: any = jwt_decode(token);
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          AuthService.logout();
+          window.location.href = '/login';
+        }
+      } catch (e) {
         AuthService.logout();
         window.location.href = '/login';
       }
     };
 
-    // Verify on mount
-    verify();
+    checkTokenExpiry();
 
-    // Verify when tab becomes visible again
+    // Verificar cuando la pestaña se vuelve visible o al navegar
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        verify();
-      }
+      if (document.visibilityState === 'visible') checkTokenExpiry();
     };
+    window.addEventListener('focus', checkTokenExpiry);
     document.addEventListener('visibilitychange', onVisibility);
-
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', checkTokenExpiry);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   const handleDrawerToggle = () => {
