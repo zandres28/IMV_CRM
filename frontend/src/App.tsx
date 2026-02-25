@@ -198,7 +198,7 @@ function App() {
 
   const drawer = (
     <Box sx={{ p: 0, height: '100%', overflowX: 'hidden' }}>
-      {/* Brand Logo */}
+      {/* Brand Logo sticky */}
       <Box sx={{ 
         p: 2, 
         mb: 2, 
@@ -206,7 +206,11 @@ function App() {
         alignItems: 'center', 
         justifyContent: 'center',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
-        height: 70
+        height: 70,
+        position: 'sticky',
+        top: 0,
+        zIndex: 2,
+        bgcolor: 'background.default'
       }}>
         <Box 
           component="img" 
@@ -214,15 +218,15 @@ function App() {
           alt="Nexum Logo" 
           sx={{ maxHeight: 50, maxWidth: '100%', objectFit: 'contain' }} 
         />
-      </Box>
+      </Box
 
       <List sx={{ px: 1 }}>
         <ListItem button component={Link} to="/dashboard" onClick={handleDrawerToggle} selected={location.pathname === '/dashboard'}>
           <ListItemIcon><DashboardIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="INICIO" primaryTypographyProps={{ sx: { fontSize: '0.85rem', fontWeight: 700 } }} />
         </ListItem>
-
-        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
+        {/* La subcabecera CLIENTES ya no es sticky, solo normal */}
+        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1, position: 'static' }}>
           CLIENTES
         </ListSubheader>
         
