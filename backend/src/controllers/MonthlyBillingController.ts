@@ -29,6 +29,20 @@ export class MonthlyBillingController {
                 return res.status(400).json({ message: "Mes y año son requeridos" });
             }
 
+            // --- RESET DE RECORDATORIOS ENVIADOS DEL MES ---
+            // Elimina interacciones de tipo 'Recordatorio WhatsApp Automático' para el mes/año facturado
+            const interactionRepository = AppDataSource.getRepository(Interaction);
+            const monthIndex = getMonthIndex(month);
+            const yearNum = parseInt(year);
+            const startMonth = new Date(yearNum, monthIndex, 1);
+            const endMonth = new Date(yearNum, monthIndex + 1, 0);
+            endMonth.setHours(23, 59, 59, 999);
+            await interactionRepository.delete({
+                subject: 'Recordatorio WhatsApp Automático',
+                created_at: Between(startMonth, endMonth)
+            });
+            // ----------------------------------------------
+
             const clientRepository = AppDataSource.getRepository(Client);
             const paymentRepository = AppDataSource.getRepository(Payment);
             const installationRepository = AppDataSource.getRepository(Installation);

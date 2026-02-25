@@ -236,11 +236,10 @@ export const ClientDetail: React.FC = () => {
     const handleRebootOnu = async () => {
         if (!activeInstallation) return;
         if (!window.confirm('¿Reiniciar ONU del cliente? Esto interrumpirá el servicio momentáneamente.')) return;
-        
         setLoadingAction(true);
         try {
             await InstallationService.rebootOnu(activeInstallation.id);
-            alert('Comando enviado a la OLT con éxito.');
+            alert('Comando enviado a la OLT con éxito. Si la ONU ya estaba activa, no se realizaron cambios.');
         } catch (error) {
             console.error(error);
             alert('Error al reiniciar la ONU. Verifique conexión.');
@@ -255,18 +254,23 @@ export const ClientDetail: React.FC = () => {
         const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
         const actionText = newStatus === 'active' ? 'ACTIVAR' : 'SUSPENDER';
 
-        if (!window.confirm(`¿Seguro que deseas ${actionText} el servicio de este cliente?`)) return;
+        if (!window.confirm(`¿Seguro que deseas ${actionText} el servicio de este cliente? Esto ejecutará la orden en la OLT.`)) return;
 
         setLoadingAction(true);
         try {
-            await InstallationService.changeStatus(activeInstallation.id, newStatus);
+            // Llamar a la API real de la OLT
+            await InstallationService.toggleOltService(activeInstallation.id, newStatus === 'active' ? 'enable' : 'disable');
             // Recargar todo para actualizar estado
             await loadInstallations();
             await loadClient();
-            alert(`Servicio ${newStatus === 'active' ? 'activado' : 'suspendido'} correctamente.`);
+            if (newStatus === 'active') {
+                alert('ONU activada correctamente. Si el dispositivo ya estaba activo, no se realizaron cambios.');
+            } else {
+                alert('ONU deshabilitada correctamente. Si el dispositivo ya estaba suspendido, no se realizaron cambios.');
+            }
         } catch (error) {
             console.error(error);
-            alert(`Error al intentar ${newStatus === 'active' ? 'activar' : 'suspender'}.`);
+            alert(`Error al intentar ${newStatus === 'active' ? 'activar' : 'suspender'} la ONU.`);
         } finally {
             setLoadingAction(false);
         }
