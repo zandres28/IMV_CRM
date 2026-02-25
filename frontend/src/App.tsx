@@ -311,26 +311,35 @@ function App() {
           </ListItem>
         )}
 
-        {AuthService.hasPermission('admin.permissions.manage') && (
-          <ListItem button component={Link} to="/admin/roles" onClick={handleDrawerToggle} selected={location.pathname === '/admin/roles'}>
-            <ListItemIcon><AssignmentIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Roles y Permisos" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
 
-        <ListItem button component={Link} to="/admin/settings" onClick={handleDrawerToggle} selected={location.pathname === '/admin/settings'}>
-          <ListItemIcon><SystemIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+        {/* Submenú Configuración */}
+        <ListItem button onClick={() => setConfigOpen(!configOpen)}>
+          <ListItemIcon><SettingsIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Configuración" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+          {configOpen ? <ExpandLess sx={{ fontSize: 14 }} /> : <ExpandMore sx={{ fontSize: 14 }} />}
         </ListItem>
+        <Collapse in={configOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
+            {AuthService.hasPermission('admin.permissions.manage') && (
+              <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/roles" onClick={handleDrawerToggle} selected={location.pathname === '/admin/roles'}>
+                <ListItemIcon><AssignmentIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+                <ListItemText primary="Roles y Permisos" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
+              </ListItem>
+            )}
+            <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/api-access" onClick={handleDrawerToggle} selected={location.pathname === '/admin/api-access'}>
+              <ListItemIcon><ApiIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+              <ListItemText primary="Accesos API" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
+            </ListItem>
+            <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/settings" onClick={handleDrawerToggle} selected={location.pathname === '/admin/settings'}>
+              <ListItemIcon><SystemIcon sx={{ fontSize: 16 }} /></ListItemIcon>
+              <ListItemText primary="Ajustes Generales" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
+            </ListItem>
+          </List>
+        </Collapse>
 
         <ListItem button component={Link} to="/admin/promotions" onClick={handleDrawerToggle} selected={location.pathname === '/admin/promotions'}>
           <ListItemIcon><ImageIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Imágenes Promocionales" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-        </ListItem>
-
-        <ListItem button component={Link} to="/admin/api-access" onClick={handleDrawerToggle} selected={location.pathname === '/admin/api-access'}>
-          <ListItemIcon><ApiIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Accesos API" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
         </ListItem>
 
         {(AuthService.hasPermission('admin.plans.view') || AuthService.hasPermission('admin.technicians.view')) && (
