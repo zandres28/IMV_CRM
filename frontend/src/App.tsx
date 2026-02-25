@@ -216,7 +216,7 @@ function App() {
         position: 'sticky',
         top: 0,
         zIndex: 2,
-        bgcolor: 'background.default'
+        bgcolor: '#121212' // Mismo color negro del menú
       }}>
         <Box 
           component="img" 
