@@ -24,7 +24,7 @@ services:
       - unified-services
     environment:
       - PORT=3010
-      - DB_HOST=db
+      - DB_HOST=imv_crm-db-1
       - DB_PORT=3306
       - DB_USER=root
       - DB_PASSWORD=rootpassword
