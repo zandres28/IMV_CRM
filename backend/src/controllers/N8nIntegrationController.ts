@@ -254,8 +254,9 @@ export const N8nIntegrationController = {
 
                     // FIX: Si no se encontró pago específico o está pendiente, pero existe al menos un pago PAGADO
                     // para este cliente en el mes, asumimos que está al día (para evitar cobros duplicados en multi-servicio).
+                    // PERO: Excluir pagos de tipo 'installation' para no confundir el costo de instalación con la mensualidad.
                     if (!payment || payment.status !== 'paid') {
-                        const paidPayment = payments.find(p => p.status === 'paid');
+                        const paidPayment = payments.find(p => p.status === 'paid' && p.paymentType !== 'installation');
                         if (paidPayment) {
                             payment = paidPayment;
                         }
