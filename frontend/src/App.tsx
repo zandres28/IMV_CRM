@@ -94,6 +94,7 @@ function App() {
   const [mobileClientsOpen, setMobileClientsOpen] = useState(false);
   const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
   const [paramsOpen, setParamsOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   const user = AuthService.getCurrentUser();
 
