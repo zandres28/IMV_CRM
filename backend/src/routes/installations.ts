@@ -28,6 +28,12 @@ router.delete('/:id', requirePermission(PERMISSIONS.INSTALLATIONS.DELETE), (req,
 // Restaurar una instalación soft-deleted
 router.patch('/:id/restore', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), (req, res) => installationController.restoreInstallation(req, res));
 
+// Buscar por Serial ONU
+router.get('/search/onu/:serial', requirePermission(PERMISSIONS.INSTALLATIONS.VIEW), (req, res) => installationController.searchByOnuSerial(req, res));
+
+// Buscar por Etiqueta NAP
+router.get('/search/label/:label', requirePermission(PERMISSIONS.INSTALLATIONS.VIEW), (req, res) => installationController.searchByNapLabel(req, res));
+
 // Reiniciar ONU/ONT desde OLT
 router.post('/:installationId/reboot', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), OltController.rebootOnu);
 
