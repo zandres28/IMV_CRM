@@ -187,6 +187,22 @@ const ApiAccess: React.FC = () => {
             example: `curl -X GET "http://localhost:3001/api/installations?status=pending" \\
 -H "Authorization: Bearer ${token}"`
         },
+        {
+            method: 'GET',
+            path: '/api/installations/search/onu/:serial',
+            description: 'Buscar instalación por Serial de ONU',
+            params: ':serial (String exacto del Serial ONU)',
+            example: `curl -X GET "http://localhost:3001/api/installations/search/onu/DF51A6B759A5" \\
+-H "Authorization: Bearer ${token}"`
+        },
+        {
+            method: 'GET',
+            path: '/api/installations/search/label/:label',
+            description: 'Buscar instalaciones por etiqueta NAP',
+            params: ':label (String parcial o exacto de la etiqueta)',
+            example: `curl -X GET "http://localhost:3001/api/installations/search/label/Caja-15" \\
+-H "Authorization: Bearer ${token}"`
+        },
 
         // --- SERVICE PLANS ---
         {
