@@ -460,4 +460,69 @@ export class InstallationController {
             return res.status(500).json({ message: 'Error al restaurar la instalación' });
         }
     }
+
+    /**
+     * Buscar instalación por Serial de ONU (routerSerialNumber)
+     * GET /api/installations/search/onu/:serial
+     */
+    async searchByOnuSerial(req: AuthRequest, res: Response) {
+        try {
+            if (!hasPermission(req.user || null, PERMISSIONS.INSTALLATIONS.VIEW)) {
+                return res.status(403).json({ message: 'Sin permiso para ver instalaciones' });
+            }
+
+            const { serial } = req.params;
+            if (!serial) {
+                return res.status(400).json({ message: 'El serial es requerido' });
+            }
+
+            const installation = await this.installationRepository.findOne({
+                where: {
+                    onuSerialNumber: serial,
+                    isDeleted: false
+                },
+                relations: ['client', 'servicePlan']
+            });
+
+            if (!installation) {
+                return res.status(404).json({ message: 'No se encontró instalación con ese serial de ONU' });
+            }
+
+            return res.json(installation);
+        } catch (error) {
+            console.error('Error buscando por serial:', error);
+            return res.status(500).json({ message: 'Error en la búsqueda por serial' });
+        }
+    }
+
+    /**
+     * Buscar instalaciones por etiqueta NAP (napLabel)
+     * GET /api/installations/search/label/:label
+     */
+    async searchByNapLabel(req: AuthRequest, res: Response) {
+        try {
+            if (!hasPermission(req.user || null, PERMISSIONS.INSTALLATIONS.VIEW)) {
+                return res.status(403).json({ message: 'Sin permiso para ver instalaciones' });
+            }
+
+            const { label } = req.params;
+            if (!label) {
+                return res.status(400).json({ message: 'La etiqueta es requerida' });
+            }
+
+            // Búsqueda LIKE para encontrar coincidencias parciales
+            const installations = await this.installationRepository
+                .createQueryBuilder('installation')
+                .leftJoinAndSelect('installation.client', 'client')
+                .leftJoinAndSelect('installation.servicePlan', 'servicePlan')
+                .where('installation.napLabel LIKE :label', { label: `%${label}%` })
+                .andWhere('installation.isDeleted = :isDeleted', { isDeleted: false })
+                .getMany();
+
+            return res.json(installations);
+        } catch (error) {
+            console.error('Error buscando por etiqueta:', error);
+            return res.status(500).json({ message: 'Error en la búsqueda por etiqueta' });
+        }
+    }
 }
