@@ -342,12 +342,12 @@ const MonthlyBilling: React.FC = () => {
         }
     };
 
-    const formatCurrency = (amount: number) => {
+    const formatCurrency = (amount: number | string) => {
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
             currency: 'COP',
             minimumFractionDigits: 0
-        }).format(amount);
+        }).format(Number(amount) || 0);
     };
 
     const paginatedPayments = filteredPayments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -600,7 +600,7 @@ const MonthlyBilling: React.FC = () => {
                         const method = p.paymentMethod || 'sin_metodo';
                         if (!acc[method]) acc[method] = { count: 0, total: 0 };
                         acc[method].count++;
-                        acc[method].total += p.amount || 0;
+                        acc[method].total += Number(p.amount) || 0;
                         return acc;
                     }, {});
                 const entries = Object.entries(breakdown).sort((a, b) => b[1].total - a[1].total);
