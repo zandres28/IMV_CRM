@@ -109,7 +109,6 @@ export const TechniciansManager: React.FC = () => {
                                         ? (() => { const u = users.find(u => u.id === t.userId); return u ? <Chip label={`${u.firstName} ${u.lastName}`} size="small" color="success" /> : <Chip label={`ID: ${t.userId}`} size="small" color="warning" />; })()
                                         : <Chip label="Sin vincular" size="small" variant="outlined" color="default" />}
                                 </TableCell>
-                                </TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleEdit(t)}><EditIcon/></IconButton>
                                     <IconButton onClick={() => handleDelete(t.id)}><DeleteIcon/></IconButton>
