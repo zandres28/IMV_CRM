@@ -151,28 +151,29 @@ export class InstallationController {
                 // Notificar al técnico asignado
                 try {
                     const userRepo = AppDataSource.getRepository(User);
-                    const users = await userRepo.find();
-                    const techName = technician.toLowerCase().trim();
-                    const normalizedTechName = techName.replace(/\s+/g, ' ');
-                    const normalizedTechEmail = techEntity?.email?.toLowerCase().trim();
+                    let techUser: User | null = null;
 
-                    const techUser = users.find(u => {
-                        const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim().toLowerCase();
-                        const normalizedFullName = fullName.replace(/\s+/g, ' ');
-                        const userEmail = u.email?.toLowerCase().trim();
+                    // 1. Prioridad: enlace directo userId en la entidad Technician
+                    if (techEntity?.userId) {
+                        techUser = await userRepo.findOne({ where: { id: techEntity.userId } }) || null;
+                    }
 
-                        if (normalizedTechEmail && userEmail && normalizedTechEmail === userEmail) {
-                            return true;
-                        }
+                    // 2. Fallback: buscar por email del técnico
+                    if (!techUser && techEntity?.email) {
+                        techUser = await userRepo.findOne({ where: { email: techEntity.email } }) || null;
+                    }
 
-                        if (!normalizedFullName) {
-                            return false;
-                        }
-
-                        return normalizedFullName === normalizedTechName ||
-                               normalizedFullName.includes(normalizedTechName) ||
-                               normalizedTechName.includes(normalizedFullName);
-                    });
+                    // 3. Último recurso: comparación por nombre (fuzzy)
+                    if (!techUser) {
+                        const normalizedTechName = technician.toLowerCase().trim().replace(/\s+/g, ' ');
+                        const users = await userRepo.find();
+                        techUser = users.find(u => {
+                            const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim().toLowerCase().replace(/\s+/g, ' ');
+                            return fullName === normalizedTechName ||
+                                   fullName.includes(normalizedTechName) ||
+                                   normalizedTechName.includes(fullName);
+                        }) || null;
+                    }
 
                     if (techUser) {
                         const linkBase = `/clients/${client.id}?tab=crm`;
@@ -182,6 +183,8 @@ export class InstallationController {
                             `Nueva instalación asignada - Cliente: ${client.fullName}`,
                             link
                         );
+                    } else {
+                        console.warn(`No se encontró usuario para el técnico: ${technician}`);
                     }
                 } catch (error) {
                     console.error('Error al enviar notificación:', error);
