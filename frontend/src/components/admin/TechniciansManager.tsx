@@ -1,22 +1,28 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, IconButton, Box, TablePagination } from '@mui/material';
+import { Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, IconButton, Box, TablePagination, Select, MenuItem, FormControl, InputLabel, Chip } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
 import { TechnicianService, Technician } from '../../services/TechnicianService';
+import UserService, { User } from '../../services/UserService';
 
 export const TechniciansManager: React.FC = () => {
     const [techs, setTechs] = useState<Technician[]>([]);
     const [filteredTechs, setFilteredTechs] = useState<Technician[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Technician | null>(null);
-    const [form, setForm] = useState<Partial<Technician>>({ name: '', phone: '', email: '' });
+    const [form, setForm] = useState<Partial<Technician>>({ name: '', phone: '', email: '', userId: null });
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const load = useCallback(async () => { 
-        const res = await TechnicianService.getAll(); 
-        setTechs(res);
-        setFilteredTechs(res);
+    const load = useCallback(async () => {
+        const [techsRes, usersRes] = await Promise.all([
+            TechnicianService.getAll(),
+            UserService.getAll().catch(() => [])
+        ]);
+        setTechs(techsRes);
+        setFilteredTechs(techsRes);
+        setUsers(usersRes);
     }, []);
     
     const filterTechs = useCallback(() => {
@@ -35,7 +41,7 @@ export const TechniciansManager: React.FC = () => {
     useEffect(() => { load(); }, [load]);
     useEffect(() => { filterTechs(); }, [filterTechs]);
 
-    const handleOpenNew = () => { setEditing(null); setForm({ name: '', phone: '', email: '' }); setOpen(true); };
+    const handleOpenNew = () => { setEditing(null); setForm({ name: '', phone: '', email: '', userId: null }); setOpen(true); };
     const handleEdit = (t: Technician) => { setEditing(t); setForm(t); setOpen(true); };
 
     const handleSave = async () => {
@@ -80,6 +86,7 @@ export const TechniciansManager: React.FC = () => {
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nombre</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Teléfono</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Usuario CRM</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
@@ -97,6 +104,12 @@ export const TechniciansManager: React.FC = () => {
                                 <TableCell>{t.name}</TableCell>
                                 <TableCell>{t.phone}</TableCell>
                                 <TableCell>{t.email}</TableCell>
+                                <TableCell>
+                                    {t.userId
+                                        ? (() => { const u = users.find(u => u.id === t.userId); return u ? <Chip label={`${u.firstName} ${u.lastName}`} size="small" color="success" /> : <Chip label={`ID: ${t.userId}`} size="small" color="warning" />; })()
+                                        : <Chip label="Sin vincular" size="small" variant="outlined" color="default" />}
+                                </TableCell>
+                                </TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleEdit(t)}><EditIcon/></IconButton>
                                     <IconButton onClick={() => handleDelete(t.id)}><DeleteIcon/></IconButton>
@@ -129,6 +142,19 @@ export const TechniciansManager: React.FC = () => {
                     <TextField label="Nombre" fullWidth value={form.name || ''} onChange={e => setForm(f => ({...f, name: e.target.value}))} sx={{ mt: 1 }} />
                     <TextField label="Teléfono" fullWidth value={form.phone || ''} onChange={e => setForm(f => ({...f, phone: e.target.value}))} sx={{ mt: 1 }} />
                     <TextField label="Email" fullWidth value={form.email || ''} onChange={e => setForm(f => ({...f, email: e.target.value}))} sx={{ mt: 1 }} />
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>Usuario CRM (para notificaciones)</InputLabel>
+                        <Select
+                            label="Usuario CRM (para notificaciones)"
+                            value={form.userId ?? ''}
+                            onChange={e => setForm(f => ({...f, userId: e.target.value ? Number(e.target.value) : null}))}
+                        >
+                            <MenuItem value=""><em>Sin vincular</em></MenuItem>
+                            {users.map(u => (
+                                <MenuItem key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpen(false)}>Cancelar</Button>

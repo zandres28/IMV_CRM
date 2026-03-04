@@ -12,8 +12,8 @@ export class TechnicianController {
             if (!hasPermission(req.user, PERMISSIONS.ADMIN.TECHNICIANS.CREATE)) {
                 return res.status(403).json({ message: 'No tienes permiso para crear técnicos' });
             }
-            const { name, phone, email } = req.body;
-            const tech = this.technicianRepository.create({ name, phone, email, isActive: true });
+            const { name, phone, email, userId } = req.body;
+            const tech = this.technicianRepository.create({ name, phone, email, isActive: true, userId: userId || null });
             await this.technicianRepository.save(tech);
             return res.status(201).json(tech);
         } catch (error) {
@@ -56,10 +56,10 @@ export class TechnicianController {
                 return res.status(403).json({ message: 'No tienes permiso para editar técnicos' });
             }
             const { id } = req.params;
-            const { name, phone, email, isActive } = req.body;
+            const { name, phone, email, isActive, userId } = req.body;
             const tech = await this.technicianRepository.findOne({ where: { id: parseInt(id) } });
             if (!tech) return res.status(404).json({ message: 'Technician not found' });
-            Object.assign(tech, { name, phone, email, isActive });
+            Object.assign(tech, { name, phone, email, isActive, userId: userId !== undefined ? (userId || null) : tech.userId });
             await this.technicianRepository.save(tech);
             return res.json(tech);
         } catch (error) {
