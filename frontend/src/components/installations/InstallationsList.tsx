@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Paper,
     Table,
@@ -23,6 +23,7 @@ import {
     Divider,
     Grid
 } from '@mui/material';
+import AuthService from '../../services/AuthService';
 import {
     Add as AddIcon,
     Edit as EditIcon,
@@ -37,12 +38,14 @@ import { Installation, InstallationService } from '../../services/InstallationSe
 import { InstallationForm } from './InstallationForm';
 import { SpeedHistoryDialog } from './SpeedHistoryDialog';
 import { formatLocalDate } from '../../utils/dateUtils';
+import { Client } from '../../types/Client';
 
 interface InstallationsListProps {
     clientId: number;
+    client?: Client;
 }
 
-export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }) => {
+export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, client }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [installations, setInstallations] = useState<Installation[]>([]);
@@ -58,6 +61,28 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
     const [notificationMessage, setNotificationMessage] = useState('');
     const [notificationSeverity, setNotificationSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
 
+    const requestedPlanPrefill = useMemo<Partial<Installation> | undefined>(() => {
+        if (!client || !client.requestedPlanName) {
+            return undefined;
+        }
+
+        const monthlyFee = client.requestedPlanMonthlyFee != null ? Number(client.requestedPlanMonthlyFee) : undefined;
+        const installationFee = client.requestedInstallationFee != null ? Number(client.requestedInstallationFee) : undefined;
+
+        return {
+            servicePlanId: client.requestedPlanId ?? undefined,
+            serviceType: client.requestedPlanName || '',
+            speedMbps: client.requestedPlanSpeedMbps ?? 0,
+            monthlyFee: monthlyFee ?? 0,
+            installationFee: installationFee ?? undefined,
+        };
+    }, [client]);
+
+    const handleOpenNewForm = useCallback(() => {
+        setSelectedInstallation(null);
+        setOpenForm(true);
+    }, []);
+
     const loadInstallations = useCallback(async (showDeleted = false) => {
         try {
             const data = await InstallationService.getByClient(clientId, { includeDeleted: showDeleted });
@@ -65,8 +90,9 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
             setFilteredInstallations(data);
             
             // Si no hay instalaciones, abrir formulario automáticamente para cliente nuevo
-            if (data.length === 0) {
-                setOpenForm(true);
+            // Solo si NO es técnico (los técnicos no crean instalaciones)
+            if (data.length === 0 && !AuthService.hasRole('Technician')) {
+                handleOpenNewForm();
             }
         } catch (error: any) {
             console.error('Error al cargar las instalaciones:', error);
@@ -75,7 +101,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
             setNotificationSeverity('error');
             setNotificationOpen(true);
         }
-    }, [clientId]);
+    }, [clientId, handleOpenNewForm]);
 
     useEffect(() => {
         loadInstallations(false);
@@ -295,6 +321,12 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
 
     return (
         <Paper sx={{ p: 0, borderRadius: 2, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)', overflow: 'hidden' }}>
+            {client?.requestedPlanName && installations.length === 0 && (
+                <Alert severity="info" sx={{ m: 2 }}>
+                    Solicitud web pendiente: <strong>{client.requestedPlanName}</strong>
+                    {client.requestedPlanSpeedMbps ? ` (${client.requestedPlanSpeedMbps} Mbps)` : ''}. Cuota sugerida {client.requestedPlanMonthlyFee != null ? formatCurrency(Number(client.requestedPlanMonthlyFee)) : 'N/D'} · instalación {client.requestedInstallationFee != null ? formatCurrency(Number(client.requestedInstallationFee)) : 'N/D'}.
+                </Alert>
+            )}
             <Box sx={{ p: 2, borderBottom: '1px solid #e3e6f0', bgcolor: '#f8f9fc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#4e73df', textTransform: 'uppercase', fontSize: '0.75rem' }}>Listado de Instalaciones</Typography>
                 <Box display="flex" gap={1}>
@@ -310,18 +342,17 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                         }}
                         sx={{ width: 200 }}
                     />
-                    <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={() => {
-                            setSelectedInstallation(null);
-                            setOpenForm(true);
-                        }}
-                        sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
-                    >
-                        Nueva
-                    </Button>
+                    {!AuthService.hasRole('tecnico') && (
+                        <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={handleOpenNewForm}
+                            sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
+                        >
+                            Nueva
+                        </Button>
+                    )}
                 </Box>
             </Box>
 
@@ -378,15 +409,25 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                                 <Divider sx={{ my: 1, opacity: 0.5 }} />
 
                                 <Box display="flex" justifyContent="flex-end" gap={0.5}>
-                                    <IconButton size="small" onClick={() => handleEdit(installation)} disabled={installation.isDeleted} sx={{ color: '#4e73df' }} title="Editar"><EditIcon fontSize="small" /></IconButton>
-                                    <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
-                                    <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
-                                    <IconButton size="small" onClick={() => handleToggleService(installation)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }} title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}>
-                                        {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
-                                    </IconButton>
-                                    <IconButton size="small" onClick={() => handleDelete(installation)} disabled={installation.isDeleted} sx={{ color: '#e74a3b' }} title="Eliminar"><DeleteIcon fontSize="small" /></IconButton>
-                                    {installation.isDeleted && (
-                                        <Button size="small" variant="outlined" onClick={() => handleRestore(installation)} sx={{ fontSize: '0.6rem', py: 0 }}>Restaurar</Button>
+                                    {!AuthService.hasRole('tecnico') ? (
+                                        <>
+                                            <IconButton size="small" onClick={() => handleEdit(installation)} disabled={installation.isDeleted} sx={{ color: '#4e73df' }} title="Editar"><EditIcon fontSize="small" /></IconButton>
+                                            <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
+                                            <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
+                                            <IconButton size="small" onClick={() => handleToggleService(installation)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }} title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}>
+                                                {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
+                                            </IconButton>
+                                            <IconButton size="small" onClick={() => handleDelete(installation)} disabled={installation.isDeleted} sx={{ color: '#e74a3b' }} title="Eliminar"><DeleteIcon fontSize="small" /></IconButton>
+                                            {installation.isDeleted && (
+                                                <Button size="small" variant="outlined" onClick={() => handleRestore(installation)} sx={{ fontSize: '0.6rem', py: 0 }}>Restaurar</Button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        // VISTA LIMITADA TÉCNICO
+                                        <>
+                                            <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
+                                            <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
+                                        </>
                                     )}
                                 </Box>
                             </CardContent>
@@ -461,58 +502,84 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                                     )}
                                 </TableCell>
                                 <TableCell sx={{ py: 0.5 }}>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleEdit(installation)}
-                                        title="Editar"
-                                        disabled={installation.isDeleted}
-                                        sx={{ color: '#4e73df' }}
-                                    >
-                                        <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleViewSpeedHistory(installation)}
-                                        title="Historial de Velocidad"
-                                        disabled={installation.isDeleted}
-                                        sx={{ color: '#36b9cc' }}
-                                    >
-                                        <HistoryIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleReboot(installation.id)}
-                                        title="Reiniciar ONU"
-                                        disabled={installation.isDeleted || !installation.onuSerialNumber}
-                                        sx={{ color: '#f6c23e' }}
-                                    >
-                                        <RestartAltIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleToggleService(installation)}
-                                        title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}
-                                        disabled={installation.isDeleted || !installation.onuSerialNumber}
-                                        sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }}
-                                    >
-                                        {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
-                                    </IconButton>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleDelete(installation)}
-                                        title="Eliminar"
-                                        disabled={installation.isDeleted}
-                                        sx={{ color: '#e74a3b' }}
-                                    >
-                                        <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                    {installation.isDeleted && (
-                                        <Button
-                                            size="small"
-                                            variant="outlined"
-                                            onClick={() => handleRestore(installation)}
-                                            sx={{ ml: 1, fontSize: '0.65rem' }}
-                                        >Restaurar</Button>
+                                    {!AuthService.hasRole('tecnico') ? (
+                                        <>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleEdit(installation)}
+                                                title="Editar"
+                                                disabled={installation.isDeleted}
+                                                sx={{ color: '#4e73df' }}
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleViewSpeedHistory(installation)}
+                                                title="Historial de Velocidad"
+                                                disabled={installation.isDeleted}
+                                                sx={{ color: '#36b9cc' }}
+                                            >
+                                                <HistoryIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleReboot(installation.id)}
+                                                title="Reiniciar ONU"
+                                                disabled={installation.isDeleted || !installation.onuSerialNumber}
+                                                sx={{ color: '#f6c23e' }}
+                                            >
+                                                <RestartAltIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleToggleService(installation)}
+                                                title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}
+                                                disabled={installation.isDeleted || !installation.onuSerialNumber}
+                                                sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }}
+                                            >
+                                                {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleDelete(installation)}
+                                                title="Eliminar"
+                                                disabled={installation.isDeleted}
+                                                sx={{ color: '#e74a3b' }}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                            {installation.isDeleted && (
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    onClick={() => handleRestore(installation)}
+                                                    sx={{ ml: 1, fontSize: '0.65rem' }}
+                                                >Restaurar</Button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        // VISTA DE TÉCNICO (Solo Reiniciar e Historial)
+                                        <>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleViewSpeedHistory(installation)}
+                                                title="Historial de Velocidad"
+                                                disabled={installation.isDeleted}
+                                                sx={{ color: '#36b9cc' }}
+                                            >
+                                                <HistoryIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleReboot(installation.id)}
+                                                title="Reiniciar ONU"
+                                                disabled={installation.isDeleted || !installation.onuSerialNumber}
+                                                sx={{ color: '#f6c23e' }}
+                                            >
+                                                <RestartAltIcon fontSize="small" />
+                                            </IconButton>
+                                        </>
                                     )}
                                 </TableCell>
                             </TableRow>
@@ -544,6 +611,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId }
                 onSave={selectedInstallation ? handleUpdateInstallation : handleCreateInstallation}
                 installation={selectedInstallation || undefined}
                 clientId={clientId}
+                prefillData={!selectedInstallation ? requestedPlanPrefill : undefined}
             />
 
             <Snackbar

@@ -22,6 +22,7 @@ import {
     CardContent,
     Stack
 } from '@mui/material';
+import AuthService from '../../services/AuthService';
 import {
     Add as AddIcon,
     Build as BuildIcon,
@@ -40,24 +41,81 @@ import { formatLocalDate } from '../../utils/dateUtils';
 
 interface ClientInteractionHistoryProps {
     clientId: number;
+    focusInteractionId?: number;
 }
 
-export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> = ({ clientId }) => {
+const STATUS_OPTIONS: { value: InteractionStatus; label: string }[] = [
+    { value: 'pendiente', label: 'Pendiente' },
+    { value: 'en_progreso', label: 'En Progreso' },
+    { value: 'completado', label: 'Completado' },
+    { value: 'cancelado', label: 'Cancelado' },
+    { value: 'pospuesto', label: 'Pospuesto' },
+    { value: 'rechazado', label: 'Rechazado' }
+];
+
+export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> = ({ clientId, focusInteractionId }) => {
     const [interactions, setInteractions] = useState<Interaction[]>([]);
     const [loading, setLoading] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedInteraction, setSelectedInteraction] = useState<Interaction | null>(null);
-    const [formData, setFormData] = useState<Partial<Interaction> & { interactionTypeId?: number }>({
+    const buildEmptyForm = () => ({
         interactionTypeId: undefined,
-        status: 'pendiente',
-        priority: 'media',
-        clientId
+        status: 'pendiente' as InteractionStatus,
+        priority: 'media' as InteractionPriority,
+        clientId,
+        subject: '',
+        description: '',
+        notes: '',
+        resolution: '',
+        scheduledDate: undefined,
+        assignedToTechnicianId: undefined
     });
+    const [formData, setFormData] = useState<Partial<Interaction> & { interactionTypeId?: number }>(buildEmptyForm);
 
     const [technicians, setTechnicians] = useState<any[]>([]);
     const [interactionTypes, setInteractionTypes] = useState<InteractionType[]>([]);
     const [stats, setStats] = useState({ total: 0, pendientes: 0, completados: 0 });
+    
+    // Estados para rechazo
+    const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [interactionToReject, setInteractionToReject] = useState<Interaction | null>(null);
+
+    const user = AuthService.getCurrentUser();
+    
+    const isAssignedTechnician = useCallback((interaction: Interaction) => {
+        if (!user || !interaction.assignedToTechnician) {
+            return false;
+        }
+
+        if (interaction.assignedToTechnician.id === user.id) {
+            return true;
+        }
+
+        const techEmail = interaction.assignedToTechnician.email?.toLowerCase().trim();
+        const userEmail = user.email?.toLowerCase().trim();
+        if (techEmail && userEmail && techEmail === userEmail) {
+            return true;
+        }
+
+        const techName = (interaction.assignedToTechnician.name || '').toLowerCase().trim();
+        const userFullName = [user.firstName, user.lastName].filter(Boolean).join(' ').toLowerCase().trim();
+        const userFirstName = (user.firstName || '').toLowerCase().trim();
+
+        if (!techName) {
+            return false;
+        }
+
+        if (userFullName && (techName === userFullName || techName.includes(userFullName) || userFullName.includes(techName))) {
+            return true;
+        }
+
+        return Boolean(userFirstName && (techName === userFirstName || techName.includes(userFirstName) || userFirstName.includes(techName)));
+    }, [user]);
+
+    const canManageOwn = AuthService.hasPermission('clients.crm.edit') || 
+                         (user && interactions.some(i => isAssignedTechnician(i)));
 
     const loadInteractions = useCallback(async () => {
         setLoading(true);
@@ -94,34 +152,73 @@ export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> =
         loadCatalogs();
     }, [loadInteractions, loadCatalogs]);
 
+    useEffect(() => {
+        if (!focusInteractionId) return;
+        const element = document.getElementById(`interaction-card-${focusInteractionId}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [focusInteractionId, interactions]);
+
     const handleOpenDialog = (interaction?: Interaction) => {
         if (interaction) {
+            const normalizedDate = interaction.scheduledDate ? interaction.scheduledDate.split('T')[0] : undefined;
             setIsEditing(true);
-            setFormData({
-                ...interaction,
-                interactionTypeId: interaction.interactionType?.id
-            });
             setSelectedInteraction(interaction);
+            setFormData({
+                clientId: interaction.clientId,
+                interactionTypeId: interaction.interactionType?.id || interaction.interactionTypeId,
+                status: interaction.status,
+                priority: interaction.priority,
+                subject: interaction.subject,
+                description: interaction.description,
+                scheduledDate: normalizedDate,
+                assignedToTechnicianId: interaction.assignedToTechnician?.id ?? interaction.assignedToTechnicianId,
+                resolution: interaction.resolution,
+                notes: interaction.notes
+            });
         } else {
             setIsEditing(false);
-            setFormData({
-                interactionTypeId: undefined,
-                status: 'pendiente',
-                priority: 'media',
-                clientId
-            });
+            setSelectedInteraction(null);
+            setFormData(buildEmptyForm());
         }
         setDialogOpen(true);
     };
 
+    const handleOpenRejectDialog = (interaction: Interaction) => {
+        setInteractionToReject(interaction);
+        setRejectionReason('');
+        setRejectDialogOpen(true);
+    };
+
+    const handleConfirmReject = async () => {
+        if (!interactionToReject || !rejectionReason.trim()) return;
+        
+        try {
+            await InteractionService.updateStatus(interactionToReject.id, 'rechazado', rejectionReason);
+            setRejectDialogOpen(false);
+            setInteractionToReject(null);
+            loadInteractions();
+        } catch (error) {
+            console.error('Error rechazando interacción:', error);
+            alert('Error al rechazar la interacción');
+        }
+    };
+
+    const handleStatusUpdate = async (interaction: Interaction, newStatus: InteractionStatus) => {
+        try {
+            await InteractionService.updateStatus(interaction.id, newStatus);
+            loadInteractions();
+        } catch (error) {
+            console.error('Error actualizando estado de interacción:', error);
+            alert('Error al actualizar el estado de la interacción');
+        }
+    };
+
     const handleCloseDialog = () => {
         setDialogOpen(false);
-        setFormData({
-            interactionTypeId: undefined,
-            status: 'pendiente',
-            priority: 'media',
-            clientId
-        });
+        setIsEditing(false);
+        setFormData(buildEmptyForm());
         setSelectedInteraction(null);
     };
 
@@ -166,7 +263,8 @@ export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> =
             en_progreso: 'En Progreso',
             completado: 'Completado',
             cancelado: 'Cancelado',
-            pospuesto: 'Pospuesto'
+            pospuesto: 'Pospuesto',
+            rechazado: 'Rechazado'
         };
         return labels[status] || status;
     };
@@ -177,7 +275,8 @@ export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> =
             en_progreso: 'info',
             completado: 'success',
             cancelado: 'error',
-            pospuesto: 'default'
+            pospuesto: 'default',
+            rechazado: 'error'
         };
         return colors[status] || 'default';
     };
@@ -249,7 +348,17 @@ export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> =
                         .slice()
                         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                         .map((interaction) => (
-                            <Paper key={interaction.id} elevation={2} sx={{ p: 2 }}>
+                            <Paper
+                                key={interaction.id}
+                                id={`interaction-card-${interaction.id}`}
+                                elevation={2}
+                                sx={{
+                                    p: 2,
+                                    border: focusInteractionId === interaction.id ? '2px solid' : undefined,
+                                    borderColor: focusInteractionId === interaction.id ? 'primary.main' : undefined,
+                                    boxShadow: focusInteractionId === interaction.id ? 6 : 2
+                                }}
+                            >
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         {getTypeIcon(interaction)}
@@ -278,11 +387,48 @@ export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> =
                                     {interaction.description}
                                 </Typography>
                                 {interaction.assignedToTechnician && (
-                                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <AssignmentIcon fontSize="small" color="action" />
-                                        <Typography variant="caption" color="textSecondary">
-                                            Técnico: {interaction.assignedToTechnician.name}
-                                        </Typography>
+                                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <AssignmentIcon fontSize="small" color="action" />
+                                            <Typography variant="caption" color="textSecondary">
+                                                Técnico: {interaction.assignedToTechnician.name}
+                                            </Typography>
+                                        </Box>
+                                        {/* Action Buttons for Technician */}
+                                        {user && isAssignedTechnician(interaction) && (
+                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                {interaction.status === 'pendiente' && (
+                                                    <>
+                                                        <Button 
+                                                            variant="contained" 
+                                                            color="info" 
+                                                            size="small"
+                                                            onClick={() => handleStatusUpdate(interaction, 'en_progreso')}
+                                                        >
+                                                            Aceptar
+                                                        </Button>
+                                                        <Button 
+                                                            variant="contained" 
+                                                            color="error" 
+                                                            size="small"
+                                                            onClick={() => handleOpenRejectDialog(interaction)}
+                                                        >
+                                                            Rechazar
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {interaction.status === 'en_progreso' && (
+                                                    <Button 
+                                                        variant="contained" 
+                                                        color="success" 
+                                                        size="small"
+                                                        onClick={() => handleStatusUpdate(interaction, 'completado')}
+                                                    >
+                                                        Completar
+                                                    </Button>
+                                                )}
+                                            </Box>
+                                        )}
                                     </Box>
                                 )}
                                 {interaction.resolution && (
@@ -301,6 +447,35 @@ export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> =
                         ))}
                 </Stack>
             )}
+
+            {/* Diálogo de Rechazo */}
+            <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)}>
+                <DialogTitle>Rechazar Asignación</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                        Por favor indica el motivo por el cual rechazas esta asignación.
+                    </Typography>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        id="reason"
+                        label="Motivo del rechazo"
+                        type="text"
+                        fullWidth
+                        multiline
+                        rows={4}
+                        variant="outlined"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setRejectDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleConfirmReject} color="error" variant="contained">
+                        Confirmar Rechazo
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Dialog de creación/edición */}
             <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>

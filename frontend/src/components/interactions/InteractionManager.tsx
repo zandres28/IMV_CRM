@@ -41,6 +41,20 @@ import { ClientService } from '../../services/ClientService';
 import { TechnicianService } from '../../services/TechnicianService';
 import { formatLocalDate, toInputDateString } from '../../utils/dateUtils';
 
+const STATUS_OPTIONS: { value: InteractionStatus; label: string }[] = [
+    { value: 'pendiente', label: 'Pendiente' },
+    { value: 'en_progreso', label: 'En Progreso' },
+    { value: 'completado', label: 'Completado' },
+    { value: 'cancelado', label: 'Cancelado' },
+    { value: 'pospuesto', label: 'Pospuesto' },
+    { value: 'rechazado', label: 'Rechazado' }
+];
+
+const STATUS_LABELS = STATUS_OPTIONS.reduce<Record<InteractionStatus, string>>((acc, option) => {
+    acc[option.value] = option.label;
+    return acc;
+}, {} as Record<InteractionStatus, string>);
+
 export const InteractionManager: React.FC = () => {
     const [interactions, setInteractions] = useState<Interaction[]>([]);
     const [filteredInteractions, setFilteredInteractions] = useState<Interaction[]>([]);
@@ -218,16 +232,7 @@ export const InteractionManager: React.FC = () => {
         return 'primary';
     };
 
-    const getStatusLabel = (status: InteractionStatus) => {
-        const labels: Record<InteractionStatus, string> = {
-            pendiente: 'Pendiente',
-            en_progreso: 'En Progreso',
-            completado: 'Completado',
-            cancelado: 'Cancelado',
-            pospuesto: 'Pospuesto'
-        };
-        return labels[status] || status;
-    };
+    const getStatusLabel = (status: InteractionStatus) => STATUS_LABELS[status] || status;
 
     const getStatusColor = (status: InteractionStatus) => {
         const colors: Record<InteractionStatus, any> = {
@@ -235,7 +240,8 @@ export const InteractionManager: React.FC = () => {
             en_progreso: 'info',
             completado: 'success',
             cancelado: 'error',
-            pospuesto: 'default'
+            pospuesto: 'default',
+            rechazado: 'error'
         };
         return colors[status] || 'default';
     };
@@ -351,11 +357,11 @@ export const InteractionManager: React.FC = () => {
                                 onChange={(e) => setFilters({ ...filters, status: e.target.value as InteractionStatus || undefined })}
                             >
                                 <MenuItem value="">Todos</MenuItem>
-                                <MenuItem value="pendiente">Pendiente</MenuItem>
-                                <MenuItem value="en_progreso">En Progreso</MenuItem>
-                                <MenuItem value="completado">Completado</MenuItem>
-                                <MenuItem value="cancelado">Cancelado</MenuItem>
-                                <MenuItem value="pospuesto">Pospuesto</MenuItem>
+                                {STATUS_OPTIONS.map((option) => (
+                                    <MenuItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </MenuItem>
+                                ))}
                             </Select>
                         </FormControl>
                     </Grid>
@@ -581,11 +587,11 @@ export const InteractionManager: React.FC = () => {
                                     label="Estado"
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value as InteractionStatus })}
                                 >
-                                    <MenuItem value="pendiente">Pendiente</MenuItem>
-                                    <MenuItem value="en_progreso">En Progreso</MenuItem>
-                                    <MenuItem value="completado">Completado</MenuItem>
-                                    <MenuItem value="cancelado">Cancelado</MenuItem>
-                                    <MenuItem value="pospuesto">Pospuesto</MenuItem>
+                                    {STATUS_OPTIONS.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </MenuItem>
+                                    ))}
                                 </Select>
                             </FormControl>
                         </Grid>

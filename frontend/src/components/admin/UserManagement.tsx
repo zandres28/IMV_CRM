@@ -49,6 +49,7 @@ const UserManagement: React.FC = () => {
     password: '',
     firstName: '',
     lastName: '',
+    sucursal: 'CALI',
     roleIds: [] as number[],
     isActive: true
   });
@@ -83,6 +84,7 @@ const UserManagement: React.FC = () => {
         firstName: user.firstName,
         lastName: user.lastName,
         roleIds: user.roles.map(r => r.id),
+        sucursal: (user as any).sucursal || 'CALI',
         isActive: user.isActive
       });
     } else {
@@ -92,6 +94,7 @@ const UserManagement: React.FC = () => {
         password: '',
         firstName: '',
         lastName: '',
+        sucursal: 'CALI',
         roleIds: [],
         isActive: true
       });
@@ -107,6 +110,7 @@ const UserManagement: React.FC = () => {
       password: '',
       firstName: '',
       lastName: '',
+      sucursal: 'CALI',
       roleIds: [],
       isActive: true
     });
@@ -298,6 +302,18 @@ const UserManagement: React.FC = () => {
               required={!editingUser}
               helperText={editingUser ? 'Solo completa si deseas cambiar la contraseña' : 'Mínimo 6 caracteres'}
             />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Sucursal</InputLabel>
+              <Select
+                value={formData.sucursal}
+                label="Sucursal"
+                onChange={(e) => setFormData({ ...formData, sucursal: e.target.value as string })}
+              >
+                <MenuItem value="CALI">Cali</MenuItem>
+                <MenuItem value="PASTO">Pasto</MenuItem>
+                <MenuItem value="OTRA">Otra</MenuItem>
+              </Select>
+            </FormControl>
             <FormControl fullWidth margin="normal">
               <InputLabel>Roles</InputLabel>
               <Select

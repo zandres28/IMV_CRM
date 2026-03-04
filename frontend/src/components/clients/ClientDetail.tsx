@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, CircularProgress, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ClientForm } from './ClientForm';
 import { ClientRetirementDialog } from './ClientRetirementDialog';
@@ -15,6 +15,7 @@ import { AdditionalService, ProductSold } from '../../types/AdditionalServices';
 import { AdditionalServiceService } from '../../services/AdditionalServiceService';
 import { ProductService } from '../../services/ProductService';
 import { Payment } from '../../services/MonthlyBillingService';
+import AuthService from '../../services/AuthService';
 import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, Restore as RestoreIcon, PowerSettingsNew as PowerIcon, RestartAlt as RestartIcon } from '@mui/icons-material';
 
 interface TabPanelProps {
@@ -39,18 +40,60 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
+const getTabIndexFromParam = (tabParam: string | null, isTechnician: boolean): number | null => {
+    if (!tabParam) return null;
+    const normalized = tabParam.toLowerCase();
+    const technicianMapping: Record<string, number> = {
+        instalaciones: 0,
+        servicios: 1,
+        productos: 2,
+        crm: 3,
+        historial: 3,
+        interacciones: 3
+    };
+    const defaultMapping: Record<string, number> = {
+        general: 0,
+        servicios: 1,
+        productos: 2,
+        instalaciones: 3,
+        pagos: 4,
+        crm: 5,
+        historial: 5,
+        interacciones: 5
+    };
+
+    const mapping = isTechnician ? technicianMapping : defaultMapping;
+    return mapping[normalized] ?? null;
+};
+
 export const ClientDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
+    const isTechnician = AuthService.hasRole('tecnico');
     const [client, setClient] = useState<Client | null>(null);
     const [installations, setInstallations] = useState<Installation[]>([]);
     const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
     const [products, setProducts] = useState<ProductSold[]>([]);
     const [payments, setPayments] = useState<Payment[]>([]);
-    const location = useLocation();
-    const initialTab = (location.state && (location.state as any).openTabIndex) ?? 0;
-    const [tabValue, setTabValue] = useState<number>(initialTab);
+    const [tabValue, setTabValue] = useState<number>(() => {
+        const stateTab = (location.state && (location.state as any).openTabIndex);
+        if (typeof stateTab === 'number') {
+            return stateTab;
+        }
+        const params = new URLSearchParams(location.search);
+        const mapped = getTabIndexFromParam(params.get('tab'), isTechnician);
+        return mapped ?? 0;
+    });
+    const [hasUserChangedTab, setHasUserChangedTab] = useState(false);
     const [openRetireDialog, setOpenRetireDialog] = useState(false);
+
+    const interactionIdParam = new URLSearchParams(location.search).get('interactionId');
+    const parsedInteractionId = interactionIdParam ? parseInt(interactionIdParam, 10) : undefined;
+    const focusInteractionId = parsedInteractionId !== undefined && !Number.isNaN(parsedInteractionId)
+        ? parsedInteractionId
+        : undefined;
+    const crmTabIndex = isTechnician ? 3 : 5;
 
     // Estado para confirmación de eliminación
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -122,8 +165,47 @@ export const ClientDetail: React.FC = () => {
         loadPayments();
     }, [loadClient, loadInstallations, loadAdditionalServices, loadProducts, loadPayments]);
 
+    useEffect(() => {
+        setHasUserChangedTab(false);
+    }, [id]);
+
+    useEffect(() => {
+        if (hasUserChangedTab) {
+            return;
+        }
+
+        const stateTab = (location.state && (location.state as any).openTabIndex);
+        if (typeof stateTab === 'number') {
+            if (stateTab !== tabValue) {
+                setTabValue(stateTab);
+            }
+            return;
+        }
+
+        const params = new URLSearchParams(location.search);
+        const mapped = getTabIndexFromParam(params.get('tab'), isTechnician);
+        if (mapped !== null && mapped !== tabValue) {
+            setTabValue(mapped);
+        }
+    }, [location.state, location.search, isTechnician, tabValue, hasUserChangedTab]);
+
+    useEffect(() => {
+        if (!focusInteractionId || hasUserChangedTab) {
+            return;
+        }
+        setTabValue((currentTab) => (currentTab === crmTabIndex ? currentTab : crmTabIndex));
+    }, [focusInteractionId, crmTabIndex, hasUserChangedTab]);
+
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+        setHasUserChangedTab(true);
         setTabValue(newValue);
+    };
+
+    const formatCurrency = (value?: number | string | null) => {
+        if (value === undefined || value === null) return null;
+        const numericValue = typeof value === 'string' ? Number(value) : value;
+        if (Number.isNaN(numericValue)) return null;
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(numericValue);
     };
 
     const allPayments = React.useMemo(() => {
@@ -276,6 +358,14 @@ export const ClientDetail: React.FC = () => {
         }
     };
 
+    // Definición de pestañas según rol
+    // Orden normal: 0:General, 1:Servicios, 2:Productos, 3:Instalaciones, 4:Pagos, 5:Historial
+    // Orden Técnico: Instalaciones, Servicios, Productos, Historial
+    
+    // Mapeo de índices lógicos a contenido real para mantener correspondencia con TabPanel sin romper hook rules
+    // Pero como TabPanel usa index, es difícil reordenar visualmente sin reordenar lógica.
+    // Lo más fácil es renderizar condicionalmente los Tabs y los TabPanels.
+    
     return (
         <Box sx={{ width: '100%' }}>
             <Box mb={2}>
@@ -303,9 +393,11 @@ export const ClientDetail: React.FC = () => {
                         <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
                             {client.fullName}
                         </Typography>
-                        <Typography variant="body1" color="textSecondary" gutterBottom>
-                            CC: {client.identificationNumber}
-                        </Typography>
+                        {!AuthService.hasRole('tecnico') && (
+                            <Typography variant="body1" color="textSecondary" gutterBottom>
+                                CC: {client.identificationNumber}
+                            </Typography>
+                        )}
                         <Box display="flex" alignItems="center" gap={1} mb={1}>
                             <LocationIcon color="action" fontSize="small" />
                             <Typography variant="body2">
@@ -400,6 +492,12 @@ export const ClientDetail: React.FC = () => {
                                 })}
                             </Box>
                         )}
+                        {client.requestedPlanName && (
+                            <Alert severity="info" sx={{ mt: 2 }}>
+                                Solicitud web: <strong>{client.requestedPlanName}</strong>
+                                {client.requestedPlanSpeedMbps ? ` (${client.requestedPlanSpeedMbps} Mbps)` : ''}. Cuota sugerida: {formatCurrency(client.requestedPlanMonthlyFee) || 'N/D'} · Instalación: {formatCurrency(client.requestedInstallationFee) || 'N/D'}.
+                            </Alert>
+                        )}
                     </Grid>
                     <Grid item xs={12} md={4} textAlign={{ xs: 'left', md: 'right' }}>
                         <Box display="flex" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} alignItems="center" gap={1}>
@@ -410,32 +508,35 @@ export const ClientDetail: React.FC = () => {
                             />
                             
                             {/* --- BOTONES DE ACCIÓN RÁPIDA (OLT) --- */}
+                            {/* Ajuste para técnico: Solo reiniciar ONU, no suspender/activar */}
                             {activeInstallation && (
-                                <>
+                                <Box display="flex" alignItems="center" gap={1} ml={1}>
                                     <Tooltip title="Reiniciar ONU">
                                         <IconButton 
                                             onClick={handleRebootOnu} 
                                             disabled={loadingAction}
                                             color="warning"
                                             size="small"
-                                            sx={{ border: '1px solid', borderColor: 'warning.main', ml: 1 }}
+                                            sx={{ border: '1px solid', borderColor: 'warning.main' }}
                                         >
                                             <RestartIcon />
                                         </IconButton>
                                     </Tooltip>
 
-                                    <Tooltip title={activeInstallation.serviceStatus === 'active' ? 'Suspender Servicio' : 'Activar Servicio'}>
-                                        <IconButton 
-                                            onClick={handleToggleServiceStatus}
-                                            disabled={loadingAction}
-                                            color={activeInstallation.serviceStatus === 'active' ? 'error' : 'success'}
-                                            size="small"
-                                            sx={{ border: '1px solid', borderColor: activeInstallation.serviceStatus === 'active' ? 'error.main' : 'success.main', ml: 1 }}
-                                        >
-                                            <PowerIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                </>
+                                    {!AuthService.hasRole('tecnico') && (
+                                        <Tooltip title={activeInstallation.serviceStatus === 'active' ? 'Suspender Servicio' : 'Activar Servicio'}>
+                                            <IconButton 
+                                                onClick={handleToggleServiceStatus}
+                                                disabled={loadingAction}
+                                                color={activeInstallation.serviceStatus === 'active' ? 'error' : 'success'}
+                                                size="small"
+                                                sx={{ border: '1px solid', borderColor: activeInstallation.serviceStatus === 'active' ? 'error.main' : 'success.main' }}
+                                            >
+                                                <PowerIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                </Box>
                             )}
                             {/* ------------------------------------- */}
 
@@ -447,6 +548,7 @@ export const ClientDetail: React.FC = () => {
                                     )}
                                 </Box>
                             )}
+                            {!AuthService.hasRole('tecnico') && (
                             <Button
                                 variant="outlined"
                                 color={client.status === 'cancelled' ? 'secondary' : 'error'}
@@ -455,6 +557,7 @@ export const ClientDetail: React.FC = () => {
                             >
                                 {client.status === 'cancelled' ? 'Editar Retiro' : 'Retirar'}
                             </Button>
+                            )}
                         </Box>
                     </Grid>
                 </Grid>
@@ -468,90 +571,131 @@ export const ClientDetail: React.FC = () => {
                     scrollButtons="auto"
                     allowScrollButtonsMobile
                 >
-                    <Tab label="Información General" />
-                    <Tab label="Servicios Adicionales" />
-                    <Tab label="Productos" />
-                    <Tab label="Instalaciones" />
-                    <Tab label="Pagos" />
-                    <Tab label="Historial CRM" />
+                    {AuthService.hasRole('tecnico') ? (
+                        [
+                            <Tab key="tech-inst" label="Instalaciones" />,
+                            <Tab key="tech-serv" label="Servicios Adicionales" />,
+                            <Tab key="tech-prod" label="Productos" />,
+                            <Tab key="tech-hist" label="Historial CRM" />
+                        ]
+                    ) : (
+                        [
+                            <Tab key="gen" label="Información General" />,
+                            <Tab key="serv" label="Servicios Adicionales" />,
+                            <Tab key="prod" label="Productos" />,
+                            <Tab key="inst" label="Instalaciones" />,
+                            <Tab key="pagos" label="Pagos" />,
+                            <Tab key="hist" label="Historial CRM" />
+                        ]
+                    )}
                 </Tabs>
             </Box>
 
-            <TabPanel value={tabValue} index={0}>
-                <ClientForm client={client} onSave={loadClient} />
-            </TabPanel>
+            {AuthService.hasRole('tecnico') ? (
+                <>
+                    <Box hidden={tabValue !== 0} role="tabpanel">
+                        {tabValue === 0 && <InstallationsList clientId={client.id} client={client} />}
+                    </Box>
 
-            <TabPanel value={tabValue} index={1}>
-                <ServicesList clientId={client.id} />
-            </TabPanel>
+                    <Box hidden={tabValue !== 1} role="tabpanel">
+                        {tabValue === 1 && <ServicesList clientId={client.id} />}
+                    </Box>
 
-            <TabPanel value={tabValue} index={2}>
-                <ProductsList clientId={client.id} />
-            </TabPanel>
+                    <Box hidden={tabValue !== 2} role="tabpanel">
+                        {tabValue === 2 && <ProductsList clientId={client.id} />}
+                    </Box>
 
-            <TabPanel value={tabValue} index={3}>
-                <InstallationsList clientId={client.id} />
-            </TabPanel>
+                    <Box hidden={tabValue !== 3} role="tabpanel">
+                        {tabValue === 3 && (
+                            <ClientInteractionHistory
+                                clientId={client.id}
+                                focusInteractionId={focusInteractionId}
+                            />
+                        )}
+                    </Box>
+                </>
+            ) : (
+                <>
+                    <TabPanel value={tabValue} index={0}>
+                        <ClientForm client={client} onSave={loadClient} />
+                    </TabPanel>
 
-            <TabPanel value={tabValue} index={4}>
-                <TableContainer component={Paper}>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                                <TableCell>Fecha Vencimiento</TableCell>
-                                <TableCell>Mes/Año / Detalle</TableCell>
-                                <TableCell>Tipo</TableCell>
-                                <TableCell>Monto</TableCell>
-                                <TableCell>Estado</TableCell>
-                                <TableCell>Fecha Pago</TableCell>
-                                <TableCell>Método</TableCell>
-                                <TableCell>Acciones</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {allPayments.map((payment) => (
-                                <TableRow key={payment.id}>
-                                    <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
-                                    <TableCell>{payment.monthYear}</TableCell>
-                                    <TableCell>{payment.type}</TableCell>
-                                    <TableCell>
-                                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(payment.amount)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip 
-                                            label={payment.status === 'paid' ? 'Pagado' : 
-                                                   payment.status === 'pending' ? 'Pendiente' : 
-                                                   payment.status === 'overdue' ? 'Vencido' : 'Cancelado'}
-                                            color={payment.status === 'paid' ? 'success' : 
-                                                   payment.status === 'pending' ? 'warning' : 
-                                                   payment.status === 'overdue' ? 'error' : 'default'}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : '-'}</TableCell>
-                                    <TableCell>{payment.method || '-'}</TableCell>
-                                    <TableCell>
-                                        {!payment.isProduct && (
-                                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(payment.id)}>
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {allPayments.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={8} align="center">No hay pagos registrados</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </TabPanel>
+                    <TabPanel value={tabValue} index={1}>
+                        <ServicesList clientId={client.id} />
+                    </TabPanel>
 
-            <TabPanel value={tabValue} index={5}>
-                <ClientInteractionHistory clientId={client.id} />
-            </TabPanel>
+                    <TabPanel value={tabValue} index={2}>
+                        <ProductsList clientId={client.id} />
+                    </TabPanel>
+
+                    <TabPanel value={tabValue} index={3}>
+                        <InstallationsList clientId={client.id} client={client} />
+                    </TabPanel>
+
+                    <TabPanel value={tabValue} index={4}>
+                        <TableContainer component={Paper}>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                                        <TableCell>Fecha Vencimiento</TableCell>
+                                        <TableCell>Mes/Año / Detalle</TableCell>
+                                        <TableCell>Tipo</TableCell>
+                                        <TableCell>Monto</TableCell>
+                                        <TableCell>Estado</TableCell>
+                                        <TableCell>Fecha Pago</TableCell>
+                                        <TableCell>Método</TableCell>
+                                        <TableCell>Acciones</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {allPayments.map((payment) => (
+                                        <TableRow key={payment.id}>
+                                            <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
+                                            <TableCell>{payment.monthYear}</TableCell>
+                                            <TableCell>{payment.type}</TableCell>
+                                            <TableCell>
+                                                {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(payment.amount)}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip 
+                                                    label={payment.status === 'paid' ? 'Pagado' : 
+                                                           payment.status === 'pending' ? 'Pendiente' : 
+                                                           payment.status === 'overdue' ? 'Vencido' : 'Cancelado'}
+                                                    color={payment.status === 'paid' ? 'success' : 
+                                                           payment.status === 'pending' ? 'warning' : 
+                                                           payment.status === 'overdue' ? 'error' : 'default'}
+                                                    size="small"
+                                                />
+                                            </TableCell>
+                                            <TableCell>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : '-'}</TableCell>
+                                            <TableCell>{payment.method || '-'}</TableCell>
+                                            <TableCell>
+                                                {!payment.isProduct && (
+                                                    <IconButton size="small" color="error" onClick={() => handleDeleteClick(payment.id)}>
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {allPayments.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={8} align="center">No hay pagos registrados</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </TabPanel>
+
+                    <TabPanel value={tabValue} index={5}>
+                        <ClientInteractionHistory
+                            clientId={client.id}
+                            focusInteractionId={focusInteractionId}
+                        />
+                    </TabPanel>
+                </>
+            )}
             
             <Dialog
                 open={openDeleteDialog}

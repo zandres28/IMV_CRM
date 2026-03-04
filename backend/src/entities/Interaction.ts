@@ -3,7 +3,7 @@ import { Client } from "./Client";
 import { Technician } from "./Technician";
 import { InteractionType } from "./InteractionType";
 
-export type InteractionStatus = 'pendiente' | 'en_progreso' | 'completado' | 'cancelado' | 'pospuesto';
+export type InteractionStatus = 'pendiente' | 'en_progreso' | 'completado' | 'cancelado' | 'pospuesto' | 'rechazado';
 export type InteractionPriority = 'baja' | 'media' | 'alta' | 'urgente';
 
 @Entity("interactions")

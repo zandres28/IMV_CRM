@@ -25,6 +25,7 @@ interface InstallationRow {
     'Fecha Instalación': string;
     'Tipo de Servicio': string;
     'Velocidad (Mbps)': string;
+    'Plan': string;
     'Router Asignado': string;
     'IP Asignada': string;
     'Técnico Instalador': string;
@@ -43,6 +44,9 @@ const PLAN_PRICES: Record<number, number> = {
     400: 60000,
     600: 75000,
 };
+
+// Argumento de sucursal: node import-data.js --sucursal=PASTO
+const SUCURSAL_ARG = process.argv.find(a => a.startsWith('--sucursal='))?.split('=')[1]?.toUpperCase() || 'CALI';
 
 function parseSpanishDate(dateStr: string): Date {
     // Formato: "miércoles, 18 de junio de 2025"
@@ -140,11 +144,12 @@ async function importData() {
                 client.fullName = row['Nombre Completo']?.trim() || 'Sin nombre';
                 client.identificationNumber = identificationNumber;
                 client.installationAddress = row['Dirección de Instalación']?.trim() || 'Sin dirección';
-                client.city = row['Ciudad']?.trim() || 'CALI';
+                client.city = row['Ciudad']?.trim() || SUCURSAL_ARG;
                 client.primaryPhone = row['Celular 1']?.trim() || 'Sin teléfono';
                 client.secondaryPhone = row['Celular 2']?.trim() || '';
                 client.email = cleanEmail(row['Correo Electrónico']);
                 client.status = 'active';
+                client.sucursal = SUCURSAL_ARG;
 
                 await clientRepository.save(client);
                 clientsImported++;
@@ -154,12 +159,17 @@ async function importData() {
                 const instRow = installationsByClient.get(clientId);
                 if (instRow) {
                     const speedMbps = parseInt(instRow['Velocidad (Mbps)'] || '200');
-                    const servicePlanId = SPEED_TO_PLAN[speedMbps] || 1;
-                    const monthlyFee = PLAN_PRICES[speedMbps] || 45000;
+                    const planName = instRow['Plan']?.trim() || '';
 
-                    const servicePlan = await servicePlanRepository.findOne({
-                        where: { id: servicePlanId }
-                    });
+                    // Buscar plan por nombre exacto (sucursal) o por velocidad como fallback
+                    let servicePlan = planName
+                        ? await servicePlanRepository.findOne({ where: { name: planName, sucursal: SUCURSAL_ARG } })
+                        : null;
+                    if (!servicePlan) {
+                        servicePlan = await servicePlanRepository.findOne({ where: { speedMbps, sucursal: SUCURSAL_ARG } });
+                    }
+
+                    const monthlyFee = servicePlan ? Number(servicePlan.monthlyFee) : PLAN_PRICES[speedMbps] || 45000;
 
                     const installation = new Installation();
                     installation.client = client;

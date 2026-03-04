@@ -6,6 +6,8 @@ import { hasPermission, PERMISSIONS } from "../utils/permissions";
 import { createNoteInteraction } from "../utils/interactionUtils";
 import { ServicePlan } from "../entities/ServicePlan";
 import { PublicConsentLog } from "../entities/PublicConsentLog";
+import { User } from "../entities/User";
+import { NotificationService } from "../services/NotificationService";
 
 const clientRepository = AppDataSource.getRepository(Client);
 const servicePlanRepository = AppDataSource.getRepository(ServicePlan);
@@ -61,7 +63,12 @@ export const ClientController = {
                 primaryPhone: primaryPhone,
                 secondaryPhone: secondaryPhone || null,
                 email: 'pending@email.com', // Email temporal o pedirlo en el form
-                status: 'pendiente_instalacion' // Estado específico para identificarlo
+                status: 'pendiente_instalacion', // Estado específico para identificarlo
+                requestedPlanId: plan.id,
+                requestedPlanName: plan.name,
+                requestedPlanSpeedMbps: plan.speedMbps,
+                requestedPlanMonthlyFee: Number(plan.monthlyFee),
+                requestedInstallationFee: Number(plan.installationFee)
             });
 
             await clientRepository.save(newClient);
@@ -96,6 +103,24 @@ export const ClientController = {
                 undefined // System user
             );
 
+            // Notificar a los administradores sobre la nueva solicitud
+            try {
+                const userRepo = AppDataSource.getRepository(User);
+                const potentialRecipients = await userRepo.find({ relations: ['roles'] });
+                const admins = potentialRecipients.filter(user =>
+                    (user.roles || []).some(role => role.name?.toLowerCase().includes('admin'))
+                );
+
+                const notificationMessage = `Nueva solicitud web: ${newClient.fullName} - ${plan.name}`;
+                const link = `/clients/${newClient.id}?tab=crm`;
+
+                for (const admin of admins) {
+                    await NotificationService.create(admin, notificationMessage, link);
+                }
+            } catch (notifyError) {
+                console.error('Error enviando notificación de solicitud web:', notifyError);
+            }
+
             return res.status(201).json({ message: "Solicitud recibida correctamente", clientId: newClient.id });
 
         } catch (error) {
@@ -115,10 +140,34 @@ export const ClientController = {
             }
 
             const { includeDeleted } = req.query;
+            const user = req.user; // Get user from AuthRequest
 
             let query = clientRepository
                 .createQueryBuilder('client')
                 .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted', { isDeleted: false });
+
+            // FILTRO POR SUCURSAL: Admin global (sin sucursal) ve todo;
+            // cualquier otro usuario solo ve los clientes de su sucursal.
+            const isGlobalAdmin = user && user.roles && user.roles.some((r: any) => r.name === 'admin') && !user.sucursal;
+            if (user && user.sucursal && !isGlobalAdmin) {
+                query = query.andWhere('client.sucursal = :sucursal', { sucursal: user.sucursal });
+            }
+
+            // ROL DE TÉCNICO: Filtrar clientes asignados
+            // Asumimos que la asignación es por nombre en installation.technician
+            if (user && user.roles && user.roles.some((r: any) => r.name === 'Technician')) {
+                const technicianName = `${user.firstName} ${user.lastName}`;
+                // Usamos un subquery o join para asegurar que SOLO traiga clientes con instalaciones de este técnico
+                query = query.andWhere(qb => {
+                    const subQuery = qb.subQuery()
+                        .select("1")
+                        .from("installations", "i")
+                        .where("i.clientId = client.id")
+                        .andWhere("i.technician LIKE :techName")
+                        .getQuery();
+                    return "EXISTS " + subQuery;
+                }).setParameter("techName", `%${technicianName}%`);
+            }
 
             if (includeDeleted === 'true') {
                 query = query.withDeleted();
@@ -194,6 +243,7 @@ export const ClientController = {
             }
             let { id } = req.params;
             id = id.trim();
+            const user = req.user;
             
             // Estrategia de búsqueda dual:
             // 1. Intentar buscar por ID (Primary Key) si es un número válido
@@ -202,20 +252,51 @@ export const ClientController = {
             let client = null;
             const idAsNumber = parseInt(id);
 
+            // Nota: Para verificar asignación de técnico necesitamos las instalaciones
+            const isTechnician = user && user.roles && user.roles.some((r: any) => r.name === 'Technician');
+            const relations = isTechnician ? ['installations'] : [];
+
             if (!isNaN(idAsNumber)) {
-                client = await clientRepository.findOneBy({ id: idAsNumber });
+                client = await clientRepository.findOne({ 
+                    where: { id: idAsNumber },
+                    relations: relations
+                });
             }
 
             if (!client) {
-                client = await clientRepository.findOneBy({ identificationNumber: id });
+                client = await clientRepository.findOne({ 
+                    where: { identificationNumber: id },
+                    relations: relations
+                });
             }
             
             if (!client) {
                 return res.status(404).json({ message: "Cliente no encontrado" });
             }
 
+            // ROL DE TÉCNICO: Verificar asignación
+            if (isTechnician) {
+                const technicianName = `${user.firstName} ${user.lastName}`;
+                // Verificar si alguna instalación pertenece al técnico
+                // Nota: Las instalaciones se cargaron arriba en 'relations'
+                const hasAssignedInstallation = client.installations && client.installations.some(inst => 
+                    inst.technician && inst.technician.toLowerCase().includes(technicianName.toLowerCase())
+                );
+
+                if (!hasAssignedInstallation) {
+                     return res.status(403).json({ 
+                        message: 'No tienes permiso para ver este cliente (no asignado)' 
+                    });
+                }
+                
+                // Limpiar instalaciones para no enviarlas si no es necesario (el frontend las carga aparte)
+                // O dejarlas, no hace daño.
+                 // delete client.installations; // Comentado para evitar error TS2790
+            }
+
             return res.json(client);
         } catch (error) {
+            console.error("Error al obtener cliente:", error);
             return res.status(500).json({ message: "Error al obtener el cliente", error });
         }
     },
@@ -260,7 +341,12 @@ export const ClientController = {
                 }
             }
 
-            const newClient = clientRepository.create(req.body);
+            // Heredar sucursal del usuario que crea el cliente
+            const clientData = { ...req.body };
+            if (req.user?.sucursal && !clientData.sucursal) {
+                clientData.sucursal = req.user.sucursal;
+            }
+            const newClient = clientRepository.create(clientData);
             const result = await clientRepository.save(newClient);
             return res.status(201).json(result);
         } catch (error: any) {

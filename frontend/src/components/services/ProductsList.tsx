@@ -33,6 +33,7 @@ import { ProductService } from '../../services/ProductService';
 import { formatLocalDate } from '../../utils/dateUtils';
 import { ProductForm } from './ProductForm';
 import { EditProductDialog } from './EditProductDialog';
+import AuthService from '../../services/AuthService';
 
 interface ProductsListProps {
     clientId: number;
@@ -113,13 +114,15 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
         <Paper sx={{ p: 2, mb: 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography variant="h6">Productos Vendidos</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setOpenForm(true)}
-                >
-                    Nuevo Producto
-                </Button>
+                {!AuthService.hasRole('tecnico') && (
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => setOpenForm(true)}
+                    >
+                        Nuevo Producto
+                    </Button>
+                )}
             </Box>
 
             {isMobile ? (
@@ -170,8 +173,12 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
                                         Detalle Cuotas
                                     </Button>
                                     <Box>
-                                        <IconButton size="small" onClick={() => handleEditProduct(product)} sx={{ color: '#4e73df' }}><EditIcon fontSize="small" /></IconButton>
-                                        <IconButton size="small" onClick={() => handleDeleteProduct(product)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                                        {!AuthService.hasRole('tecnico') && (
+                                            <>
+                                                <IconButton size="small" onClick={() => handleEditProduct(product)} sx={{ color: '#4e73df' }}><EditIcon fontSize="small" /></IconButton>
+                                                <IconButton size="small" onClick={() => handleDeleteProduct(product)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                                            </>
+                                        )}
                                     </Box>
                                 </Box>
 
@@ -269,22 +276,26 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
                                             />
                                         </TableCell>
                                         <TableCell>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleEditProduct(product)}
-                                                title="Editar producto"
-                                                sx={{ color: '#4e73df' }}
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleDeleteProduct(product)}
-                                                color="error"
-                                                title="Eliminar producto"
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
+                                            {!AuthService.hasRole('tecnico') && (
+                                                <>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleEditProduct(product)}
+                                                        title="Editar producto"
+                                                        sx={{ color: '#4e73df' }}
+                                                    >
+                                                        <EditIcon />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleDeleteProduct(product)}
+                                                        color="error"
+                                                        title="Eliminar producto"
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow

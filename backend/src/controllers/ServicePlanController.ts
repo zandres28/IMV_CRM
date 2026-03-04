@@ -12,8 +12,10 @@ export class ServicePlanController {
             if (!hasPermission(req.user, PERMISSIONS.ADMIN.PLANS.CREATE)) {
                 return res.status(403).json({ message: 'No tienes permiso para crear planes' });
             }
-            const { name, speedMbps, monthlyFee, installationFee } = req.body;
-            const plan = this.planRepository.create({ name, speedMbps, monthlyFee, installationFee, isActive: true });
+            const { name, speedMbps, monthlyFee, installationFee, sucursal } = req.body;
+            // Heredar sucursal del usuario creador si no se especifica
+            const planSucursal = sucursal || req.user?.sucursal || 'CALI';
+            const plan = this.planRepository.create({ name, speedMbps, monthlyFee, installationFee, isActive: true, sucursal: planSucursal });
             await this.planRepository.save(plan);
             return res.status(201).json(plan);
         } catch (error) {
@@ -27,7 +29,10 @@ export class ServicePlanController {
             if (!hasPermission(req.user, PERMISSIONS.PLANS.VIEW)) {
                 return res.status(403).json({ message: 'No tienes permiso para ver planes' });
             }
-            const plans = await this.planRepository.find({ order: { speedMbps: 'ASC' } });
+            // Admin global (sin sucursal) ve todos; los demás solo los de su sucursal
+            const userSucursal = req.user?.sucursal;
+            const where = userSucursal ? { sucursal: userSucursal } : {};
+            const plans = await this.planRepository.find({ where, order: { speedMbps: 'ASC' } });
             return res.json(plans);
         } catch (error) {
             console.error('Error getting plans', error);
@@ -37,13 +42,13 @@ export class ServicePlanController {
 
     async getActive(req: AuthRequest, res: Response) {
         try {
-            // Permitir explícitamente a usuarios autenticados SI es lo que se busca, 
-            // O si esta función se usa para selects públicos, quitar validación perm.
-            // Asumiendo que getActive es interno:
             if (!hasPermission(req.user, PERMISSIONS.PLANS.VIEW)) {
                 return res.status(403).json({ message: 'No tienes permiso para ver planes' });
             }
-            const plans = await this.planRepository.find({ where: { isActive: true }, order: { speedMbps: 'ASC' } });
+            const userSucursal = req.user?.sucursal;
+            const where: any = { isActive: true };
+            if (userSucursal) where.sucursal = userSucursal;
+            const plans = await this.planRepository.find({ where, order: { speedMbps: 'ASC' } });
             return res.json(plans);
         } catch (error) {
             console.error('Error getting active plans', error);
@@ -53,8 +58,12 @@ export class ServicePlanController {
 
     async getPublicList(req: any, res: Response) {
         try {
+            // Permite filtrar por sucursal via query param: /api/plans/public?sucursal=PASTO
+            const sucursal = req.query?.sucursal as string | undefined;
+            const where: any = { isActive: true };
+            if (sucursal) where.sucursal = sucursal.toUpperCase();
             const plans = await this.planRepository.find({ 
-                where: { isActive: true }, 
+                where,
                 select: ['id', 'name', 'speedMbps', 'monthlyFee', 'installationFee'],
                 order: { speedMbps: 'ASC' } 
             });

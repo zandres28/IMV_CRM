@@ -50,6 +50,7 @@ import { AdditionalService, ProductSold } from '../../types/AdditionalServices';
 import { AdditionalServiceService } from '../../services/AdditionalServiceService';
 import { ProductService } from '../../services/ProductService';
 import { InstallationService, Installation } from '../../services/InstallationService';
+import AuthService from '../../services/AuthService';
 
 type Order = 'asc' | 'desc';
 type OrderBy = keyof Client;
@@ -69,8 +70,11 @@ export const ClientList: React.FC = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [searchTerm, setSearchTerm] = useState('');
+    const currentUser = AuthService.getCurrentUser();
+    const isGlobalAdmin = currentUser && !currentUser.sucursal;
     const [statusFilter, setStatusFilter] = useState('all');
     const [cityFilter, setCityFilter] = useState('all');
+    const [sucursalFilter, setSucursalFilter] = useState('all');
     const [pendingFilter, setPendingFilter] = useState(false);
     const [dateFilter, setDateFilter] = useState<{ month: number | null, year: number | null }>({ month: null, year: null });
     const [order, setOrder] = useState<Order>('desc');
@@ -199,6 +203,9 @@ export const ClientList: React.FC = () => {
             // 3. City Matches
             const matchesCity = cityFilter === 'all' || client.city?.toUpperCase() === cityFilter;
 
+            // 3b. Sucursal Matches (solo aplica para admin global)
+            const matchesSucursal = !isGlobalAdmin || sucursalFilter === 'all' || (client.sucursal?.toUpperCase() === sucursalFilter);
+
             // 4. Pending Filter
             const matchesPending = !pendingFilter || (client.pendingInteractionsCount || 0) > 0;
 
@@ -221,7 +228,7 @@ export const ClientList: React.FC = () => {
                 return d.getMonth() === dateFilter.month && d.getFullYear() === dateFilter.year;
             })();
 
-            return matchesSearch && matchesStatus && matchesCity && matchesDate && matchesPending;
+            return matchesSearch && matchesStatus && matchesCity && matchesSucursal && matchesDate && matchesPending;
         });
 
         filtered.sort((a, b) => {
@@ -255,7 +262,7 @@ export const ClientList: React.FC = () => {
 
         setFilteredClients(filtered);
         setPage(0);
-    }, [clients, clientServices, searchTerm, statusFilter, cityFilter, dateFilter, pendingFilter, order, orderBy]);
+    }, [clients, clientServices, searchTerm, statusFilter, cityFilter, sucursalFilter, dateFilter, pendingFilter, order, orderBy, isGlobalAdmin]);
 
 
     // Cargar clientes y luego servicios/productos/instalaciones para cada uno
@@ -319,6 +326,7 @@ export const ClientList: React.FC = () => {
         setSearchTerm('');
         setStatusFilter('all');
         setCityFilter('all');
+        setSucursalFilter('all');
         setPendingFilter(false);
         setDateFilter({ month: null, year: null });
         setPage(0);
@@ -377,14 +385,16 @@ export const ClientList: React.FC = () => {
             </Typography>
 
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={2}>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/clients/new')}
-                    startIcon={<AddIcon />}
-                >
-                    Nuevo Cliente
-                </Button>
+                {!AuthService.hasRole('tecnico') && (
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => navigate('/clients/new')}
+                        startIcon={<AddIcon />}
+                    >
+                        Nuevo Cliente
+                    </Button>
+                )}
 
                 <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
                     <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -418,6 +428,22 @@ export const ClientList: React.FC = () => {
                         </Select>
                     </FormControl>
 
+                    {isGlobalAdmin && (
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <InputLabel>Sucursal</InputLabel>
+                            <Select
+                                value={sucursalFilter}
+                                label="Sucursal"
+                                onChange={(e) => setSucursalFilter(e.target.value)}
+                            >
+                                <MenuItem value="all">Todas</MenuItem>
+                                <MenuItem value="CALI">Cali</MenuItem>
+                                <MenuItem value="PASTO">Pasto</MenuItem>
+                                <MenuItem value="OTRA">Otra</MenuItem>
+                            </Select>
+                        </FormControl>
+                    )}
+
                     <FormControlLabel
                         control={
                             <Switch
@@ -449,7 +475,7 @@ export const ClientList: React.FC = () => {
                                 color="secondary"
                             />
                         )}
-                        {(searchTerm || statusFilter !== 'all' || cityFilter !== 'all' || pendingFilter || (dateFilter.month !== null)) && (
+                        {(searchTerm || statusFilter !== 'all' || cityFilter !== 'all' || sucursalFilter !== 'all' || pendingFilter || (dateFilter.month !== null)) && (
                             <Button
                                 variant="outlined"
                                 color="inherit"
@@ -629,34 +655,38 @@ export const ClientList: React.FC = () => {
                                     </Box>
                                 </CardContent>
                                 <CardActions disableSpacing sx={{ justifyContent: 'flex-end', pt: 0 }}>
-                                    <IconButton
-                                        color="primary"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/clients/${client.id}`);
-                                        }}
-                                    >
-                                        <EditIcon />
-                                    </IconButton>
-                                    <IconButton
-                                        color="primary"
-                                        title="Agregar Instalación"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } });
-                                        }}
-                                    >
-                                        <AddIcon />
-                                    </IconButton>
-                                    <IconButton
-                                        color="error"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDelete(client.id);
-                                        }}
-                                    >
-                                        <DeleteIcon />
-                                    </IconButton>
+                                    {!AuthService.hasRole('tecnico') && (
+                                        <>
+                                            <IconButton
+                                                color="primary"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/clients/${client.id}`);
+                                                }}
+                                            >
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                color="primary"
+                                                title="Agregar Instalación"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } });
+                                                }}
+                                            >
+                                                <AddIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                color="error"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(client.id);
+                                                }}
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </>
+                                    )}
                                 </CardActions>
                             </Card>
                         );
@@ -914,37 +944,41 @@ export const ClientList: React.FC = () => {
                                             />
                                         </TableCell>
                                         <TableCell sx={{ py: 0.5 }}>
-                                            <IconButton
-                                                size="small"
-                                                sx={{ color: '#4e73df' }}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`/clients/${client.id}`);
-                                                }}
-                                            >
-                                                <EditIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                sx={{ color: '#1cc88a' }}
-                                                title="Agregar Instalación"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } });
-                                                }}
-                                            >
-                                                <AddIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                sx={{ color: '#e74a3b' }}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDelete(client.id);
-                                                }}
-                                            >
-                                                <DeleteIcon fontSize="small" />
-                                            </IconButton>
+                                            {!AuthService.hasRole('tecnico') && (
+                                                <>
+                                                    <IconButton
+                                                        size="small"
+                                                        sx={{ color: '#4e73df' }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/clients/${client.id}`);
+                                                        }}
+                                                    >
+                                                        <EditIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        sx={{ color: '#1cc88a' }}
+                                                        title="Agregar Instalación"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } });
+                                                        }}
+                                                    >
+                                                        <AddIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        sx={{ color: '#e74a3b' }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(client.id);
+                                                        }}
+                                                    >
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                </>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -1195,25 +1229,29 @@ export const ClientList: React.FC = () => {
                                             />
                                         </TableCell>
                                         <TableCell>
-                                            <IconButton
-                                                color="primary"
-                                                onClick={() => navigate(`/clients/${client.id}`)}
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                color="primary"
-                                                title="Agregar Instalación"
-                                                onClick={() => navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } })}
-                                            >
-                                                <AddIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                color="error"
-                                                onClick={() => handleDelete(client.id)}
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
+                                            {!AuthService.hasRole('tecnico') && (
+                                                <>
+                                                    <IconButton
+                                                        color="primary"
+                                                        onClick={() => navigate(`/clients/${client.id}`)}
+                                                    >
+                                                        <EditIcon />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        color="primary"
+                                                        title="Agregar Instalación"
+                                                        onClick={() => navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } })}
+                                                    >
+                                                        <AddIcon />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        color="error"
+                                                        onClick={() => handleDelete(client.id)}
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 );

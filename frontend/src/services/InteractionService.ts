@@ -4,7 +4,7 @@ import { InteractionType as LinkedInteractionType } from './InteractionTypeServi
 const API_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/interactions`;
 
 // export type InteractionType = 'mantenimiento' | 'reporte_daño' | 'solicitud_servicio' | 'llamada' | 'visita' | 'consulta' | 'queja' | 'otro';
-export type InteractionStatus = 'pendiente' | 'en_progreso' | 'completado' | 'cancelado' | 'pospuesto';
+export type InteractionStatus = 'pendiente' | 'en_progreso' | 'completado' | 'cancelado' | 'pospuesto' | 'rechazado';
 export type InteractionPriority = 'baja' | 'media' | 'alta' | 'urgente';
 
 export interface Interaction {

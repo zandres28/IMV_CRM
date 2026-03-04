@@ -5,9 +5,16 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Emergency fix for stuck modals */
+  overflow: auto !important; 
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Ensure Login screen is never blocked by stray backdrops */
+.MuiBackdrop-root {
+    /* Intentionally left blank here, managed by JS or specific overrides */
 }

@@ -574,6 +574,69 @@ const MonthlyBilling: React.FC = () => {
                 </Grid>
             )}
 
+            {/* Recaudo por Método de Pago */}
+            {payments.length > 0 && (() => {
+                const methodColors: Record<string, string> = {
+                    efectivo: '#1cc88a',
+                    nequi: '#6f42c1',
+                    bancolombia: '#00A650',
+                    daviplata: '#e74a3b',
+                    transferencia: '#4e73df',
+                    otro: '#36b9cc',
+                    sin_metodo: '#858796',
+                };
+                const methodLabels: Record<string, string> = {
+                    efectivo: 'Efectivo',
+                    nequi: 'Nequi',
+                    bancolombia: 'Bancolombia',
+                    daviplata: 'Daviplata',
+                    transferencia: 'Transferencia',
+                    otro: 'Otro',
+                    sin_metodo: 'Sin Método',
+                };
+                const breakdown = payments
+                    .filter(p => p.status === 'paid')
+                    .reduce<Record<string, { count: number; total: number }>>((acc, p) => {
+                        const method = p.paymentMethod || 'sin_metodo';
+                        if (!acc[method]) acc[method] = { count: 0, total: 0 };
+                        acc[method].count++;
+                        acc[method].total += p.amount || 0;
+                        return acc;
+                    }, {});
+                const entries = Object.entries(breakdown).sort((a, b) => b[1].total - a[1].total);
+                if (entries.length === 0) return null;
+                return (
+                    <>
+                        <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', px: isMobile ? 0 : 3, mb: 1 }}>
+                            Recaudo por Método de Pago
+                        </Typography>
+                        <Grid container spacing={2} sx={{ mb: 4, px: isMobile ? 0 : 3 }}>
+                            {entries.map(([method, data]) => {
+                                const color = methodColors[method] || '#858796';
+                                const label = methodLabels[method] || method;
+                                return (
+                                    <Grid item xs={6} sm={4} md={2} key={method}>
+                                        <Card sx={{ borderLeft: `4px solid ${color}`, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                                            <CardContent sx={{ py: '12px !important', px: '14px !important' }}>
+                                                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color, textTransform: 'uppercase', mb: 0.5 }}>
+                                                    {label}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#5a5c69' }}>
+                                                    {formatCurrency(data.total)}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: '0.7rem', color: '#858796' }}>
+                                                    {data.count} {data.count === 1 ? 'pago' : 'pagos'}
+                                                </Typography>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                );
+                            })}
+                        </Grid>
+                    </>
+                );
+            })()}
+
             {/* Filtro */}
             <Paper sx={{ mb: 3, mx: isMobile ? 0 : 3, p: 2, borderRadius: 2, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)', borderBottom: '1px solid #e3e6f0' }}>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>

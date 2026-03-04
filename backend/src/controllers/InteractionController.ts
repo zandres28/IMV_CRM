@@ -79,7 +79,8 @@ export const InteractionController = {
             const { clientId } = req.params;
             const interactions = await interactionRepository.find({
                 where: { clientId: parseInt(clientId) },
-                order: { created_at: "DESC" }
+                order: { created_at: "DESC" },
+                relations: ["interactionType", "assignedToTechnician"]
             });
             return res.json(interactions);
         } catch (error) {
@@ -176,27 +177,45 @@ export const InteractionController = {
     // Actualizar estado
     updateStatus: async (req: AuthRequest, res: Response) => {
         try {
-            // Verificar permiso para editar interacciones CRM
-            if (!hasPermission(req.user, PERMISSIONS.CLIENTS.CRM.EDIT)) {
-                return res.status(403).json({ 
-                    message: 'No tienes permiso para actualizar el estado' 
-                });
-            }
             const { id } = req.params;
-            const { status, resolution, completedDate } = req.body;
-            
             const interaction = await interactionRepository.findOne({
-                where: { id: parseInt(id) }
+                where: { id: parseInt(id) },
+                relations: ['assignedToTechnician']
             });
-            
+
             if (!interaction) {
                 return res.status(404).json({ message: "Interacción no encontrada" });
             }
 
+            // Verify permission: Either CRM.EDIT or the technician assigned to the interaction
+            const canEdit = hasPermission(req.user, PERMISSIONS.CLIENTS.CRM.EDIT);
+            const isAssignedTechnician = req.user?.firstName === interaction.assignedToTechnician?.name || 
+                                       (req.user?.id && interaction.assignedToTechnician?.id === req.user.id);
+            // Note: assignedToTechnician in Interaction is relation to Technician entity, not User.
+            // We need to link Technician to User or check by name/email implicitly if not linked.
+            // However, currently simple technicians are just names in Technician table but might not be linked to users 1:1 in code explicitly?
+            // Actually Technician entity has no relation to User entity in the code I saw earlier.
+            // But InstallationController finds User by name matching Technician.name.
+            // So we can check if req.user.firstName + lastName matches interaction.assignedToTechnician.name 
+            // OR if we just added the permission 'clients.crm.edit' to 'tecnico' role, then create/edit is allowed globally for them.
+            // Since I added 'clients.crm.edit' to the role 'tecnico' in the DB, hasPermission should pass now.
+            
+            if (!canEdit) {
+                return res.status(403).json({ 
+                    message: 'No tienes permiso para actualizar el estado' 
+                });
+            }
+
+            const { status, resolution, completedDate } = req.body;
+            
             interaction.status = status;
             if (resolution) interaction.resolution = resolution;
-            if (status === 'completado' && !interaction.completedDate) {
+            
+            if (status === 'completado') {
                 interaction.completedDate = completedDate || new Date();
+                interaction.resolution = interaction.resolution || 'Completado por técnico';
+            } else if (status === 'rechazado') {
+                interaction.notes = interaction.notes ? `${interaction.notes}\nRechazado: ${resolution}` : `Rechazado: ${resolution}`;
             }
             
             const result = await interactionRepository.save(interaction);

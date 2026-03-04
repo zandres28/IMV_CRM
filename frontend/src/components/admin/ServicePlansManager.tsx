@@ -1,14 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, IconButton, Box, TablePagination } from '@mui/material';
+import { Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, IconButton, Box, TablePagination, FormControl, InputLabel, Select, MenuItem, Chip } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
 import { ServicePlanService, ServicePlan } from '../../services/ServicePlanService';
+import AuthService from '../../services/AuthService';
 
 export const ServicePlansManager: React.FC = () => {
     const [plans, setPlans] = useState<ServicePlan[]>([]);
     const [filteredPlans, setFilteredPlans] = useState<ServicePlan[]>([]);
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<ServicePlan | null>(null);
-    const [form, setForm] = useState<Partial<ServicePlan>>({ name: '', speedMbps: 0, monthlyFee: 0, installationFee: 0 });
+    const currentUser = AuthService.getCurrentUser();
+    const isGlobalAdmin = currentUser && !currentUser.sucursal;
+    const defaultSucursal = currentUser?.sucursal || 'CALI';
+    const [form, setForm] = useState<Partial<ServicePlan & { sucursal: string }>>({ name: '', speedMbps: 0, monthlyFee: 0, installationFee: 0, sucursal: defaultSucursal });
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [searchTerm, setSearchTerm] = useState('');
@@ -34,8 +38,8 @@ export const ServicePlansManager: React.FC = () => {
     useEffect(() => { load(); }, [load]);
     useEffect(() => { filterPlans(); }, [filterPlans]);
 
-    const handleOpenNew = () => { setEditing(null); setForm({ name: '', speedMbps: 0, monthlyFee: 0, installationFee: 0 }); setOpen(true); };
-    const handleEdit = (p: ServicePlan) => { setEditing(p); setForm(p); setOpen(true); };
+    const handleOpenNew = () => { setEditing(null); setForm({ name: '', speedMbps: 0, monthlyFee: 0, installationFee: 0, sucursal: defaultSucursal }); setOpen(true); };
+    const handleEdit = (p: ServicePlan) => { setEditing(p); setForm({ ...p, sucursal: (p as any).sucursal || defaultSucursal }); setOpen(true); };
 
     const handleSave = async () => {
         try {
@@ -84,6 +88,7 @@ export const ServicePlansManager: React.FC = () => {
                     <TableHead>
                         <TableRow sx={{ backgroundColor: '#1976d2' }}>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Plan</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sucursal</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Velocidad (Mbps)</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vr. del plan</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vr. de Instalación</TableCell>
@@ -102,6 +107,9 @@ export const ServicePlansManager: React.FC = () => {
                                 }}
                             >
                                 <TableCell>{p.name}</TableCell>
+                                <TableCell>
+                                    <Chip label={(p as any).sucursal || 'CALI'} size="small" color={(p as any).sucursal === 'PASTO' ? 'secondary' : 'primary'} />
+                                </TableCell>
                                 <TableCell>{p.speedMbps}</TableCell>
                                 <TableCell>{p.monthlyFee}</TableCell>
                                 <TableCell>{p.installationFee}</TableCell>
@@ -135,6 +143,16 @@ export const ServicePlansManager: React.FC = () => {
                 <DialogTitle>{editing ? 'Editar Plan' : 'Nuevo Plan'}</DialogTitle>
                 <DialogContent>
                     <TextField label="Nombre" fullWidth value={form.name || ''} onChange={e => setForm(f => ({...f, name: e.target.value}))} sx={{ mt: 1 }} />
+                    {isGlobalAdmin && (
+                        <FormControl fullWidth sx={{ mt: 1 }}>
+                            <InputLabel>Sucursal</InputLabel>
+                            <Select value={(form as any).sucursal || 'CALI'} label="Sucursal" onChange={e => setForm(f => ({...f, sucursal: e.target.value as string}))}>
+                                <MenuItem value="CALI">Cali</MenuItem>
+                                <MenuItem value="PASTO">Pasto</MenuItem>
+                                <MenuItem value="OTRA">Otra</MenuItem>
+                            </Select>
+                        </FormControl>
+                    )}
                     <TextField label="Velocidad (Mbps)" type="number" fullWidth value={form.speedMbps || 0} onChange={e => setForm(f => ({...f, speedMbps: Number(e.target.value)}))} sx={{ mt: 1 }} />
                     <TextField label="Vr. del plan" type="number" fullWidth value={form.monthlyFee || 0} onChange={e => setForm(f => ({...f, monthlyFee: Number(e.target.value)}))} sx={{ mt: 1 }} />
                     <TextField label="Vr. de Instalación" type="number" fullWidth value={form.installationFee || 0} onChange={e => setForm(f => ({...f, installationFee: Number(e.target.value)}))} sx={{ mt: 1 }} />
