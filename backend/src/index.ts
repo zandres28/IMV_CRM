@@ -32,6 +32,7 @@ import dashboardRoutes from "./routes/dashboard";
 import systemSettingsRoutes from "./routes/system-settings.routes";
 import interactionTypeRoutes from "./routes/interaction-types";
 import oltRoutes from "./routes/olt";
+import notificationRoutes from "./routes/notification.routes";
 import promotionRoutes from "./routes/promotions";
 import mikrotikRoutes from "./routes/mikrotik";
 import path from "path";
@@ -144,6 +145,7 @@ app.use("/api/reports", authMiddleware, reportRoutes);
 app.use("/api/service-outages", authMiddleware, serviceOutageRoutes);
 app.use("/api/pon-map", authMiddleware, ponMapRoutes);
 app.use("/api/service-transfers", authMiddleware, serviceTransferRoutes);
+app.use("/api/notifications", authMiddleware, notificationRoutes);
 app.use("/api/dashboard", authMiddleware, dashboardRoutes);
 
 const PORT = process.env.PORT || 3001;

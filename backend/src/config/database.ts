@@ -4,7 +4,8 @@ import path from "path";
 
 dotenv.config();
 
-const host = process.env.DB_HOST === 'db' ? 'imv_crm-db-1' : (process.env.DB_HOST || "imv_crm-db-1");
+// Fix: Don't override 'db' with 'imv_crm-db-1' if the environment says so. And localhost fallback.
+const host = process.env.DB_HOST || "localhost";
 
 export const AppDataSource = new DataSource({
     type: "mysql",

@@ -21,6 +21,9 @@ export class User {
     @Column({ default: true })
     isActive: boolean;
 
+    @Column({ type: 'varchar', length: 100, nullable: true, default: 'CALI' })
+    sucursal?: string | null;
+
     @ManyToMany(() => Role)
     @JoinTable({
         name: "user_roles",

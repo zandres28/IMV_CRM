@@ -23,6 +23,7 @@ import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/ico
 import { AdditionalService } from '../../types/AdditionalServices';
 import { AdditionalServiceService } from '../../services/AdditionalServiceService';
 import { AdditionalServiceForm } from './AdditionalServiceForm';
+import AuthService from '../../services/AuthService';
 import { formatLocalDate } from '../../utils/dateUtils';
 
 interface ServicesListProps {
@@ -73,16 +74,18 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
         <Paper sx={{ p: 2, mb: 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography variant="h6">Servicios Adicionales</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => {
-                        setSelectedService(undefined);
-                        setOpenForm(true);
-                    }}
-                >
-                    Nuevo Servicio
-                </Button>
+                {!AuthService.hasRole('tecnico') && (
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => {
+                            setSelectedService(undefined);
+                            setOpenForm(true);
+                        }}
+                    >
+                        Nuevo Servicio
+                    </Button>
+                )}
             </Box>
 
             {isMobile ? (
@@ -124,8 +127,12 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                                 <Divider sx={{ my: 1, opacity: 0.5 }} />
 
                                 <Box display="flex" justifyContent="flex-end" gap={1}>
-                                    <IconButton size="small" onClick={() => handleEdit(service)} sx={{ color: '#4e73df' }}><EditIcon fontSize="small" /></IconButton>
-                                    <IconButton size="small" onClick={() => handleDelete(service.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                                    {!AuthService.hasRole('tecnico') && (
+                                        <>
+                                            <IconButton size="small" onClick={() => handleEdit(service)} sx={{ color: '#4e73df' }}><EditIcon fontSize="small" /></IconButton>
+                                            <IconButton size="small" onClick={() => handleDelete(service.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>
+                                        </>
+                                    )}
                                 </Box>
                             </CardContent>
                         </Card>
@@ -169,16 +176,20 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        <IconButton size="small" onClick={() => handleEdit(service)} sx={{ color: '#4e73df' }}>
-                                            <EditIcon />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            color="error"
-                                            onClick={() => handleDelete(service.id)}
-                                        >
-                                            <DeleteIcon />
-                                        </IconButton>
+                                        {!AuthService.hasRole('tecnico') && (
+                                            <>
+                                                <IconButton size="small" onClick={() => handleEdit(service)} sx={{ color: '#4e73df' }}>
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => handleDelete(service.id)}
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

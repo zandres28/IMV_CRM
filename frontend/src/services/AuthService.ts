@@ -20,6 +20,7 @@ export interface User {
   firstName: string;
   lastName: string;
   isActive: boolean;
+  sucursal?: string | null;
   roles: Array<{
     id: number;
     name: string;

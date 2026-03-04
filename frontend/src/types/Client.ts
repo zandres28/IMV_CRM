@@ -17,4 +17,10 @@ export interface Client {
     suspension_extension_date?: string | null;
     latestInstallationDate?: string | null;
     pendingInteractionsCount?: number;
+    requestedPlanId?: number | null;
+    requestedPlanName?: string | null;
+    requestedPlanSpeedMbps?: number | null;
+    requestedPlanMonthlyFee?: number | null;
+    requestedInstallationFee?: number | null;
+    sucursal?: string | null;
 }

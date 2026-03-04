@@ -6,6 +6,11 @@ import { SpeedHistory } from '../entities/SpeedHistory';
 import { Client } from '../entities/Client';
 import { ServicePlan } from '../entities/ServicePlan';
 import { Payment } from '../entities/Payment';
+import { User } from '../entities/User';
+import { Interaction } from '../entities/Interaction';
+import { InteractionType } from '../entities/InteractionType';
+import { Technician } from '../entities/Technician';
+import { NotificationService } from '../services/NotificationService';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { hasPermission, PERMISSIONS, getDataScopeForUser } from '../utils/permissions';
 import { createNoteInteraction } from '../utils/interactionUtils';
@@ -105,6 +110,83 @@ export class InstallationController {
             }
 
             await this.installationRepository.save(installation);
+
+            // Notificación e interacción para el técnico
+            if (technician) {
+                let createdInteractionId: number | null = null;
+                let techEntity: Technician | null = null;
+
+                // Crear interacción CRM para el técnico
+                try {
+                    const techRepo = AppDataSource.getRepository(Technician);
+                    techEntity = await techRepo.findOne({ where: { name: technician } });
+                    
+                    if (techEntity) {
+                        const typeRepo = AppDataSource.getRepository(InteractionType);
+                        let type = await typeRepo.findOne({ where: { name: 'Asignación' } });
+                        if (!type) type = await typeRepo.findOne({ where: { name: 'solicitud_servicio' } });
+                        if (!type) {
+                            const types = await typeRepo.find();
+                            type = types[0];
+                        }
+
+                        if (type) {
+                            const interaction = new Interaction();
+                            interaction.clientId = client.id;
+                            interaction.assignedToTechnicianId = techEntity.id;
+                            interaction.description = `Instalación asignada: ${installation.serviceType} - ${installationDate}`;
+                            interaction.subject = 'Instalación asignada';
+                            interaction.status = 'pendiente';
+                            interaction.priority = 'media';
+                            interaction.interactionType = type;
+
+                            const savedInteraction = await AppDataSource.getRepository(Interaction).save(interaction);
+                            createdInteractionId = savedInteraction.id;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error al crear interacción de técnico:', error);
+                }
+
+                // Notificar al técnico asignado
+                try {
+                    const userRepo = AppDataSource.getRepository(User);
+                    const users = await userRepo.find();
+                    const techName = technician.toLowerCase().trim();
+                    const normalizedTechName = techName.replace(/\s+/g, ' ');
+                    const normalizedTechEmail = techEntity?.email?.toLowerCase().trim();
+
+                    const techUser = users.find(u => {
+                        const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim().toLowerCase();
+                        const normalizedFullName = fullName.replace(/\s+/g, ' ');
+                        const userEmail = u.email?.toLowerCase().trim();
+
+                        if (normalizedTechEmail && userEmail && normalizedTechEmail === userEmail) {
+                            return true;
+                        }
+
+                        if (!normalizedFullName) {
+                            return false;
+                        }
+
+                        return normalizedFullName === normalizedTechName ||
+                               normalizedFullName.includes(normalizedTechName) ||
+                               normalizedTechName.includes(normalizedFullName);
+                    });
+
+                    if (techUser) {
+                        const linkBase = `/clients/${client.id}?tab=crm`;
+                        const link = createdInteractionId ? `${linkBase}&interactionId=${createdInteractionId}` : linkBase;
+                        await NotificationService.create(
+                            techUser,
+                            `Nueva instalación asignada - Cliente: ${client.fullName}`,
+                            link
+                        );
+                    }
+                } catch (error) {
+                    console.error('Error al enviar notificación:', error);
+                }
+            }
 
             // Crear interacción si hay nota
             if (notes) {

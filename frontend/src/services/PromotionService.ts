@@ -46,8 +46,9 @@ export const PromotionService = {
     },
     
     // Helper to get full URL
+    // Usa ruta relativa para que nginx haga el proxy a /uploads correctamente
     getImageUrl: (relativePath: string) => {
         if (relativePath.startsWith('http')) return relativePath;
-        return `${BASE_URL}${relativePath}`;
+        return relativePath; // e.g. /uploads/promotions/promo-xxx.png → nginx proxy
     }
 };

@@ -18,6 +18,7 @@ import { Client } from '../../types/Client';
 import { ClientService } from '../../services/ClientService';
 import { useNavigate } from 'react-router-dom';
 import { formatPhoneForDisplay } from '../../utils/formatters';
+import AuthService from '../../services/AuthService';
 
 interface ClientFormProps {
     client?: Client;
@@ -27,6 +28,7 @@ interface ClientFormProps {
 export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
     const navigate = useNavigate();
     const [isEditable, setIsEditable] = useState(!client);
+    const currentUser = AuthService.getCurrentUser();
     const [formData, setFormData] = useState({
         fullName: '',
         identificationNumber: '',
@@ -36,7 +38,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         secondaryPhone: '',
         email: '',
         status: 'active',
-        suspension_extension_date: ''
+        suspension_extension_date: '',
+        sucursal: currentUser?.sucursal || 'CALI'
     });
 
     useEffect(() => {
@@ -52,7 +55,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 email: client.email || '',
                 status: client.status || 'active',
                 // Asegurar formato YYYY-MM-DD si viene fecha ISO completa
-                suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : ''
+                suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : '',
+                sucursal: client.sucursal || currentUser?.sucursal || 'CALI'
             });
             setIsEditable(false);
         } else {
@@ -71,7 +75,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 secondaryPhone: formatPhoneForDisplay(client.secondaryPhone),
                 email: client.email || '',
                 status: client.status || 'active',
-                suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : ''
+                suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : '',
+                sucursal: client.sucursal || currentUser?.sucursal || 'CALI'
             });
             setIsEditable(false);
         }
@@ -136,7 +141,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 <Typography variant="h5">
                     {client ? 'Información del Cliente' : 'Nuevo Cliente'}
                 </Typography>
-                {client && !isEditable && (
+                {client && !isEditable && !AuthService.hasRole('tecnico') && (
                     <Button
                         startIcon={<EditIcon />}
                         variant="contained"
@@ -195,6 +200,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                             onChange={handleInputChange}
                             disabled={!isEditable}
                         />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth disabled={!isEditable || !!currentUser?.sucursal}>
+                            <InputLabel>Sucursal</InputLabel>
+                            <Select
+                                name="sucursal"
+                                value={formData.sucursal}
+                                onChange={handleSelectChange}
+                                label="Sucursal"
+                            >
+                                <MenuItem value="CALI">Cali</MenuItem>
+                                <MenuItem value="PASTO">Pasto</MenuItem>
+                                <MenuItem value="OTRA">Otra</MenuItem>
+                            </Select>
+                        </FormControl>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
@@ -268,13 +289,28 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                         />
                     </Grid>
 
+                    {/* Boton Editar: Solo si no es técnico */}
+                    {client && !isEditable && !AuthService.hasRole('tecnico') && (
+                         <Box sx={{ position: 'absolute', top: 20, right: 20 }}>
+                            <Button 
+                                onClick={() => setIsEditable(true)} 
+                                startIcon={<EditIcon />} 
+                                variant="outlined" 
+                                size="small"
+                            >
+                                Editar
+                            </Button>
+                         </Box>
+                    )}
+
                     {isEditable && (
-                        <Grid item xs={12} sx={{ display: 'flex', gap: 2 }}>
+                        <Grid item xs={12} sx={{ display: 'flex', gap: 2, mt: 2 }}>
                             <Button
                                 type="submit"
                                 variant="contained"
                                 color="primary"
                                 startIcon={<SaveIcon />}
+                                fullWidth
                             >
                                 {client ? 'Guardar Cambios' : 'Crear Cliente'}
                             </Button>
@@ -284,6 +320,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                                     color="secondary"
                                     onClick={handleCancel}
                                     startIcon={<CancelIcon />}
+                                    fullWidth
                                 >
                                     Cancelar
                                 </Button>

@@ -41,6 +41,24 @@ export class Client {
     @Column({ nullable: true })
     onuSerialNumber?: string;
 
+    @Column({ type: 'int', nullable: true })
+    requestedPlanId?: number | null;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    requestedPlanName?: string | null;
+
+    @Column({ type: 'int', nullable: true })
+    requestedPlanSpeedMbps?: number | null;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    requestedPlanMonthlyFee?: number | null;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    requestedInstallationFee?: number | null;
+
+    @Column({ type: 'varchar', length: 100, nullable: true, default: 'CALI' })
+    sucursal?: string | null;
+
     @Column({ default: 'active' })
     status: string;
 

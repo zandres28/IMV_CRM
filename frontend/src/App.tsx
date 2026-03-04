@@ -23,7 +23,8 @@ import {
   ListSubheader,
   Tooltip,
   Avatar,
-  InputBase
+  InputBase,
+  Badge
 } from '@mui/material';
 import { 
   KeyboardArrowDown, 
@@ -58,10 +59,11 @@ import {
   Handyman as TechnicianIcon,
   Assessment as ChartIcon,
   Code as ApiIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import AuthService from './services/AuthService';
-import axios from 'axios';
+import NotificationService, { Notification } from './services/NotificationService';
 
 import SessionTimeoutHandler from './components/SessionTimeoutHandler';
 import { jwtDecode } from 'jwt-decode';
@@ -96,7 +98,75 @@ function App() {
   const [paramsOpen, setParamsOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
 
+  // Notification State
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
+
   const user = AuthService.getCurrentUser();
+
+  const fetchNotifications = async () => {
+      try {
+          if (AuthService.getCurrentUser()) {
+              const list = await NotificationService.getAll();
+              setNotifications(list);
+          const unreadTotal = list.filter(n => !n.isRead).length;
+          setUnreadCount(unreadTotal);
+          }
+      } catch (e) {
+          console.error("Error fetching notifications", e);
+      }
+  };
+
+  useEffect(() => {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+      return () => clearInterval(interval);
+  }, []);
+
+  const handleNotificationClick = (event: React.MouseEvent<HTMLElement>) => {
+      setNotificationAnchor(event.currentTarget);
+      fetchNotifications(); // Refresh on open
+  };
+
+  const handleNotificationClose = () => {
+      setNotificationAnchor(null);
+  };
+
+  const handleNotificationItemClick = async (notification: Notification) => {
+      try {
+        const wasUnread = !notification.isRead;
+        await NotificationService.markAsRead(notification.id);
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        if (wasUnread) {
+          setUnreadCount(prev => Math.max(prev - 1, 0));
+        }
+          handleNotificationClose();
+          if (notification.link) {
+              // If link is like /clients/:id, we might need to pass state to open specific tab
+              // The backend sets link as `/clients/${client.id}`
+              // But for technician we want to open Installations tab.
+              // By default ClientDetail opens installations tab for technician role (I fixed this in previous turn).
+              // So just navigating is enough.
+              navigate(notification.link);
+          }
+      } catch (error) {
+          console.error(error);
+      }
+  };
+
+    const handleDeleteNotification = async (event: React.MouseEvent<HTMLElement>, notification: Notification) => {
+      event.stopPropagation();
+      try {
+        await NotificationService.delete(notification.id);
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        if (!notification.isRead) {
+          setUnreadCount(prev => Math.max(prev - 1, 0));
+        }
+      } catch (error) {
+        console.error('Error deleting notification', error);
+      }
+    };
 
   const getPageTitle = (path: string) => {
     if (path.includes('/dashboard')) return 'Panel Principal';
@@ -274,6 +344,13 @@ function App() {
           <ListItemText primary="Formulario Web Solicitud" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
         </ListItem>
 
+        {AuthService.hasPermission('billing.view') && (
+          <ListItem button component={Link} to="/billing" onClick={handleDrawerToggle} selected={location.pathname === '/billing'}>
+            <ListItemIcon><ReceiptIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Facturación" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+          </ListItem>
+        )}
+
         <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
           INFRAESTRUCTURA
         </ListSubheader>
@@ -282,17 +359,6 @@ function App() {
           <ListItemIcon><NetworkIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Monitor Mikrotik" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
         </ListItem>
-
-        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
-          FACTURACIÓN
-        </ListSubheader>
-        
-        {AuthService.hasPermission('billing.view') && (
-          <ListItem button component={Link} to="/billing" onClick={handleDrawerToggle} selected={location.pathname === '/billing'}>
-            <ListItemIcon><ReceiptIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Generar Cobros" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
 
         <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
 
@@ -453,10 +519,55 @@ function App() {
                 }}
               />
               
-              <IconButton size="small" sx={{ color: '#d1d3e2' }}>
-                <NotificationsIcon fontSize="small" />
-                <Box sx={{ position: 'absolute', top: 5, right: 5, width: 8, height: 8, bgcolor: '#e74a3b', borderRadius: '50%', border: '2px solid #fff' }} />
+              <IconButton size="small" sx={{ color: '#d1d3e2' }} onClick={handleNotificationClick}>
+                <Badge badgeContent={unreadCount} color="error">
+                    <NotificationsIcon fontSize="small" />
+                </Badge>
               </IconButton>
+              
+              <Menu
+                  anchorEl={notificationAnchor}
+                  open={Boolean(notificationAnchor)}
+                  onClose={handleNotificationClose}
+                  PaperProps={{
+                      style: {
+                          maxHeight: 300,
+                          width: '350px',
+                      },
+                  }}
+              >
+                  {notifications.length === 0 ? (
+                      <MenuItem onClick={handleNotificationClose}>No tienes notificaciones nuevas</MenuItem>
+                  ) : (
+                      notifications.map((notification) => (
+                          <MenuItem 
+                            key={notification.id} 
+                            onClick={() => handleNotificationItemClick(notification)}
+                            sx={{ whiteSpace: 'normal', fontSize: '0.8rem', borderBottom: '1px solid #eee' }}
+                          >
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', gap: 1 }}>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: notification.isRead ? 'normal' : 'bold' }}>
+                                {notification.message}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                {new Date(notification.createdAt).toLocaleString()}
+                              </Typography>
+                            </Box>
+                            <Tooltip title="Eliminar notificación">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={(event) => handleDeleteNotification(event, notification)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                          </MenuItem>
+                      ))
+                  )}
+              </Menu>
               
               <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 32, alignSelf: 'center', borderColor: '#e3e6f0' }} />
               

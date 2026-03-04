@@ -24,6 +24,7 @@ interface InstallationFormProps {
     onSave: (installation: Partial<Installation>) => void;
     installation?: Installation;
     clientId?: number;
+    prefillData?: Partial<Installation>;
 }
 
 export const InstallationForm: React.FC<InstallationFormProps> = ({
@@ -31,17 +32,18 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
     onClose,
     onSave,
     installation,
-    clientId
+    clientId,
+    prefillData
 }) => {
     const [plans, setPlans] = React.useState<ServicePlan[]>([]);
     const [technicians, setTechnicians] = React.useState<Technician[]>([]);
     const [plansLoading, setPlansLoading] = React.useState<boolean>(true);
     const [techsLoading, setTechsLoading] = React.useState<boolean>(true);
 
-    const [formData, setFormData] = React.useState<Partial<Installation>>({
-        servicePlanId: undefined,
-        serviceType: '',
-        speedMbps: 0,
+    const buildDefaultForm = React.useCallback((): Partial<Installation> => ({
+        servicePlanId: prefillData?.servicePlanId,
+        serviceType: prefillData?.serviceType || '',
+        speedMbps: prefillData?.speedMbps ?? 0,
         routerModel: '',
         onuSerialNumber: '',
         ponId: '',
@@ -49,12 +51,14 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
         ipAddress: '',
         technician: '',
         notes: '',
-        monthlyFee: 0,
-        installationFee: 0,
-        serviceStatus: 'active',
+        monthlyFee: prefillData?.monthlyFee ?? 0,
+        installationFee: prefillData?.installationFee ?? 40000,
+        serviceStatus: 'active' as Installation['serviceStatus'],
         installationDate: new Date().toISOString().split('T')[0],
         retirementDate: ''
-    });
+    }), [prefillData]);
+
+    const [formData, setFormData] = React.useState<Partial<Installation>>(buildDefaultForm);
 
     React.useEffect(() => {
         if (installation) {
@@ -83,24 +87,9 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
             }
             setFormData(initial);
         } else {
-            setFormData({
-                servicePlanId: undefined,
-                serviceType: '',
-                speedMbps: 0,
-                routerModel: '',
-                onuSerialNumber: '',
-                ponId: '',
-                onuId: '',
-                ipAddress: '',
-                technician: '',
-                notes: '',
-                monthlyFee: 0,
-                installationFee: 40000,
-                serviceStatus: 'active',
-                installationDate: toInputDateString(new Date())
-            });
+            setFormData(buildDefaultForm());
         }
-    }, [installation, plans]);
+    }, [installation, plans, buildDefaultForm]);
 
     React.useEffect(() => {
         // fetch plans and technicians

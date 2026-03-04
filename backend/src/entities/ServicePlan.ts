@@ -20,6 +20,9 @@ export class ServicePlan {
     @Column({ default: true })
     isActive!: boolean;
 
+    @Column({ type: 'varchar', length: 100, nullable: true, default: 'CALI' })
+    sucursal?: string | null;
+
     @CreateDateColumn()
     created_at!: Date;
 

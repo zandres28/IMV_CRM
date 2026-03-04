@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -19,6 +19,27 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // EFECTO DE LIMPIEZA: Forzar la eliminación de capas bloqueantes (Backdrops/Modales) al montar Login
+  useEffect(() => {
+    // 1. Restaurar scroll en body
+    document.body.style.overflow = 'auto';
+    document.body.style.paddingRight = '0px';
+
+    // 2. Buscar y eliminar manualmente elementos MuiBackdrop que hayan quedado colgados
+    const strayBackdrops = document.querySelectorAll('.MuiBackdrop-root');
+    if (strayBackdrops.length > 0) {
+      console.warn('Limpiando modales/backdrops colgados al iniciar sesión...');
+      strayBackdrops.forEach(el => el.remove());
+    }
+
+    // 3. Eliminar otros posibles bloqueos por estilos en linea
+    const root = document.getElementById('root');
+    if (root) {
+        root.style.opacity = '1';
+        root.style.pointerEvents = 'auto';
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
