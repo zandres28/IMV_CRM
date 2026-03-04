@@ -19,32 +19,25 @@ async function main() {
       const have = product.installmentPayments?.length || 0;
       if (have >= product.installments) continue;
 
-      const start = new Date(product.saleDate);
-      // Si ya hay algunas cuotas, comenzar a partir de la última dueDate
-      let current = new Date(start);
-      if (have > 0) {
-        const last = product.installmentPayments.reduce((acc, it) =>
-          acc && acc > it.dueDate ? acc : it.dueDate,
-        new Date(0));
-        current = new Date(last);
-      }
+      const baseDate = new Date(product.saleDate);
 
       const toCreate = product.installments - have;
       for (let i = 0; i < toCreate; i++) {
-        // avanzar un mes
-        current.setMonth(current.getMonth() + 1);
+        const cuotaIndex = have + i; // 0-based index for this cuota
+        // Misma regla que ProductController: día 5 del (mes siguiente + índice)
+        const dueDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1 + cuotaIndex, 5);
         const inst = instRepo.create({
           product,
           installmentNumber: have + i + 1,
           amount: product.installmentAmount,
-          dueDate: new Date(current),
+          dueDate,
           status: "pending",
         });
         await instRepo.save(inst);
         created++;
       }
 
-      console.log(`Producto ${product.id} -> cuotas existentes: ${have}, creadas: ${toCreate}`);
+      console.log(`Producto ${product.id} (${product.productName}) -> cuotas existentes: ${have}, creadas: ${toCreate}`);
     }
 
     console.log(`Cuotas creadas: ${created}`);
