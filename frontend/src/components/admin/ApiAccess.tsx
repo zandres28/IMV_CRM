@@ -11,7 +11,13 @@ import {
     AccordionSummary, 
     AccordionDetails, 
     Chip,
-    Divider
+    Divider,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -257,9 +263,16 @@ const ApiAccess: React.FC = () => {
             method: 'GET',
             path: '/api/n8n/payment-reminders',
             description: '[N8N] Listar clientes/saldos para notificaciones de cobranza (WhatsApp)',
-            params: 'paymentStatus (pay [pendientes+vencidos] | paid | all), clientStatus (active | inactive | all), sentFilter (true/false: excluir si ya enviado este mes), month (Ej: FEBRERO), year (2026)',
-            example: `curl -X GET "http://localhost:3001/api/n8n/payment-reminders?paymentStatus=pay&sentFilter=false&month=FEBRERO&year=2026" \\
--H "Authorization: Bearer ${token}"`
+            params: 'paymentStatus, clientStatus, reminderType, sentFilter, month, year',
+            paramTable: [
+                { param: 'reminderType', values: 'PROXIMO | VENCIDO | ULTIMO | PAGADO', description: 'Filtra por tipo de recordatorio. PROXIMO: aún no vence. VENCIDO: pasado la fecha (dentro del rango configurado). ULTIMO: muy atrasado (supera rango). PAGADO: ya cancelado.' },
+                { param: 'paymentStatus', values: 'pending | overdue | paid', description: 'pending: no pagados (incluye pendientes y vencidos). overdue: solo los que ya superaron la fecha límite (TIPO=VENCIDO o ULTIMO). paid/approved: ya pagados.' },
+                { param: 'clientStatus', values: 'active (default) | inactive | all', description: 'Estado del cliente en el sistema. Por defecto solo activos.' },
+                { param: 'sentFilter', values: 'YES / NO', description: 'YES: solo los que ya recibieron recordatorio este mes. NO: solo los que aún no han recibido.' },
+                { param: 'month', values: 'ENERO, FEBRERO ... DICIEMBRE', description: 'Mes a consultar en mayúsculas. Por defecto: mes actual.' },
+                { param: 'year', values: 'Ej: 2026', description: 'Año a consultar. Por defecto: año actual.' },
+            ],
+            example: `# Clientes vencidos que no han recibido recordatorio:\ncurl -X GET "http://localhost:3001/api/n8n/payment-reminders?reminderType=VENCIDO&sentFilter=NO" \\\n-H "Authorization: Bearer ${token}"\n\n# Todos los no pagados (vencidos + pendientes) del mes actual:\ncurl -X GET "http://localhost:3001/api/n8n/payment-reminders?paymentStatus=overdue" \\\n-H "Authorization: Bearer ${token}"\n\n# Consulta de un mes específico:\ncurl -X GET "http://localhost:3001/api/n8n/payment-reminders?month=FEBRERO&year=2026&paymentStatus=pending" \\\n-H "Authorization: Bearer ${token}"`
         },
         {
             method: 'POST',
@@ -419,6 +432,32 @@ const ApiAccess: React.FC = () => {
                                     <Paper variant="outlined" sx={{ p: 1, bgcolor: '#f5f5f5' }}>
                                         <code>{endpoint.params}</code>
                                     </Paper>
+                                </Box>
+                            )}
+
+                            {(endpoint as any).paramTable && (
+                                <Box>
+                                    <Typography variant="subtitle2" gutterBottom>Detalle de Parámetros:</Typography>
+                                    <TableContainer component={Paper} variant="outlined">
+                                        <Table size="small">
+                                            <TableHead>
+                                                <TableRow sx={{ bgcolor: '#f0f4ff' }}>
+                                                    <TableCell sx={{ fontWeight: 'bold', width: '160px' }}>Parámetro</TableCell>
+                                                    <TableCell sx={{ fontWeight: 'bold', width: '260px' }}>Valores</TableCell>
+                                                    <TableCell sx={{ fontWeight: 'bold' }}>Descripción</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {(endpoint as any).paramTable.map((row: any, i: number) => (
+                                                    <TableRow key={i} sx={{ '&:last-child td': { border: 0 } }}>
+                                                        <TableCell><code style={{ color: '#1976d2', fontWeight: 600 }}>{row.param}</code></TableCell>
+                                                        <TableCell><code style={{ fontSize: '0.78rem' }}>{row.values}</code></TableCell>
+                                                        <TableCell><Typography variant="body2">{row.description}</Typography></TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
                                 </Box>
                             )}
                             
