@@ -490,6 +490,9 @@ const MonthlyBilling: React.FC = () => {
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalAmount)}
                                 </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    {stats.total} clientes
+                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -502,6 +505,9 @@ const MonthlyBilling: React.FC = () => {
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.paidAmount)}
                                 </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    {stats.paid} clientes
+                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -513,6 +519,9 @@ const MonthlyBilling: React.FC = () => {
                                 </Typography>
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.pendingAmount)}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    {stats.pending + stats.overdue} clientes
                                 </Typography>
                             </CardContent>
                         </Card>
@@ -532,6 +541,9 @@ const MonthlyBilling: React.FC = () => {
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalServicePlan)}
                                 </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    {stats.total} clientes
+                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -543,6 +555,9 @@ const MonthlyBilling: React.FC = () => {
                                 </Typography>
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalAdditionalServices)}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    {stats.countAdditionalServices ?? 0} clientes
                                 </Typography>
                             </CardContent>
                         </Card>
@@ -556,6 +571,9 @@ const MonthlyBilling: React.FC = () => {
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalProducts)}
                                 </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    {stats.countProducts ?? 0} clientes
+                                </Typography>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -567,6 +585,9 @@ const MonthlyBilling: React.FC = () => {
                                 </Typography>
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.totalInstallationFees || 0)}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    {stats.countInstallations ?? 0} nuevas
                                 </Typography>
                             </CardContent>
                         </Card>

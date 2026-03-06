@@ -571,7 +571,11 @@ export class MonthlyBillingController {
                 totalServicePlan: paymentsWithReminder.reduce((sum, p) => sum + Number(p.servicePlanAmount || 0), 0),
                 totalAdditionalServices: paymentsWithReminder.reduce((sum, p) => sum + Number(p.additionalServicesAmount || 0), 0),
                 totalProducts: paymentsWithReminder.reduce((sum, p) => sum + Number(p.productInstallmentsAmount || 0), 0),
-                totalInstallationFees: 0 // Placeholder
+                totalInstallationFees: 0, // Placeholder
+                // Conteo de clientes por ítem
+                countAdditionalServices: paymentsWithReminder.filter(p => Number(p.additionalServicesAmount || 0) > 0).length,
+                countProducts: paymentsWithReminder.filter(p => Number(p.productInstallmentsAmount || 0) > 0).length,
+                countInstallations: 0 // Placeholder
             };
 
             // Obtener recaudos por instalaciones en este mes (basado en fecha de instalación)
@@ -589,6 +593,7 @@ export class MonthlyBillingController {
             });
 
             stats.totalInstallationFees = installationsInMonth.reduce((sum, inst) => sum + Number(inst.installationFee || 0), 0);
+            stats.countInstallations = installationsInMonth.length;
 
             res.json({ payments: paymentsWithReminder, stats });
 

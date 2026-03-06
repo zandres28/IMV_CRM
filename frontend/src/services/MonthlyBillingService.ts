@@ -84,6 +84,9 @@ export interface BillingStats {
     totalAdditionalServices: number;
     totalProducts: number;
     totalInstallationFees: number;
+    countAdditionalServices: number;
+    countProducts: number;
+    countInstallations: number;
 }
 
 export interface MonthlyBillingResponse {
