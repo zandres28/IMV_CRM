@@ -128,9 +128,11 @@ export const ROLE_PERMISSIONS = {
   ],
   
   tecnico: [
-    // Clientes - Solo lectura en listado y CRM
+    // Clientes - Solo lectura en listado y CRM (crear y editar interacciones propias)
     PERMISSIONS.CLIENTS.LIST.VIEW,
     PERMISSIONS.CLIENTS.CRM.VIEW,
+    PERMISSIONS.CLIENTS.CRM.CREATE,
+    PERMISSIONS.CLIENTS.CRM.EDIT,
     // Caídas - Ver, crear, editar
     PERMISSIONS.CLIENTS.OUTAGES.VIEW,
     PERMISSIONS.CLIENTS.OUTAGES.CREATE,
