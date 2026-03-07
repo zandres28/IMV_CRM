@@ -598,13 +598,13 @@ export const ClientList: React.FC = () => {
                                             <Typography variant="caption" color="text.secondary">Cargando info...</Typography>
                                         ) : (
                                             <>
-                                                {/* Planes activos */}
-                                                {services.installations?.filter(inst => inst.isActive).map((inst) => (
+                                                {/* Planes activos y suspendidos */}
+                                                {services.installations?.filter(inst => !inst.isDeleted && inst.serviceStatus !== 'cancelled').map((inst) => (
                                                     <Chip
                                                         key={`plan-${inst.id}`}
                                                         label={inst.servicePlan?.name || inst.serviceType}
                                                         size="small"
-                                                        color="primary"
+                                                        color={inst.serviceStatus === 'active' ? 'primary' : 'warning'}
                                                         variant="filled"
                                                         sx={{ fontWeight: 'bold' }}
                                                     />
@@ -846,22 +846,25 @@ export const ClientList: React.FC = () => {
                                                         sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#e74a3b', color: 'white' }}
                                                     />
                                                 )}
-                                                {/* Planes activos */}
-                                                {services?.installations?.filter(inst => inst.isActive).map((inst) => (
-                                                    <Chip
-                                                        key={`plan-${inst.id}`}
-                                                        label={(inst.servicePlan?.name || inst.serviceType).toUpperCase()}
-                                                        size="small"
-                                                        sx={{ 
-                                                            height: 18, 
-                                                            fontSize: '0.6rem', 
-                                                            fontWeight: 800, 
-                                                            bgcolor: '#1cc88a20', 
-                                                            color: '#1cc88a',
-                                                            border: '1px solid #1cc88a'
-                                                        }}
-                                                    />
-                                                ))}
+                                                {/* Planes activos y suspendidos */}
+                                                {services?.installations?.filter(inst => !inst.isDeleted && inst.serviceStatus !== 'cancelled').map((inst) => {
+                                                    const isSuspended = inst.serviceStatus === 'suspended';
+                                                    return (
+                                                        <Chip
+                                                            key={`plan-${inst.id}`}
+                                                            label={(inst.servicePlan?.name || inst.serviceType).toUpperCase()}
+                                                            size="small"
+                                                            sx={{ 
+                                                                height: 18, 
+                                                                fontSize: '0.6rem', 
+                                                                fontWeight: 800, 
+                                                                bgcolor: isSuspended ? '#f6c23e20' : '#1cc88a20', 
+                                                                color: isSuspended ? '#f6c23e' : '#1cc88a',
+                                                                border: `1px solid ${isSuspended ? '#f6c23e' : '#1cc88a'}`
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
                                                 {/* Servicios adicionales activos */}
                                                 {(() => {
                                                     if (!services) return null;
