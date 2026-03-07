@@ -292,8 +292,9 @@ export const ClientDetail: React.FC = () => {
     }
 
     // Obtener planes con su estado de instalación
+    // Se muestran instalaciones activas Y suspendidas (no canceladas ni eliminadas)
     const plansWithStatus = installations
-        .filter(inst => inst.isActive)
+        .filter(inst => !inst.isDeleted && inst.serviceStatus !== 'cancelled')
         .map(inst => ({
             name: inst.servicePlan?.name || inst.serviceType,
             status: inst.serviceStatus
