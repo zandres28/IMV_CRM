@@ -923,11 +923,11 @@ export const ClientList: React.FC = () => {
                                             {client.installationAddress}
                                         </TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#5a5c69' }}>{client.city}</TableCell>
-                                        <TableCell sx={{ fontSize: '0.7rem' }}>
+                                        <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>
                                             {instWithSerial?.napLabel ? (
                                                 <Chip label={instWithSerial.napLabel} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, borderColor: '#4e73df', color: '#4e73df' }} variant="outlined" />
                                             ) : (
-                                                ponEntry?.nombre || '-'
+                                                <Typography sx={{ fontSize: '0.7rem', color: '#c0c0c0', fontStyle: 'italic' }}>Sin asignar</Typography>
                                             )}
                                         </TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>{formatPhoneForDisplay(client.primaryPhone)}</TableCell>
