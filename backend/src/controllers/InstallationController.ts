@@ -116,10 +116,24 @@ export class InstallationController {
                 let createdInteractionId: number | null = null;
                 let techEntity: Technician | null = null;
 
+                // Helper: normalizar cadena eliminando acentos, espacios extra y poniendo en minúsculas
+                const normStr = (s: string) =>
+                    (s || '').toLowerCase().trim().replace(/\s+/g, ' ')
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+                const normalizedTechName = normStr(technician);
+
                 // Crear interacción CRM para el técnico
                 try {
                     const techRepo = AppDataSource.getRepository(Technician);
+                    // Primero búsqueda exacta, luego fuzzy por nombre si no encontró
                     techEntity = await techRepo.findOne({ where: { name: technician } });
+                    if (!techEntity) {
+                        const allTechs = await techRepo.find();
+                        techEntity = allTechs.find(t => normStr(t.name) === normalizedTechName) || null;
+                    }
+
+                    console.log(`[Notification] Técnico buscado: "${technician}" → entidad encontrada: ${techEntity ? `ID ${techEntity.id} userId=${techEntity.userId}` : 'NO ENCONTRADA'}`);
                     
                     if (techEntity) {
                         const typeRepo = AppDataSource.getRepository(InteractionType);
@@ -156,23 +170,28 @@ export class InstallationController {
                     // 1. Prioridad: enlace directo userId en la entidad Technician
                     if (techEntity?.userId) {
                         techUser = await userRepo.findOne({ where: { id: techEntity.userId } }) || null;
+                        console.log(`[Notification] Paso 1 (userId=${techEntity.userId}): ${techUser ? `encontrado ${techUser.email}` : 'no encontrado'}`);
                     }
 
                     // 2. Fallback: buscar por email del técnico
                     if (!techUser && techEntity?.email) {
                         techUser = await userRepo.findOne({ where: { email: techEntity.email } }) || null;
+                        console.log(`[Notification] Paso 2 (email=${techEntity.email}): ${techUser ? `encontrado ${techUser.email}` : 'no encontrado'}`);
                     }
 
-                    // 3. Último recurso: comparación por nombre (fuzzy)
+                    // 3. Último recurso: comparación por nombre normalizando acentos
                     if (!techUser) {
-                        const normalizedTechName = technician.toLowerCase().trim().replace(/\s+/g, ' ');
-                        const users = await userRepo.find();
-                        techUser = users.find(u => {
-                            const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim().toLowerCase().replace(/\s+/g, ' ');
+                        const allUsers = await userRepo.find();
+                        techUser = allUsers.find(u => {
+                            const fullName = normStr(`${u.firstName || ''} ${u.lastName || ''}`);
                             return fullName === normalizedTechName ||
                                    fullName.includes(normalizedTechName) ||
                                    normalizedTechName.includes(fullName);
                         }) || null;
+                        console.log(`[Notification] Paso 3 (fuzzy nombre="${technician}"): ${techUser ? `encontrado ${techUser.email}` : 'NO encontrado'}`);
+                        if (!techUser) {
+                            console.warn(`[Notification] ⚠ Sin usuario para técnico "${technician}". Vincule el técnico a un Usuario CRM en Administración > Técnicos.`);
+                        }
                     }
 
                     if (techUser) {
@@ -183,8 +202,7 @@ export class InstallationController {
                             `Nueva instalación asignada - Cliente: ${client.fullName}`,
                             link
                         );
-                    } else {
-                        console.warn(`No se encontró usuario para el técnico: ${technician}`);
+                        console.log(`[Notification] ✓ Notificación enviada a ${techUser.email}`);
                     }
                 } catch (error) {
                     console.error('Error al enviar notificación:', error);

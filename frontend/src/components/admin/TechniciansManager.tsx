@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, IconButton, Box, TablePagination, Select, MenuItem, FormControl, InputLabel, Chip } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, IconButton, Box, TablePagination, Select, MenuItem, FormControl, InputLabel, Chip, Alert, Tooltip } from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Search as SearchIcon, WarningAmber as WarningAmberIcon } from '@mui/icons-material';
 import { TechnicianService, Technician } from '../../services/TechnicianService';
 import UserService, { User } from '../../services/UserService';
 
@@ -63,8 +63,16 @@ export const TechniciansManager: React.FC = () => {
         page * rowsPerPage + rowsPerPage
     );
 
+    const unlinkedTechs = techs.filter(t => t.isActive && !t.userId);
+
     return (
         <Paper sx={{ p: 2 }}>
+            {unlinkedTechs.length > 0 && (
+                <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningAmberIcon />}>
+                    <strong>{unlinkedTechs.length} técnico(s) sin Usuario CRM vinculado:</strong> {unlinkedTechs.map(t => t.name).join(', ')}.
+                    &nbsp;Sin esta vinculación <strong>no recibirán notificaciones</strong> cuando se les asigne una instalación. Edita cada técnico y selecciona su Usuario CRM.
+                </Alert>
+            )}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenNew}>Nuevo Técnico</Button>
                 <TextField
@@ -107,7 +115,17 @@ export const TechniciansManager: React.FC = () => {
                                 <TableCell>
                                     {t.userId
                                         ? (() => { const u = users.find(u => u.id === t.userId); return u ? <Chip label={`${u.firstName} ${u.lastName}`} size="small" color="success" /> : <Chip label={`ID: ${t.userId}`} size="small" color="warning" />; })()
-                                        : <Chip label="Sin vincular" size="small" variant="outlined" color="default" />}
+                                        : (
+                                            <Tooltip title="Sin vincular: este técnico no recibirá notificaciones de instalaciones">
+                                                <Chip
+                                                    icon={<WarningAmberIcon style={{ fontSize: 14 }} />}
+                                                    label="Sin vincular"
+                                                    size="small"
+                                                    color="warning"
+                                                    variant="outlined"
+                                                />
+                                            </Tooltip>
+                                        )}
                                 </TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleEdit(t)}><EditIcon/></IconButton>
