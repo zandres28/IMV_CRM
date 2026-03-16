@@ -23,6 +23,7 @@ import ServiceRequestForm from '../components/public/ServiceRequestForm';
 import RolesManager from '../components/admin/RolesManager';
 import { MikrotikGraphs } from '../components/network/MikrotikGraphs';
 import { PromotionsManager } from '../components/admin/PromotionsManager';
+import OnuSearch from '../components/installations/OnuSearch';
 
 const router = createBrowserRouter([
     {
@@ -80,6 +81,10 @@ const router = createBrowserRouter([
             {
                 path: "network/mikrotik",
                 element: <MikrotikGraphs />
+            },
+            {
+                path: "installations/onu-search",
+                element: <OnuSearch />
             },
             {
                 path: "dashboard",
