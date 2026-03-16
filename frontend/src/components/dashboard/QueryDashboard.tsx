@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Box, Paper, Typography, TextField, MenuItem, Button, Grid, Chip, Stack, Alert, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, TextField, MenuItem, Button, Grid, Chip, Stack, Alert, CircularProgress, Tabs, Tab } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { ReportService, ReportRow, ReportSummary, ReportType } from '../../services/ReportService';
 import DownloadIcon from '@mui/icons-material/Download';
 import { ServicePlanService, ServicePlan } from '../../services/ServicePlanService';
 import { formatLocalDate } from '../../utils/dateUtils';
+import OnuSearch from '../installations/OnuSearch';
 
 export default function QueryDashboard() {
+  const [tab, setTab] = useState(0);
   const [reportType, setReportType] = useState<ReportType>('account_status');
   const [clientStatus, setClientStatus] = useState<'active' | 'inactive' | 'all'>('active');
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'all'>('all');
@@ -209,6 +211,15 @@ export default function QueryDashboard() {
     <Box>
       <Typography variant="h5" gutterBottom>Consultas y Reportes</Typography>
 
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Tab label="Reportes" />
+        <Tab label="Buscar ONU por Serial" />
+      </Tabs>
+
+      {tab === 1 && <OnuSearch />}
+
+      {tab === 0 && (<>
+
       {summary && (
         <Paper sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
           <Grid container spacing={2}>
@@ -388,6 +399,7 @@ export default function QueryDashboard() {
           getRowId={(row: any) => row.id}
         />
       </Paper>
+      </>)}
     </Box>
   );
 }

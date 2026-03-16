@@ -12,6 +12,7 @@ COPY . .
 # Recibimos el argumento de build para inyectarlo en la variable de entorno durante el build
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV CI=false
 
 RUN npm run build
 

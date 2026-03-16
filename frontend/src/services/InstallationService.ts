@@ -89,5 +89,10 @@ export const InstallationService = {
     toggleOltService: async (id: number, action: 'enable' | 'disable') => {
         const response = await axios.post(`${API_URL}/installations/${id}/olt-service`, { action });
         return response.data;
+    },
+
+    searchByOnuSerial: async (serial: string): Promise<Installation> => {
+        const response = await axios.get(`${API_URL}/installations/search/onu/${encodeURIComponent(serial)}`);
+        return response.data;
     }
 };
