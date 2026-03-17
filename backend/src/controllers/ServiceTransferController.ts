@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AppDataSource } from "../config/database";
 import { ServiceTransfer } from "../entities/ServiceTransfer";
 import { Client } from "../entities/Client";
+import { Installation } from "../entities/Installation";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { createNoteInteraction } from "../utils/interactionUtils";
 import { Not } from "typeorm";
@@ -115,7 +116,7 @@ export const ServiceTransferController = {
     update: async (req: AuthRequest, res: Response) => {
         try {
             const { id } = req.params;
-            const { status, scheduledDate, completionDate, technicianId, notes, cost, newAddress } = req.body;
+            const { status, scheduledDate, completionDate, technicianId, notes, cost, newAddress, ponId, onuId } = req.body;
 
             const transfer = await transferRepository.findOne({ 
                 where: { id: parseInt(id) },
@@ -131,12 +132,22 @@ export const ServiceTransferController = {
                 // Actualizar la dirección del cliente
                 if (transfer.client) {
                     transfer.client.installationAddress = transfer.newAddress;
-                    // También actualizar la ciudad si cambió? Por ahora asumimos que es dentro de la misma ciudad o que el usuario actualiza la ciudad manualmente si es necesario.
-                    // O podríamos pedir la ciudad en el traslado.
-                    // Por simplicidad, solo actualizamos la dirección de instalación.
                     await clientRepository.save(transfer.client);
                 }
                 transfer.completionDate = completionDate || new Date();
+
+                // Actualizar ponId y onuId de la instalación activa del cliente
+                // (al cambiar de ubicación el ONU se conecta a un puerto diferente)
+                const installationRepository = AppDataSource.getRepository(Installation);
+                const installation = await installationRepository.findOne({
+                    where: { client: { id: transfer.clientId }, isDeleted: false },
+                    order: { id: 'DESC' }
+                });
+                if (installation) {
+                    installation.ponId = ponId || undefined;
+                    installation.onuId = onuId || undefined;
+                    await installationRepository.save(installation);
+                }
             }
 
             transferRepository.merge(transfer, req.body);

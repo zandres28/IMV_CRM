@@ -55,7 +55,9 @@ export const ServiceTransferList: React.FC = () => {
         status: 'pending',
         cost: 0,
         technicianId: '',
-        notes: ''
+        notes: '',
+        ponId: '',
+        onuId: ''
     });
 
     const loadData = useCallback(async () => {
@@ -89,7 +91,9 @@ export const ServiceTransferList: React.FC = () => {
                 status: transfer.status,
                 cost: transfer.cost,
                 technicianId: transfer.technicianId ? transfer.technicianId.toString() : '',
-                notes: transfer.notes || ''
+                notes: transfer.notes || '',
+                ponId: '',
+                onuId: ''
             });
         } else {
             setEditingTransfer(null);
@@ -102,7 +106,9 @@ export const ServiceTransferList: React.FC = () => {
                 status: 'pending',
                 cost: 0,
                 technicianId: '',
-                notes: ''
+                notes: '',
+                ponId: '',
+                onuId: ''
             });
         }
         setOpenDialog(true);
@@ -335,6 +341,30 @@ export const ServiceTransferList: React.FC = () => {
                                 />
                             )}
                         </Box>
+
+                        {formData.status === 'completed' && (
+                            <Box>
+                                <Typography variant="subtitle2" color="text.secondary" mb={1}>
+                                    ID del puerto OLT en la nueva ubicación (actualiza la instalación)
+                                </Typography>
+                                <Box display="flex" gap={2}>
+                                    <TextField
+                                        label="PON ID (P)"
+                                        fullWidth
+                                        placeholder="Ej: 0/0/1"
+                                        value={formData.ponId}
+                                        onChange={(e) => setFormData({ ...formData, ponId: e.target.value })}
+                                    />
+                                    <TextField
+                                        label="ONU ID (O)"
+                                        fullWidth
+                                        placeholder="Ej: 15"
+                                        value={formData.onuId}
+                                        onChange={(e) => setFormData({ ...formData, onuId: e.target.value })}
+                                    />
+                                </Box>
+                            </Box>
+                        )}
 
                         <TextField
                             label="Notas"

@@ -537,7 +537,7 @@ export const ClientController = {
             client.retirementDate = new Date(retirementDate);
             client.retirementReason = reason;
 
-            // Opcionalmente, marcar todas sus instalaciones como inactivas
+            // Marcar todas sus instalaciones como inactivas y liberar equipos
             if (client.installations && client.installations.length > 0) {
                 const installationRepository = AppDataSource.getRepository(require('../entities/Installation').Installation);
                 for (const installation of client.installations) {
@@ -545,6 +545,10 @@ export const ClientController = {
                         installation.isActive = false;
                         installation.serviceStatus = 'suspended';
                         installation.retirementDate = new Date(retirementDate);
+                        // Liberar ONU SN, PON ID y ONU ID para reasignación a otro cliente
+                        (installation as any).onuSerialNumber = null;
+                        installation.ponId = undefined;
+                        installation.onuId = undefined;
                         await installationRepository.save(installation);
                     }
                 }
