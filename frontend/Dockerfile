@@ -7,12 +7,15 @@ COPY package*.json ./
 
 RUN npm install
 
-COPY . .
-
 # Recibimos el argumento de build para inyectarlo en la variable de entorno durante el build
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV CI=false
+
+# ARG para forzar invalidación de caché cuando sea necesario
+ARG CACHEBUST=1
+
+COPY . .
 
 RUN npm run build
 
