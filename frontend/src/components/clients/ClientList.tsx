@@ -567,12 +567,12 @@ export const ClientList: React.FC = () => {
                                         </Box>
                                     </Box>
 
-                                    {ponEntry?.nombre && (
+                                    {(instWithSerial || installations.length > 0) && (
                                         <Box mb={1}>
                                             <Chip
-                                                label={`Etiqueta NAP: ${ponEntry.nombre}`}
+                                                label={instWithSerial?.napLabel ? `Etiqueta NAP: ${instWithSerial.napLabel}` : 'Sin asignar'}
                                                 size="small"
-                                                color="info"
+                                                color={instWithSerial?.napLabel ? 'info' : 'default'}
                                             />
                                         </Box>
                                     )}
