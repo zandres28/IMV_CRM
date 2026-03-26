@@ -1,0 +1,48 @@
+{
+  "_comentario": "Este archivo controla el conocimiento dinámico del agente IA. Edítalo libremente — los cambios aplican de inmediato sin reiniciar nada.",
+
+  "cobertura": {
+    "descripcion": "Barrios donde SÍ tenemos cobertura de fibra óptica",
+    "barrios": [
+      "El Guabal",
+      "Primero de Mayo",
+      "Departamental",
+      "Santo Domingo",
+      "Jorge Zawadsky",
+      "Panamericano",
+      "Santa Anita"      
+    ],
+    "mensaje_sin_cobertura": "Lastimosamente aún no tenemos cobertura en ese sector 😞 Pero te agregamos a la lista para avisarte cuando lleguemos ahí 😊"
+  },
+
+  "planes": {
+    "mensaje_exacto": "📶 PLANES SOLO INTERNET (Wi-Fi)\n✅ Sin cláusula de permanencia\n\n📶 Planes disponibles:  \n- 🌐 Plan Básico: 200 Megas – $45.000  \n- ⚡ Plan Estándar: 400 Megas – $60.000 | Netflix Gratis Incluído 🎁\n- 🚀 Plan Premium: 600 Megas – $75.000 | Netflix Gratis Incluído 🎁\n\n👉 Todos nuestros planes incluyen conexión por fibra óptica directa hasta tu hogar y no tienen cláusula de permanencia.\n\n📌 Precio por instalación:  \n- Valor : $50.000    \n\n🔧 ¿Qué incluye la instalación?  \n- Fibra óptica hasta tu hogar  \n- 1 o 2 puntos cableados (según lo que necesites)  \n- Configuración del WiFi con nombre y contraseña personalizados  \n\n📦 Equipos incluidos en comodato (ONU / módem de fibra óptica)  \n📝 En caso de cancelación, deberás devolverlos"
+  },
+
+  "programar instalación": {
+    "mensaje_exacto": "Genial, para programar tu instalación, por favor indícame tu dirección completa y un número de contacto. Nuestro equipo se comunicará contigo para coordinar la fecha y hora de la instalación. ¡Gracias por elegirnos! 😊"
+  },
+
+  "cuando preguntan por velocidad": {
+  "mensaje_exacto": "Todos nuestros planes son simétricos..."
+  },
+  "cliente molesto": {
+    "mensaje_exacto": "Entiendo tu inconveniente, con gusto te ayudo..."
+  },
+  "horario de atención": {
+    "mensaje_exacto": "Atendemos de lunes a viernes de 8am a 6pm, \n Sábados de 9am a 1pm😊"
+  },  
+    "promociones": {
+      "mensaje_promoción": "Actualmente tenemos una promoción especial para nuevos clientes: Si te suscribes a cualquiera de nuestros planes de internet de 400 o 600 megas, te regalamos una pantalla de Netflix 4K completamente gratis. ¡No pierdas esta oportunidad de disfrutar de una conexión rápida y confiable con nosotros! 😊"  
+  },
+  "notas_adicionales": [
+    "Si el cliente pregunta por el plan de 200 megas, es el Plan Básico a $45.000",
+    "Si el cliente pregunta por el plan de 400 megas, es el Plan Estándar a $60.000 y viene con Netflix gratis incluido",
+    "Si el cliente pregunta por el plan de 600 megas, es el Plan Premium a $75.000 y viene con Netflix gratis incluido",
+    "No repitas información que ya diste, si el cliente pregunta por algo que ya mencionaste, simplemente dile 'Como te mencioné anteriormente...'",
+    "No muestres información que no te hayan preguntado, si el cliente no pregunta por algo, no lo menciones",
+    "Si el cliente pregunta por algo que no sabes, dile 'Déjame verificar esa información para darte una respuesta precisa' y luego búscala en internet o en tus fuentes de información para responderle correctamente",
+    "Si el cliente pregunta por algo que no tienes en tu conocimiento, dile 'Lamento no tener esa información en este momento, pero puedo ayudarte con lo que sí sé' y luego ofrécele la información que sí tienes disponible",
+    "No muestres información de medios de pago, a menos que el cliente pregunte específicamente por eso, si el cliente pregunta por medios de pago, dile 'Aceptamos pagos en efectivo, transferencias bancarias, Bre-B'"
+  ]
+}

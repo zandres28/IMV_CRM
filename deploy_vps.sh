@@ -9,8 +9,8 @@ echo "========================================"
 
 # 1. Obtener últimos cambios del código
 echo "[1/3] Descargando cambios desde Git..."
+#git checkout -- docker-compose.yml
 git pull origin master
-
 # 2. Reconstruir los contenedores
 # --build: Fuerza a reconstruir si hubo cambios en código (React/Node)
 # -d: Modo "Detached" (en segundo plano)

@@ -36,3 +36,6 @@ backups/
 *.sql
 *.sql.gz
 docker-compose.yml
+
+# Archivos archivados / datos temporales
+_archivo/datos-temporales/
