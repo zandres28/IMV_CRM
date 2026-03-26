@@ -65,7 +65,7 @@ const ApiAccess: React.FC = () => {
   "email": "admin@example.com",
   "password": "password123"
 }`,
-            example: `curl -X POST "http://localhost:3001/api/auth/login" \\
+            example: `curl -X POST "https://imvcrm-bknd.duckdns.org/api/auth/login" \\
 -H "Content-Type: application/json" \\
 -d '{
   "email": "admin@example.com",
@@ -76,7 +76,7 @@ const ApiAccess: React.FC = () => {
             method: 'GET',
             path: '/api/auth/me',
             description: 'Obtener información del usuario actual',
-            example: `curl -X GET "http://localhost:3001/api/auth/me" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/auth/me" \\
 -H "Authorization: Bearer ${token}"`
         },
 
@@ -86,14 +86,14 @@ const ApiAccess: React.FC = () => {
             path: '/api/clients',
             description: 'Obtener lista de clientes paginada',
             params: 'page (number), limit (number), search (string, por nombre/cedula), status (active, suspended, retired)',
-            example: `curl -X GET "http://localhost:3001/api/clients?page=1&limit=10&search=Juan&status=active" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/clients?page=1&limit=10&search=Juan&status=active" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
             method: 'GET',
             path: '/api/clients/:id',
             description: 'Obtener detalle de un cliente (por ID o Cédula)',
-            example: `curl -X GET "http://localhost:3001/api/clients/123456789" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/clients/123456789" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
@@ -111,7 +111,7 @@ const ApiAccess: React.FC = () => {
   "servicePlanId": 1,
   "ipAddress": "192.168.1.100"
 }`,
-            example: `curl -X POST "http://localhost:3001/api/clients" \\
+            example: `curl -X POST "https://imvcrm-bknd.duckdns.org/api/clients" \\
 -H "Authorization: Bearer ${token}" \\
 -H "Content-Type: application/json" \\
 -d '{
@@ -134,7 +134,7 @@ const ApiAccess: React.FC = () => {
   "phone": "3009999999",
   "status": "suspended"
 }`,
-            example: `curl -X PUT "http://localhost:3001/api/clients/1" \\
+            example: `curl -X PUT "https://imvcrm-bknd.duckdns.org/api/clients/1" \\
 -H "Authorization: Bearer ${token}" \\
 -H "Content-Type: application/json" \\
 -d '{
@@ -149,21 +149,21 @@ const ApiAccess: React.FC = () => {
             path: '/api/monthly-billing',
             description: 'Obtener facturación mensual',
             params: 'month (nombre o index), year (YYYY), status (pending, overdue, paid), viewMode (cumulative: acumula deudas pasadas)',
-            example: `curl -X GET "http://localhost:3001/api/monthly-billing?month=Febrero&year=2025&status=pending&viewMode=cumulative" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/monthly-billing?month=Febrero&year=2025&status=pending&viewMode=cumulative" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
             method: 'GET',
             path: '/api/monthly-billing/client/:id/pending',
             description: 'Obtener pagos pendientes de un cliente (por ID o Cédula)',
-            example: `curl -X GET "http://localhost:3001/api/monthly-billing/client/123456789/pending" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/monthly-billing/client/123456789/pending" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
             method: 'GET',
             path: '/api/public/billing/:identificationNumber',
             description: 'Consulta pública de facturación (Sin Token)',
-            example: `curl -X GET "http://localhost:3001/api/public/billing/123456789"`
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/public/billing/123456789"`
         },
         {
             method: 'PUT',
@@ -174,7 +174,7 @@ const ApiAccess: React.FC = () => {
   "paymentMethod": "cash",
   "reference": "REF123"
 }`,
-            example: `curl -X PUT "http://localhost:3001/api/monthly-billing/105/pay" \\
+            example: `curl -X PUT "https://imvcrm-bknd.duckdns.org/api/monthly-billing/105/pay" \\
 -H "Authorization: Bearer ${token}" \\
 -H "Content-Type: application/json" \\
 -d '{
@@ -190,7 +190,7 @@ const ApiAccess: React.FC = () => {
             path: '/api/installations',
             description: 'Obtener lista de instalaciones',
             params: 'status (pending, completed, cancelled)',
-            example: `curl -X GET "http://localhost:3001/api/installations?status=pending" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/installations?status=pending" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
@@ -198,7 +198,7 @@ const ApiAccess: React.FC = () => {
             path: '/api/installations/search/onu/:serial',
             description: 'Buscar instalación por Serial de ONU',
             params: ':serial (String exacto del Serial ONU)',
-            example: `curl -X GET "http://localhost:3001/api/installations/search/onu/DF51A6B759A5" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/installations/search/onu/DF51A6B759A5" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
@@ -206,7 +206,7 @@ const ApiAccess: React.FC = () => {
             path: '/api/installations/search/label/:label',
             description: 'Buscar instalaciones por etiqueta NAP',
             params: ':label (String parcial o exacto de la etiqueta)',
-            example: `curl -X GET "http://localhost:3001/api/installations/search/label/Caja-15" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/installations/search/label/Caja-15" \\
 -H "Authorization: Bearer ${token}"`
         },
 
@@ -215,7 +215,7 @@ const ApiAccess: React.FC = () => {
             method: 'GET',
             path: '/api/service-plans/active',
             description: 'Obtener planes de servicio activos',
-            example: `curl -X GET "http://localhost:3001/api/service-plans/active" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/service-plans/active" \\
 -H "Authorization: Bearer ${token}"`
         },
 
@@ -224,7 +224,7 @@ const ApiAccess: React.FC = () => {
             method: 'GET',
             path: '/api/service-outages',
             description: 'Listar reportes de fallas',
-            example: `curl -X GET "http://localhost:3001/api/service-outages" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/service-outages" \\
 -H "Authorization: Bearer ${token}"`
         },
         {
@@ -237,7 +237,7 @@ const ApiAccess: React.FC = () => {
   "description": "Cliente reporta sin servicio desde ayer",
   "startTime": "2025-11-26T10:00:00Z"
 }`,
-            example: `curl -X POST "http://localhost:3001/api/service-outages" \\
+            example: `curl -X POST "https://imvcrm-bknd.duckdns.org/api/service-outages" \\
 -H "Authorization: Bearer ${token}" \\
 -H "Content-Type: application/json" \\
 -d '{
@@ -254,7 +254,7 @@ const ApiAccess: React.FC = () => {
             path: '/api/dashboard/stats',
             description: 'Obtener estadísticas del tablero',
             params: 'month (0-11), year (YYYY)',
-            example: `curl -X GET "http://localhost:3001/api/dashboard/stats?month=10&year=2025" \\
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/dashboard/stats?month=10&year=2025" \\
 -H "Authorization: Bearer ${token}"`
         },
 
@@ -272,7 +272,7 @@ const ApiAccess: React.FC = () => {
                 { param: 'month', values: 'ENERO, FEBRERO ... DICIEMBRE', description: 'Mes a consultar en mayúsculas. Por defecto: mes actual.' },
                 { param: 'year', values: 'Ej: 2026', description: 'Año a consultar. Por defecto: año actual.' },
             ],
-            example: `# Clientes vencidos que no han recibido recordatorio:\ncurl -X GET "http://localhost:3001/api/n8n/payment-reminders?reminderType=VENCIDO&sentFilter=NO" \\\n-H "Authorization: Bearer ${token}"\n\n# Todos los no pagados (vencidos + pendientes) del mes actual:\ncurl -X GET "http://localhost:3001/api/n8n/payment-reminders?paymentStatus=overdue" \\\n-H "Authorization: Bearer ${token}"\n\n# Consulta de un mes específico:\ncurl -X GET "http://localhost:3001/api/n8n/payment-reminders?month=FEBRERO&year=2026&paymentStatus=pending" \\\n-H "Authorization: Bearer ${token}"`
+            example: `# Clientes vencidos que no han recibido recordatorio:\\ncurl -X GET "https://imvcrm-bknd.duckdns.org/api/n8n/payment-reminders?reminderType=VENCIDO&sentFilter=NO" \\\\\\n-H "x-api-key: TU_API_KEY_N8N"\\n\\n# Todos los no pagados (vencidos + pendientes) del mes actual:\\ncurl -X GET "https://imvcrm-bknd.duckdns.org/api/n8n/payment-reminders?paymentStatus=overdue" \\\\\\n-H "x-api-key: TU_API_KEY_N8N"\\n\\n# Consulta de un mes específico:\\ncurl -X GET "https://imvcrm-bknd.duckdns.org/api/n8n/payment-reminders?month=FEBRERO&year=2026&paymentStatus=pending" \\\\\\n-H "x-api-key: TU_API_KEY_N8N"`
         },
         {
             method: 'POST',
@@ -283,9 +283,9 @@ const ApiAccess: React.FC = () => {
   "type": "whatsapp",
   "result": "success"
 }`,
-            example: `curl -X POST "http://localhost:3001/api/n8n/mark-sent" \\
+            example: `curl -X POST "https://imvcrm-bknd.duckdns.org/api/n8n/mark-sent" \\
 -H "Content-Type: application/json" \\
--H "Authorization: Bearer ${token}" \\
+-H "x-api-key: TU_API_KEY_N8N" \\
 -d '{
   "clientId": 1,
   "type": "whatsapp",
@@ -296,8 +296,8 @@ const ApiAccess: React.FC = () => {
             method: 'GET',
             path: '/api/n8n/suspension-candidates',
             description: '[N8N] Obtener clientes para suspensión automática (día 6)',
-            example: `curl -X GET "http://localhost:3001/api/n8n/suspension-candidates" \\
--H "Authorization: Bearer ${token}"`
+            example: `curl -X GET "https://imvcrm-bknd.duckdns.org/api/n8n/suspension-candidates" \\
+-H "x-api-key: TU_API_KEY_N8N"`
         },
         {
             method: 'POST',
@@ -310,7 +310,7 @@ const ApiAccess: React.FC = () => {
   "paymentMethod": "nequi",
   "date": "2025-02-20T10:00:00Z"
 }`,
-            example: `curl -X POST "http://localhost:3001/api/n8n/register-payment" \\
+            example: `curl -X POST "https://imvcrm-bknd.duckdns.org/api/n8n/register-payment" \\
 -H "Content-Type: application/json" \\
 -H "x-api-key: TU_API_KEY_N8N" \\
 -d '{
@@ -330,9 +330,9 @@ const ApiAccess: React.FC = () => {
             body: `{
   "action": "enable" // o "disable"
 }`,
-            example: `curl -X POST "http://localhost:3001/api/olt/service/123" \\
+            example: `curl -X POST "https://imvcrm-bknd.duckdns.org/api/olt/service/123" \\
 -H "Content-Type: application/json" \\
--H "Authorization: Bearer ${token}" \\
+-H "x-api-key: TU_API_KEY_N8N" \\
 -d '{
   "action": "disable"
 }'`
@@ -342,8 +342,8 @@ const ApiAccess: React.FC = () => {
             path: '/api/olt/reboot/:id',
             description: '[N8N/MANUAL] Reiniciar ONU en OLT',
             params: ':id (Installation ID)',
-            example: `curl -X POST "http://localhost:3001/api/olt/reboot/123" \\
--H "Authorization: Bearer ${token}"`
+            example: `curl -X POST "https://imvcrm-bknd.duckdns.org/api/olt/reboot/123" \\
+-H "x-api-key: TU_API_KEY_N8N"`
         }
     ];
 
