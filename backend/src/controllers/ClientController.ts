@@ -578,7 +578,6 @@ export const ClientController = {
                                 installation.oltDisconnectTime = oltDisconnectTime;
                                 console.log(`[RetireClient] Desconexión de ONU programada para ${retirementDate}${oltDisconnectTime ? ' a las ' + oltDisconnectTime : ''}: SN=${installation.onuSerialNumber}`);
                             }
-                            }
                         } else {
                             // Sin datos de OLT, solo limpiar
                             (installation as any).onuSerialNumber = null;
