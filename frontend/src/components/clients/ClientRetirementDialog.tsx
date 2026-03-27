@@ -9,9 +9,10 @@ import {
     TextField,
     Box,
     Typography,
-    CircularProgress
+    CircularProgress,
+    Divider
 } from '@mui/material';
-import { Warning as WarningIcon } from '@mui/icons-material';
+import { Warning as WarningIcon, Router as RouterIcon } from '@mui/icons-material';
 import { Client } from '../../types/Client';
 import { ClientService } from '../../services/ClientService';
 
@@ -34,10 +35,14 @@ export const ClientRetirementDialog: React.FC<ClientRetirementDialogProps> = ({
             ? new Date(client.retirementDate).toISOString().split('T')[0]
             : new Date().toISOString().split('T')[0]
     );
+    const [oltDisconnectTime, setOltDisconnectTime] = useState('08:00');
     const [reason, setReason] = useState(client.retirementReason || '');
     const [error, setError] = useState<string | null>(null);
 
     const isEditing = client.status === 'cancelled';
+
+    // Determina si la fecha seleccionada es futura (desconexión programada) o hoy/pasada (inmediata)
+    const isFutureDate = retirementDate > new Date().toISOString().split('T')[0];
 
     const handleConfirm = async () => {
         if (!reason.trim()) {
@@ -49,7 +54,12 @@ export const ClientRetirementDialog: React.FC<ClientRetirementDialogProps> = ({
         setError(null);
 
         try {
-            await ClientService.retire(client.id, retirementDate, reason);
+            await ClientService.retire(
+                client.id,
+                retirementDate,
+                reason,
+                isFutureDate ? oltDisconnectTime : undefined
+            );
             onSuccess();
             onClose();
         } catch (err) {
@@ -74,15 +84,27 @@ export const ClientRetirementDialog: React.FC<ClientRetirementDialogProps> = ({
                 </DialogContentText>
 
                 <Box mt={2} display="flex" flexDirection="column" gap={3}>
-                    <TextField
-                        label="Fecha de Retiro"
-                        type="date"
-                        fullWidth
-                        value={retirementDate}
-                        onChange={(e) => setRetirementDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        helperText="A partir de esta fecha no se generarán más cobros."
-                    />
+                    <Box display="flex" gap={2}>
+                        <TextField
+                            label="Fecha de Retiro"
+                            type="date"
+                            fullWidth
+                            value={retirementDate}
+                            onChange={(e) => setRetirementDate(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            helperText="A partir de esta fecha no se generarán más cobros."
+                        />
+                        <TextField
+                            label="Hora de desconexión ONU"
+                            type="time"
+                            sx={{ minWidth: 170 }}
+                            value={oltDisconnectTime}
+                            onChange={(e) => setOltDisconnectTime(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            disabled={!isFutureDate}
+                            helperText={isFutureDate ? 'Hora exacta en OLT' : 'Inmediata (hoy)'}
+                        />
+                    </Box>
 
                     <TextField
                         label="Motivo del Retiro"
@@ -101,9 +123,13 @@ export const ClientRetirementDialog: React.FC<ClientRetirementDialogProps> = ({
                     />
                 </Box>
 
-                <Box mt={2} p={2} bgcolor="#fff3e0" borderRadius={1}>
+                <Box mt={2} p={2} bgcolor={isFutureDate ? '#e8f5e9' : '#fff3e0'} borderRadius={1} display="flex" alignItems="flex-start" gap={1}>
+                    <RouterIcon fontSize="small" sx={{ color: isFutureDate ? 'success.main' : 'warning.main', mt: 0.1 }} />
                     <Typography variant="caption" color="text.secondary">
-                        Nota: Si selecciona una fecha dentro del mes actual, el cliente <strong>NO</strong> será incluido en la facturación de este mes.
+                        {isFutureDate
+                            ? <>La ONU será desconectada automáticamente de la OLT el <strong>{retirementDate}</strong> a las <strong>{oltDisconnectTime}</strong>.</>
+                            : <>La ONU será desconectada de la OLT <strong>inmediatamente</strong> al confirmar el retiro.</>
+                        }
                     </Typography>
                 </Box>
             </DialogContent>

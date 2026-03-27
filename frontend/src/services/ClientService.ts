@@ -44,10 +44,11 @@ export const ClientService = {
         return response.data;
     },
 
-    retire: async (id: number, retirementDate: string, reason: string): Promise<Client> => {
+    retire: async (id: number, retirementDate: string, reason: string, oltDisconnectTime?: string): Promise<Client> => {
         const response = await axios.post(`${API_URL}/clients/${id}/retire`, {
             retirementDate,
-            reason
+            reason,
+            ...(oltDisconnectTime ? { oltDisconnectTime } : {}),
         });
         return response.data;
     },

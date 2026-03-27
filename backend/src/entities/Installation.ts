@@ -71,6 +71,14 @@ export class Installation {
     @Column({ default: false })
     isActive!: boolean;
 
+    // Flag: indica que la desconexión de la ONU en la OLT está programada (al llegar retirementDate)
+    @Column({ default: false })
+    oltDisconnectScheduled!: boolean;
+
+    // Hora programada para la desconexión de ONU (formato HH:mm, ej: "08:00")
+    @Column({ nullable: true, length: 5 })
+    oltDisconnectTime?: string;
+
     // Soft delete flags
     @Column({ default: false })
     isDeleted!: boolean;

@@ -8,6 +8,7 @@ import { ServicePlan } from "../entities/ServicePlan";
 import { PublicConsentLog } from "../entities/PublicConsentLog";
 import { User } from "../entities/User";
 import { NotificationService } from "../services/NotificationService";
+import { OltService } from "../services/OltService";
 
 const clientRepository = AppDataSource.getRepository(Client);
 const servicePlanRepository = AppDataSource.getRepository(ServicePlan);
@@ -516,6 +517,7 @@ export const ClientController = {
 
             const { id } = req.params;
             const { retirementDate, reason } = req.body;
+            const oltDisconnectTime: string | undefined = req.body.oltDisconnectTime || undefined;
 
             if (!retirementDate || !reason) {
                 return res.status(400).json({
@@ -537,18 +539,53 @@ export const ClientController = {
             client.retirementDate = new Date(retirementDate);
             client.retirementReason = reason;
 
-            // Marcar todas sus instalaciones como inactivas y liberar equipos
+            // Marcar todas sus instalaciones como inactivas y gestionar desconexión de OLT
             if (client.installations && client.installations.length > 0) {
                 const installationRepository = AppDataSource.getRepository(require('../entities/Installation').Installation);
+                const oltService = new OltService();
+
+                const retirementDateObj = new Date(retirementDate);
+                retirementDateObj.setHours(0, 0, 0, 0);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const disconnectImmediately = retirementDateObj <= today;
+
                 for (const installation of client.installations) {
                     if (installation.isActive && !installation.isDeleted) {
                         installation.isActive = false;
-                        installation.serviceStatus = 'suspended';
+                        installation.serviceStatus = 'cancelled';
                         installation.retirementDate = new Date(retirementDate);
-                        // Liberar ONU SN, PON ID y ONU ID para reasignación a otro cliente
-                        (installation as any).onuSerialNumber = null;
-                        installation.ponId = undefined;
-                        installation.onuId = undefined;
+
+                        if (installation.ponId && installation.onuId) {
+                            if (disconnectImmediately) {
+                                // Desconectar ONU de la OLT de forma inmediata
+                                try {
+                                    await oltService.deactivateOnu(installation.ponId, installation.onuId);
+                                    console.log(`[RetireClient] ONU desconectada de OLT: SN=${installation.onuSerialNumber}, PON=${installation.ponId}, ID=${installation.onuId}`);
+                                } catch (oltError: any) {
+                                    console.error(`[RetireClient] Error al desconectar ONU ${installation.onuSerialNumber} de OLT:`, oltError.message);
+                                    // Continuar con el retiro aunque falle la OLT
+                                }
+                                // Liberar datos de OLT para reasignación
+                                (installation as any).onuSerialNumber = null;
+                                installation.ponId = undefined;
+                                installation.onuId = undefined;
+                                installation.oltDisconnectScheduled = false;
+                                installation.oltDisconnectTime = undefined;
+                            } else {
+                                // Programar desconexión para la fecha (y hora) de retiro
+                                installation.oltDisconnectScheduled = true;
+                                installation.oltDisconnectTime = oltDisconnectTime;
+                                console.log(`[RetireClient] Desconexión de ONU programada para ${retirementDate}${oltDisconnectTime ? ' a las ' + oltDisconnectTime : ''}: SN=${installation.onuSerialNumber}`);
+                            }
+                            }
+                        } else {
+                            // Sin datos de OLT, solo limpiar
+                            (installation as any).onuSerialNumber = null;
+                            installation.ponId = undefined;
+                            installation.onuId = undefined;
+                        }
+
                         await installationRepository.save(installation);
                     }
                 }

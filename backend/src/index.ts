@@ -35,6 +35,7 @@ import oltRoutes from "./routes/olt";
 import notificationRoutes from "./routes/notification.routes";
 import promotionRoutes from "./routes/promotions";
 import mikrotikRoutes from "./routes/mikrotik";
+import { startOltDisconnectScheduler } from "./services/OltSchedulerService";
 import path from "path";
 
 // Middleware
@@ -154,7 +155,10 @@ const PORT = process.env.PORT || 3001;
 AppDataSource.initialize().then(() => {
     console.log("Base de datos conectada exitosamente");
     console.log("Backend reiniciado: " + new Date().toISOString());
-    
+
+    // Iniciar scheduler de desconexiones programadas de ONUs en OLT
+    startOltDisconnectScheduler();
+
     app.listen(PORT, () => {
         console.log(`Servidor corriendo en el puerto ${PORT}`);
     });
