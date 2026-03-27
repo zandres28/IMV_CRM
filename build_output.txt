@@ -1,0 +1,199 @@
+time="2026-03-14T11:55:40-05:00" level=warning msg="D:\\laragon_6\\www\\IMV_CRM\\CRM-2025\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Image crm-2025-backend Building 
+ Image crm-2025-frontend Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.08kB 0.5s done
+#1 DONE 0.5s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile:
+#2 transferring dockerfile: 633B 0.2s done
+#2 DONE 0.5s
+
+#3 [internal] load metadata for docker.io/library/nginx:alpine
+#3 DONE 1.1s
+
+#4 [internal] load metadata for docker.io/library/node:18-alpine
+#4 DONE 1.1s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 87B 0.1s
+#5 transferring context: 91B 0.1s done
+#5 DONE 0.2s
+
+#6 [1/6] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#6 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.4s done
+#6 DONE 0.5s
+
+#7 [stage-1 1/3] FROM docker.io/library/nginx:alpine@sha256:f46cb72c7df02710e693e863a983ac42f6a9579058a59a35f1ae36c9958e4ce0
+#7 resolve docker.io/library/nginx:alpine@sha256:f46cb72c7df02710e693e863a983ac42f6a9579058a59a35f1ae36c9958e4ce0 0.4s done
+#7 CACHED
+
+#8 [internal] load build context
+#8 transferring context: 139.29kB 0.8s done
+#8 DONE 0.8s
+
+#9 [build 4/6] RUN npm install
+#9 CACHED
+
+#10 [build 5/6] COPY . .
+#10 DONE 2.6s
+
+#11 [build 6/6] RUN npm run build
+#11 14.22 
+#11 14.22 > nexum-crm-frontend@0.1.0 build
+#11 14.22 > react-scripts build
+#11 14.22 
+#11 43.00 Creating an optimized production build...
+#11 891.7 Compiled with warnings.
+#11 891.7 
+#11 891.7 [eslint] 
+#11 891.7 src/App.tsx
+#11 891.7   Line 8:3:    'Container' is defined but never used                        @typescript-eslint/no-unused-vars
+#11 891.7   Line 9:3:    'Button' is defined but never used                           @typescript-eslint/no-unused-vars
+#11 891.7   Line 26:3:   'InputBase' is defined but never used                        @typescript-eslint/no-unused-vars
+#11 891.7   Line 30:3:   'KeyboardArrowDown' is defined but never used                @typescript-eslint/no-unused-vars
+#11 891.7   Line 31:3:   'AccountCircle' is defined but never used                    @typescript-eslint/no-unused-vars
+#11 891.7   Line 44:18:  'HelpIcon' is defined but never used                         @typescript-eslint/no-unused-vars
+#11 891.7   Line 46:15:  'ReportsIcon' is defined but never used                      @typescript-eslint/no-unused-vars
+#11 891.7   Line 48:16:  'ProductsIcon' is defined but never used                     @typescript-eslint/no-unused-vars
+#11 891.7   Line 49:14:  'PaymentIcon' is defined but never used                      @typescript-eslint/no-unused-vars
+#11 891.7   Line 50:18:  'FastSaleIcon' is defined but never used                     @typescript-eslint/no-unused-vars
+#11 891.7   Line 52:11:  'HomeIcon' is defined but never used                         @typescript-eslint/no-unused-vars
+#11 891.7   Line 53:22:  'ArrowIcon' is defined but never used                        @typescript-eslint/no-unused-vars
+#11 891.7   Line 60:17:  'ChartIcon' is defined but never used                        @typescript-eslint/no-unused-vars
+#11 891.7   Line 85:10:  'clientsMenuAnchor' is assigned a value but never used       @typescript-eslint/no-unused-vars
+#11 891.7   Line 86:10:  'adminMenuAnchor' is assigned a value but never used         @typescript-eslint/no-unused-vars
+#11 891.7   Line 96:10:  'mobileClientsOpen' is assigned a value but never used       @typescript-eslint/no-unused-vars
+#11 891.7   Line 96:29:  'setMobileClientsOpen' is assigned a value but never used    @typescript-eslint/no-unused-vars
+#11 891.7   Line 97:10:  'mobileAdminOpen' is assigned a value but never used         @typescript-eslint/no-unused-vars
+#11 891.7   Line 97:27:  'setMobileAdminOpen' is assigned a value but never used      @typescript-eslint/no-unused-vars
+#11 891.7   Line 193:9:  'handleEnvChange' is assigned a value but never used         @typescript-eslint/no-unused-vars
+#11 891.7   Line 238:9:  'handleClientsMenuOpen' is assigned a value but never used   @typescript-eslint/no-unused-vars
+#11 891.7   Line 242:9:  'handleClientsMenuClose' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7   Line 246:9:  'handleAdminMenuOpen' is assigned a value but never used     @typescript-eslint/no-unused-vars
+#11 891.7   Line 267:9:  'isClientsActive' is assigned a value but never used         @typescript-eslint/no-unused-vars
+#11 891.7   Line 271:9:  'isAdminActive' is assigned a value but never used           @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/admin/ApiAccess.tsx
+#11 891.7   Line 14:5:  'Divider' is defined but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/admin/InteractionTypesManager.tsx
+#11 891.7   Line 27:12:  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/admin/RolesManager.tsx
+#11 891.7   Line 39:11:  'PermissionGroup' is defined but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/billing/MonthlyBilling.tsx
+#11 891.7   Line 1240:71:  'billingPeriodStart' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/clients/ClientDetail.tsx
+#11 891.7   Line 3:222:  'CircularProgress' is defined but never used  @typescript-eslint/no-unused-vars
+#11 891.7   Line 19:97:  'RestoreIcon' is defined but never used       @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/clients/ClientForm.tsx
+#11 891.7   Line 14:5:  'IconButton' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+#11 891.7   Line 65:8:  React Hook useEffect has a missing dependency: 'currentUser?.sucursal'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+#11 891.7 
+#11 891.7 src/components/clients/ClientList.tsx
+#11 891.7   Line 33:5:    'SelectChangeEvent' is defined but never used  @typescript-eslint/no-unused-vars
+#11 891.7   Line 39:5:    'Grid' is defined but never used               @typescript-eslint/no-unused-vars
+#11 891.7   Line 769:39:  'ponEntry' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7   Line 807:63:  'rDate' is assigned a value but never used     @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/dashboard/GeneralDashboard.tsx
+#11 891.7   Line 10:3:  'Divider' is defined but never used       @typescript-eslint/no-unused-vars
+#11 891.7   Line 14:3:  'TrendingDown' is defined but never used  @typescript-eslint/no-unused-vars
+#11 891.7   Line 21:3:  'Router' is defined but never used        @typescript-eslint/no-unused-vars
+#11 891.7   Line 27:3:  'LineChart' is defined but never used     @typescript-eslint/no-unused-vars
+#11 891.7   Line 28:3:  'Line' is defined but never used          @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/installation-billing/InstallationBillingList.tsx
+#11 891.7   Line 77:6:  React Hook useEffect has a missing dependency: 'loadPayments'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+#11 891.7 
+#11 891.7 src/components/installations/InstallationsList.tsx
+#11 891.7   Line 244:15:  'newStatus' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/interactions/ClientInteractionHistory.tsx
+#11 891.7   Line 47:7:    'STATUS_OPTIONS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7   Line 117:11:  'canManageOwn' is assigned a value but never used    @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/interactions/InteractionManager.tsx
+#11 891.7   Line 42:27:  'toInputDateString' is defined but never used      @typescript-eslint/no-unused-vars
+#11 891.7   Line 59:12:  'interactions' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/network/MikrotikGraphs.tsx
+#11 891.7   Line 2:15:   'Paper' is defined but never used                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+#11 891.7   Line 57:8:   React Hook useEffect has missing dependencies: 'imageSrc' and 'onError'. Either include them or remove the dependency array. If 'onError' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+#11 891.7   Line 72:12:  'token' is assigned a value but never used                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+#11 891.7   Line 72:19:  'setToken' is assigned a value but never used                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/components/service-outages/ServiceOutageManager.tsx
+#11 891.7   Line 73:6:  React Hook useEffect has a missing dependency: 'loadOutages'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+#11 891.7 
+#11 891.7 src/components/services/ProductForm.tsx
+#11 891.7   Line 15:10:  'ProductSold' is defined but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/services/AuthService.ts
+#11 891.7   Line 126:1:  Assign instance to a variable before exporting as module default  import/no-anonymous-default-export
+#11 891.7 
+#11 891.7 src/services/InstallationBillingService.ts
+#11 891.7   Line 102:1:  Assign instance to a variable before exporting as module default  import/no-anonymous-default-export
+#11 891.7 
+#11 891.7 src/services/NotificationService.ts
+#11 891.7   Line 46:1:  Assign instance to a variable before exporting as module default  import/no-anonymous-default-export
+#11 891.7 
+#11 891.7 src/services/PromotionService.ts
+#11 891.7   Line 5:7:  'BASE_URL' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/services/ReportService.ts
+#11 891.7   Line 81:9:  'fields' is assigned a value but never used  @typescript-eslint/no-unused-vars
+#11 891.7 
+#11 891.7 src/services/UserService.ts
+#11 891.7   Line 76:1:  Assign instance to a variable before exporting as module default  import/no-anonymous-default-export
+#11 891.7 
+#11 891.7 Search for the keywords to learn more about each warning.
+#11 891.7 To ignore, add // eslint-disable-next-line to the line before.
+#11 891.7 
+#11 891.7 File sizes after gzip:
+#11 891.7 
+#11 892.2   448.28 kB  build/static/js/main.b7d5ff43.js
+#11 892.2   278 B      build/static/css/main.c29fc000.css
+#11 892.2 
+#11 892.2 The project was built assuming it is hosted at /.
+#11 892.2 You can control this with the homepage field in your package.json.
+#11 892.2 
+#11 892.2 The build folder is ready to be deployed.
+#11 892.2 You may serve it with a static server:
+#11 892.2 
+#11 892.2   npm install -g serve
+#11 892.2   serve -s build
+#11 892.2 
+#11 892.2 Find out more about deployment here:
+#11 892.2 
+#11 892.2   https://cra.link/deployment
+#11 892.2 
+#11 1035.2 npm notice
+#11 1035.2 npm notice New major version of npm available! 10.8.2 -> 11.11.1
+#11 1035.2 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.1
+#11 1035.2 npm notice To update run: npm install -g npm@11.11.1
+#11 1035.2 npm notice
+#11 DONE 1117.8s
+
+#12 [2/6] WORKDIR /app
+#12 CACHED
+
+#13 [build 3/6] COPY package*.json ./
+#13 CACHED
+
+#14 [build 4/6] RUN npm install
+#14 CACHED
+
+#15 [build 5/6] COPY . .
+#15 CACHED
+
+#16 [build 6/6] RUN npm run build
+#16 CACHED
+
+#17 [stage-1 2/3] COPY --from=build /app/build /usr/share/nginx/html
+#17 CANCELED
