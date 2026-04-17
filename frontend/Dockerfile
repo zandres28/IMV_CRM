@@ -13,7 +13,7 @@ ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV CI=false
 
 # ARG para forzar invalidación de caché cuando sea necesario
-ARG CACHEBUST=1
+# ARG CACHEBUST=1
 
 COPY . .
 

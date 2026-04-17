@@ -14,6 +14,8 @@ export interface ReportSearchParams {
   planId?: number;
   reportType?: ReportType;
   serviceType?: 'all' | 'service' | 'product';
+  sortBy?: 'clientName' | 'saleDate';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface ReportRow {
@@ -35,7 +37,16 @@ export interface ReportRow {
   // Campos para reporte de retirados
   retirementDate?: string | null;
   retirementReason?: string;
-  // Campos para reporte de servicios
+  // Campos para reporte de servicios (nuevo: una fila por item)
+  itemName?: string;
+  itemType?: 'service' | 'product';
+  saleDate?: string | null;
+  totalAmount?: number;
+  installmentAmount?: number | null;
+  totalInstallments?: number | null;
+  paidInstallments?: number | null;
+  pendingInstallments?: number | null;
+  // Legacy (mantener compatibilidad)
   servicesList?: string;
   totalAdditional?: number;
   city?: string;
@@ -84,7 +95,7 @@ export const ReportService = {
       headers = ['ID', 'Nombre', 'Teléfono', 'Ciudad', 'Fecha Retiro', 'Motivo', 'Fecha Instalación'];
       // fields manual mapping below
     } else if (type === 'services') {
-      headers = ['ID', 'Nombre', 'Teléfono', 'Ciudad', 'Servicios', 'Total Adicional'];
+      headers = ['Nombre', 'Teléfono', 'Ciudad', 'Tipo', 'Producto/Servicio', 'Fecha Venta', 'Monto', 'Cuotas Pagadas', 'Cuotas Pendientes'];
     } else {
       headers = [
         'ID Cliente',
@@ -120,12 +131,15 @@ export const ReportService = {
         ];
       } else if (type === 'services') {
         values = [
-          row.id,
           `"${row.fullName}"`,
           row.primaryPhone,
           row.city || '',
-          `"${row.servicesList || ''}"`,
-          row.totalAdditional || 0
+          row.itemType === 'product' ? 'Producto' : 'Servicio',
+          `"${row.itemName || ''}"`,
+          row.saleDate || '',
+          row.totalAmount || 0,
+          row.paidInstallments ?? '',
+          row.pendingInstallments ?? ''
         ];
       } else {
         values = [

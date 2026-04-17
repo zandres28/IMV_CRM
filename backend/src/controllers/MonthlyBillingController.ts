@@ -682,7 +682,8 @@ export class MonthlyBillingController {
             const installmentRepository = AppDataSource.getRepository(ProductInstallment);
 
             const payment = await paymentRepository.findOne({
-                where: { id: parseInt(id) }
+                where: { id: parseInt(id) },
+                relations: ['client']
             });
 
             if (!payment) {
@@ -693,7 +694,41 @@ export class MonthlyBillingController {
             payment.paymentDate = paymentDate ? parseLocalDate(paymentDate)! : new Date();
             payment.paymentMethod = paymentMethod;
             
-            // Procesar cuotas adicionales
+            // Calcular el período de facturación para este mes
+            const monthIdx = getMonthIndex(payment.paymentMonth);
+            const yearNum = payment.paymentYear;
+            const firstDayOfMonth = new Date(yearNum, monthIdx, 1);
+            const billingPeriodEnd = new Date(yearNum, monthIdx + 1, 5);
+
+            // Marcar automáticamente las cuotas incluidas en el cobro base (las del período)
+            // Estas son las que se incluyeron en productInstallmentsAmount al generar la facturación
+            if (payment.client) {
+                const includedInstallments = await installmentRepository
+                    .createQueryBuilder('inst')
+                    .innerJoin('inst.product', 'product')
+                    .innerJoin('product.client', 'client')
+                    .where('client.id = :clientId', { clientId: payment.client.id })
+                    .andWhere('inst.status IN (:...statuses)', { statuses: ['pending', 'overdue'] })
+                    .andWhere('inst.dueDate >= :start', { start: firstDayOfMonth })
+                    .andWhere('inst.dueDate <= :end', { end: billingPeriodEnd })
+                    .getMany();
+
+                let autoMarkedCount = 0;
+                for (const inst of includedInstallments) {
+                    inst.status = 'paid';
+                    inst.paymentDate = payment.paymentDate;
+                    inst.notes = (inst.notes ? inst.notes + ' | ' : '') +
+                        `Incluida en mensualidad ${payment.paymentMonth} ${payment.paymentYear}`;
+                    await installmentRepository.save(inst);
+                    autoMarkedCount++;
+                }
+                if (autoMarkedCount > 0) {
+                    payment.notes = (payment.notes || '') +
+                        ` | ${autoMarkedCount} cuota(s) del período marcada(s) como pagada(s)`;
+                }
+            }
+
+            // Procesar cuotas adicionales (futuras, seleccionadas manualmente)
             let extraAmount = 0;
             if (extraInstallmentIds && Array.isArray(extraInstallmentIds) && extraInstallmentIds.length > 0) {
                 const installments = await installmentRepository.findBy({

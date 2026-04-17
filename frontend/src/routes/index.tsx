@@ -23,7 +23,9 @@ import ServiceRequestForm from '../components/public/ServiceRequestForm';
 import RolesManager from '../components/admin/RolesManager';
 import { MikrotikGraphs } from '../components/network/MikrotikGraphs';
 import { PromotionsManager } from '../components/admin/PromotionsManager';
+import { AvisosManager } from '../components/admin/AvisosManager';
 import OnuSearch from '../components/installations/OnuSearch';
+import AgendaInstalaciones from '../components/installations/AgendaInstalaciones';
 
 const router = createBrowserRouter([
     {
@@ -71,6 +73,10 @@ const router = createBrowserRouter([
                 element: <InstallationBillingList />
             },
             {
+                path: "installations/agenda",
+                element: <AgendaInstalaciones />
+            },
+            {
                 path: "service-outages",
                 element: <ServiceOutageManager />
             },
@@ -113,6 +119,10 @@ const router = createBrowserRouter([
             {
                 path: "admin/promotions",
                 element: <PromotionsManager />
+            },
+            {
+                path: "admin/avisos",
+                element: <AvisosManager />
             },
             {
                 path: "admin/api-access",

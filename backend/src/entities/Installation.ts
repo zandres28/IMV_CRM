@@ -79,6 +79,10 @@ export class Installation {
     @Column({ nullable: true, length: 5 })
     oltDisconnectTime?: string;
 
+    // Franja horaria de la instalación (ej: "8:00 am a 10:00 am")
+    @Column({ nullable: true, length: 30 })
+    scheduledTimeSlot?: string;
+
     // Soft delete flags
     @Column({ default: false })
     isDeleted!: boolean;

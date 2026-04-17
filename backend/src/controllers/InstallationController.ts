@@ -55,6 +55,7 @@ export class InstallationController {
                 onuId,
                 napLabel,
                 installationFee,
+                scheduledTimeSlot,
             } = req.body;
 
             const client = await this.clientRepository.findOne({ where: { id: clientId } });
@@ -77,6 +78,7 @@ export class InstallationController {
                 monthlyFee,
                 installationFee: installationFee || 0,
                 installationDate: this.parseLocalDate(installationDate)!,
+                scheduledTimeSlot: scheduledTimeSlot || null,
                 isActive: true,
                 isDeleted: false,
                 deletedAt: null,
@@ -317,6 +319,7 @@ export class InstallationController {
                 ponId,
                 onuId,
                 napLabel,
+                scheduledTimeSlot,
             } = req.body;
 
             const installation = await this.installationRepository.findOne({
@@ -388,6 +391,7 @@ export class InstallationController {
             if (ponId !== undefined) updateFields.ponId = ponId;
             if (onuId !== undefined) updateFields.onuId = onuId;
             if (napLabel !== undefined) updateFields.napLabel = napLabel;
+            if (scheduledTimeSlot !== undefined) updateFields.scheduledTimeSlot = scheduledTimeSlot || null;
             if (monthlyFee !== undefined) {
                 updateFields.monthlyFee = monthlyFee;
             }
@@ -626,6 +630,41 @@ export class InstallationController {
         } catch (error) {
             console.error('Error buscando por etiqueta:', error);
             return res.status(500).json({ message: 'Error en la búsqueda por etiqueta' });
+        }
+    }
+
+    /**
+     * Obtener instalaciones agendadas (con fecha de instalación)
+     * GET /api/installations/scheduled?from=YYYY-MM-DD&to=YYYY-MM-DD
+     */
+    async getScheduled(req: AuthRequest, res: Response) {
+        try {
+            if (!hasPermission(req.user || null, PERMISSIONS.INSTALLATIONS.VIEW)) {
+                return res.status(403).json({ message: 'Sin permiso para ver instalaciones' });
+            }
+
+            const { from, to } = req.query as { from?: string; to?: string };
+
+            let qb = this.installationRepository
+                .createQueryBuilder('installation')
+                .leftJoinAndSelect('installation.client', 'client')
+                .leftJoinAndSelect('installation.servicePlan', 'servicePlan')
+                .where('installation.isDeleted = :isDeleted', { isDeleted: false })
+                .orderBy('installation.installationDate', 'ASC')
+                .addOrderBy('installation.scheduledTimeSlot', 'ASC');
+
+            if (from) {
+                qb = qb.andWhere('installation.installationDate >= :from', { from });
+            }
+            if (to) {
+                qb = qb.andWhere('installation.installationDate <= :to', { to });
+            }
+
+            const installations = await qb.getMany();
+            return res.json(installations);
+        } catch (error) {
+            console.error('Error obteniendo instalaciones agendadas:', error);
+            return res.status(500).json({ message: 'Error al obtener instalaciones agendadas' });
         }
     }
 }

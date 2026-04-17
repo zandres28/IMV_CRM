@@ -18,6 +18,8 @@ export default function QueryDashboard() {
   const [planId, setPlanId] = useState<number | 'all'>('all');
   const [plans, setPlans] = useState<ServicePlan[]>([]);
   const [serviceType, setServiceType] = useState<'all' | 'service' | 'product'>('all');
+  const [sortBy, setSortBy] = useState<'clientName' | 'saleDate'>('clientName');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [summary, setSummary] = useState<ReportSummary | null>(null);
@@ -101,19 +103,60 @@ export default function QueryDashboard() {
 
     if (reportType === 'services') {
       return [
-        { field: 'id', headerName: 'ID', width: 90 },
-        { field: 'fullName', headerName: 'Nombre', flex: 1, minWidth: 200 },
+        { field: 'fullName', headerName: 'Cliente', flex: 1, minWidth: 200 },
         { field: 'primaryPhone', headerName: 'Teléfono', width: 120 },
-        { field: 'city', headerName: 'Ciudad', width: 150 },
-        { field: 'servicesList', headerName: 'Servicios Adicionales', flex: 1.5, minWidth: 250 },
+        { field: 'city', headerName: 'Ciudad', width: 130 },
         {
-          field: 'totalAdditional',
-          headerName: 'Total Extra',
+          field: 'itemType',
+          headerName: 'Tipo',
+          width: 110,
+          renderCell: (params: GridRenderCellParams) => (
+            <Chip
+              label={params.value === 'product' ? 'Producto' : 'Servicio'}
+              size="small"
+              color={params.value === 'product' ? 'primary' : 'info'}
+              sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
+            />
+          )
+        },
+        { field: 'itemName', headerName: 'Nombre', flex: 1, minWidth: 200 },
+        {
+          field: 'saleDate',
+          headerName: 'Fecha Venta',
           width: 130,
+          renderCell: (params: GridRenderCellParams) => params.value ? formatLocalDate(params.value) : '-'
+        },
+        {
+          field: 'totalAmount',
+          headerName: 'Monto',
+          width: 120,
           valueFormatter: (params: any) => {
             const val = params?.value as number | undefined;
-            return typeof val === 'number' ? `$${val.toLocaleString('es-CO')}` : '$0';
+            return typeof val === 'number' ? `$${val.toLocaleString('es-CO')}` : '-';
           }
+        },
+        {
+          field: 'paidInstallments',
+          headerName: 'Cuotas Pag.',
+          width: 110,
+          renderCell: (params: GridRenderCellParams) =>
+            params.value != null ? (
+              <Chip label={String(params.value)} size="small" color="success" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }} />
+            ) : <span style={{ color: '#aaa' }}>-</span>
+        },
+        {
+          field: 'pendingInstallments',
+          headerName: 'Cuotas Pend.',
+          width: 115,
+          renderCell: (params: GridRenderCellParams) =>
+            params.value != null ? (
+              <Chip
+                label={String(params.value)}
+                size="small"
+                color={params.value > 0 ? 'warning' : 'default'}
+                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }}
+              />
+            ) : <span style={{ color: '#aaa' }}>-</span>
         },
       ];
     }
@@ -174,6 +217,8 @@ export default function QueryDashboard() {
         search,
         planId: planId === 'all' ? undefined : Number(planId),
         serviceType: reportType === 'services' ? serviceType : undefined,
+        sortBy: reportType === 'services' ? sortBy : undefined,
+        sortOrder: reportType === 'services' ? sortOrder : undefined,
         page: page + 1,
         pageSize
       });
@@ -192,9 +237,10 @@ export default function QueryDashboard() {
     if (clearType) setReportType('account_status');
     setClientStatus('active');
     setPaymentStatus('all');
-    setPaymentStatus('all');
     setReminderType('all');
     setServiceType('all');
+    setSortBy('clientName');
+    setSortOrder('asc');
     setSearch('');
     setRows([]);
     setSummary(null);
@@ -274,11 +320,11 @@ export default function QueryDashboard() {
             {reportType === 'services' && (
               <>
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">Clientes con Servicios Extra</Typography>
+                  <Typography variant="caption" color="text.secondary">Total Registros</Typography>
                   <Typography variant="h6">{summary.totalFiltered}</Typography>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">Ingreso Adicional Mensual</Typography>
+                  <Typography variant="caption" color="text.secondary">Monto Total</Typography>
                   <Typography variant="h6" color="success.main">${(summary.totalRevenue ?? 0).toLocaleString('es-CO')}</Typography>
                 </Grid>
               </>
@@ -309,20 +355,48 @@ export default function QueryDashboard() {
 
           {/* Filtros para Servicios Adicionales */}
           {reportType === 'services' && (
-            <Grid item xs={12} md={4}>
-              <TextField
-                select
-                fullWidth
-                label="Tipo de Extra"
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value as any)}
-                sx={{ bgcolor: '#fff' }}
-              >
-                <MenuItem value="all">Todos</MenuItem>
-                <MenuItem value="service">Solo Servicios</MenuItem>
-                <MenuItem value="product">Solo Productos</MenuItem>
-              </TextField>
-            </Grid>
+            <>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Tipo"
+                  value={serviceType}
+                  onChange={(e) => setServiceType(e.target.value as any)}
+                  sx={{ bgcolor: '#fff' }}
+                >
+                  <MenuItem value="all">Todos</MenuItem>
+                  <MenuItem value="service">Solo Servicios</MenuItem>
+                  <MenuItem value="product">Solo Productos</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Ordenar por"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  sx={{ bgcolor: '#fff' }}
+                >
+                  <MenuItem value="clientName">Nombre del Cliente</MenuItem>
+                  <MenuItem value="saleDate">Fecha de Venta</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={2}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Orden"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as any)}
+                  sx={{ bgcolor: '#fff' }}
+                >
+                  <MenuItem value="asc">Ascendente</MenuItem>
+                  <MenuItem value="desc">Descendente</MenuItem>
+                </TextField>
+              </Grid>
+            </>
           )}
 
           {/* Filtros para Estado de Cuenta */}

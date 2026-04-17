@@ -64,6 +64,12 @@ export class SystemSettingController {
             if (key === "session_timeout_minutes") {
                 setting.type = "number";
                 setting.description = "Tiempo de inactividad para cierre de sesión";
+            } else if (key === "client_cities") {
+                setting.type = "json";
+                setting.description = "Lista de ciudades disponibles para clientes";
+            } else if (key === "client_statuses") {
+                setting.type = "json";
+                setting.description = "Estados disponibles para clientes [{value, label}]";
             }
 
             await settingRepository.save(setting);
@@ -71,6 +77,23 @@ export class SystemSettingController {
             return res.json(setting);
         } catch (error) {
             return res.status(500).json({ message: "Error al actualizar configuración", error });
+        }
+    }
+
+    static async getPublicClientOptions(_req: Request, res: Response) {
+        try {
+            const settingRepository = AppDataSource.getRepository(SystemSetting);
+            const citiesSetting = await settingRepository.findOneBy({ key: 'client_cities' });
+
+            const defaultCities = ['Cali'];
+            let cities = defaultCities;
+            if (citiesSetting) {
+                try { cities = JSON.parse(citiesSetting.value); } catch (e) { /* usar default */ }
+            }
+
+            return res.json({ cities });
+        } catch (error) {
+            return res.status(500).json({ message: "Error al obtener opciones de cliente", error });
         }
     }
 }
