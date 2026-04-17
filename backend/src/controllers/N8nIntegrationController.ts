@@ -8,6 +8,7 @@ import { ProductInstallment } from '../entities/ProductInstallment';
 import { Interaction } from '../entities/Interaction';
 import { SystemSetting } from '../entities/SystemSetting';
 import { InteractionType } from '../entities/InteractionType';
+import { ServiceOutage } from '../entities/ServiceOutage';
 import { In, Between, Like } from 'typeorm';
 
 // Helper: Formatear teléfono para WhatsApp (Evolution API requiere código país 57)
@@ -121,7 +122,26 @@ export const N8nIntegrationController = {
                 relations: ['product', 'product.client']
             });
 
-            // 3. Obtener todos los pagos del mes SOLICITADO
+            // 3. Obtener caídas de servicio aplicadas o pendientes cuyo rango toca el mes consultado
+            const serviceOutageRepository = AppDataSource.getRepository(ServiceOutage);
+            const monthStart = new Date(queryYear, safeMonthIndex, 1);
+            const monthEnd = new Date(queryYear, safeMonthIndex + 1, 0);
+            const allOutages = await serviceOutageRepository
+                .createQueryBuilder('outage')
+                .where('outage.clientId IN (:...ids)', { ids: clientIds })
+                .andWhere('outage.status IN (:...statuses)', { statuses: ['pending', 'applied'] })
+                .andWhere('outage.startDate <= :monthEnd', { monthEnd: monthEnd.toISOString().split('T')[0] })
+                .andWhere('outage.endDate >= :monthStart', { monthStart: monthStart.toISOString().split('T')[0] })
+                .getMany();
+
+            // Agrupar caídas por installationId
+            const outagesMap = new Map<number, ServiceOutage[]>();
+            allOutages.forEach(o => {
+                if (!outagesMap.has(o.installationId)) outagesMap.set(o.installationId, []);
+                outagesMap.get(o.installationId)!.push(o);
+            });
+
+            // 4. Obtener todos los pagos del mes SOLICITADO
             const allPayments = await paymentRepository.find({
                 where: [
                     { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear },
@@ -304,6 +324,14 @@ export const N8nIntegrationController = {
                         ? productInstallments.map(p => `${p.installmentNumber}/${p.product.installments}`).join(', ') 
                         : '';
 
+                    // Calcular descuento por caída de servicio para esta instalación
+                    const installationOutages = outagesMap.get(installation.id) || [];
+                    const totalDescuentoCorte = installationOutages.reduce((sum, o) => sum + Number(o.discountAmount), 0);
+                    const totalDiasCorte = installationOutages.reduce((sum, o) => sum + o.days, 0);
+                    const detalleCorte = installationOutages.length > 0
+                        ? installationOutages.map(o => `${o.days}d (${o.startDate} - ${o.endDate}): $${Number(o.discountAmount).toLocaleString('es-CO')}`).join(' | ')
+                        : '';
+
                     const reminderData = {
                         'ID Cliente': `CL-${String(client.id).padStart(4, '0')}`,
                         'Nombre Completo': client.fullName,
@@ -318,6 +346,9 @@ export const N8nIntegrationController = {
                         'DETALLE_ADICIONAL': [additionalDetails, productDetails].filter(d => d && d !== '').join(', ') || 'Ninguno',
                         'CUOTA': cuota,
                         'TIPO': tipo,
+                        'DESCUENTO_CORTE': totalDescuentoCorte,
+                        'DIAS_CORTE': totalDiasCorte,
+                        'DETALLE_CORTE': detalleCorte,
                         'ENVIADO': sentClientIds.has(client.id) ? 'YES' : 'NO',
                         'estado_pago': payment?.status || 'pending',
                         'installation_id': installation.id
