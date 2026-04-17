@@ -122,26 +122,7 @@ export const N8nIntegrationController = {
                 relations: ['product', 'product.client']
             });
 
-            // 3. Obtener caídas de servicio aplicadas o pendientes cuyo rango toca el mes consultado
-            const serviceOutageRepository = AppDataSource.getRepository(ServiceOutage);
-            const monthStart = new Date(queryYear, safeMonthIndex, 1);
-            const monthEnd = new Date(queryYear, safeMonthIndex + 1, 0);
-            const allOutages = await serviceOutageRepository
-                .createQueryBuilder('outage')
-                .where('outage.clientId IN (:...ids)', { ids: clientIds })
-                .andWhere('outage.status IN (:...statuses)', { statuses: ['pending', 'applied'] })
-                .andWhere('outage.startDate <= :monthEnd', { monthEnd: monthEnd.toISOString().split('T')[0] })
-                .andWhere('outage.endDate >= :monthStart', { monthStart: monthStart.toISOString().split('T')[0] })
-                .getMany();
-
-            // Agrupar caídas por installationId
-            const outagesMap = new Map<number, ServiceOutage[]>();
-            allOutages.forEach(o => {
-                if (!outagesMap.has(o.installationId)) outagesMap.set(o.installationId, []);
-                outagesMap.get(o.installationId)!.push(o);
-            });
-
-            // 4. Obtener todos los pagos del mes SOLICITADO
+            // 3. Obtener todos los pagos del mes SOLICITADO
             const allPayments = await paymentRepository.find({
                 where: [
                     { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear },
@@ -192,6 +173,24 @@ export const N8nIntegrationController = {
 
             const vencidoMin = vencidoMinSetting ? parseInt(vencidoMinSetting.value) : 0;
             const vencidoMax = vencidoMaxSetting ? parseInt(vencidoMaxSetting.value) : 15;
+
+            // Obtener caídas de servicio del mes consultado (usando safeMonthIndex ya calculado)
+            const serviceOutageRepository = AppDataSource.getRepository(ServiceOutage);
+            const monthStart = new Date(queryYear, safeMonthIndex, 1);
+            const monthEnd = new Date(queryYear, safeMonthIndex + 1, 0);
+            const allOutages = await serviceOutageRepository
+                .createQueryBuilder('outage')
+                .where('outage.clientId IN (:...ids)', { ids: clientIds })
+                .andWhere('outage.status IN (:...statuses)', { statuses: ['pending', 'applied'] })
+                .andWhere('outage.startDate <= :monthEnd', { monthEnd: monthEnd.toISOString().split('T')[0] })
+                .andWhere('outage.endDate >= :monthStart', { monthStart: monthStart.toISOString().split('T')[0] })
+                .getMany();
+
+            const outagesMap = new Map<number, ServiceOutage[]>();
+            allOutages.forEach(o => {
+                if (!outagesMap.has(o.installationId)) outagesMap.set(o.installationId, []);
+                outagesMap.get(o.installationId)!.push(o);
+            });
 
             for (const client of clients) {
                 // Obtener instalaciones activas

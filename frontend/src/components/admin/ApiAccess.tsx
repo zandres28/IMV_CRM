@@ -272,6 +272,24 @@ const ApiAccess: React.FC = () => {
                 { param: 'month', values: 'ENERO, FEBRERO ... DICIEMBRE', description: 'Mes a consultar en mayúsculas. Por defecto: mes actual.' },
                 { param: 'year', values: 'Ej: 2026', description: 'Año a consultar. Por defecto: año actual.' },
             ],
+            responseFields: [
+                { field: 'ID Cliente', type: 'string', description: 'Identificador CL-XXXX del cliente.' },
+                { field: 'Nombre Completo', type: 'string', description: 'Nombre completo del cliente.' },
+                { field: 'Celular 1 / Celular 2', type: 'string', description: 'Teléfonos con código de país 57 (formato WhatsApp).' },
+                { field: 'PLAN', type: 'string', description: 'Nombre del plan de servicio de la instalación.' },
+                { field: 'MES / FECHA_LIMITE', type: 'string', description: 'Mes de facturación y fecha límite de pago (Ej: "05 de MAYO").' },
+                { field: 'DIAS', type: 'number', description: 'Días transcurridos desde la fecha de vencimiento. 0 si ya pagó.' },
+                { field: 'VALOR', type: 'number', description: 'Valor de la mensualidad (posiblemente prorrateado).' },
+                { field: 'ADICIONAL', type: 'number', description: 'Suma de servicios adicionales + cuotas de productos pendientes.' },
+                { field: 'DETALLE_ADICIONAL', type: 'string', description: 'Nombres de los servicios/productos adicionales cobrados.' },
+                { field: 'TIPO', type: 'string', description: 'PROXIMO | VENCIDO | ULTIMO | PAGADO según los días de mora.' },
+                { field: 'DESCUENTO_CORTE', type: 'number', description: 'Descuento total en $ por caídas de servicio registradas en el mes consultado (0 si no aplica).' },
+                { field: 'DIAS_CORTE', type: 'number', description: 'Total de días sin servicio acumulados en el mes por caídas registradas.' },
+                { field: 'DETALLE_CORTE', type: 'string', description: 'Detalle de cada caída: días, rango de fechas y monto. Vacío si no hay caídas.' },
+                { field: 'ENVIADO', type: 'string', description: 'YES si ya se envió recordatorio este mes, NO si aún no.' },
+                { field: 'estado_pago', type: 'string', description: 'Estado del pago: pending | overdue | approved | paid.' },
+                { field: 'installation_id', type: 'number', description: 'ID de la instalación asociada.' },
+            ],
             example: `# Clientes vencidos que no han recibido recordatorio:\\ncurl -X GET "https://imvcrm-bknd.duckdns.org/api/n8n/payment-reminders?reminderType=VENCIDO&sentFilter=NO" \\\\\\n-H "x-api-key: TU_API_KEY_N8N"\\n\\n# Todos los no pagados (vencidos + pendientes) del mes actual:\\ncurl -X GET "https://imvcrm-bknd.duckdns.org/api/n8n/payment-reminders?paymentStatus=overdue" \\\\\\n-H "x-api-key: TU_API_KEY_N8N"\\n\\n# Consulta de un mes específico:\\ncurl -X GET "https://imvcrm-bknd.duckdns.org/api/n8n/payment-reminders?month=FEBRERO&year=2026&paymentStatus=pending" \\\\\\n-H "x-api-key: TU_API_KEY_N8N"`
         },
         {
@@ -461,6 +479,32 @@ const ApiAccess: React.FC = () => {
                                 </Box>
                             )}
                             
+                            {(endpoint as any).responseFields && (
+                                <Box>
+                                    <Typography variant="subtitle2" gutterBottom>Campos de la Respuesta:</Typography>
+                                    <TableContainer component={Paper} variant="outlined">
+                                        <Table size="small">
+                                            <TableHead>
+                                                <TableRow sx={{ bgcolor: '#f0fff4' }}>
+                                                    <TableCell sx={{ fontWeight: 'bold', width: '200px' }}>Campo</TableCell>
+                                                    <TableCell sx={{ fontWeight: 'bold', width: '100px' }}>Tipo</TableCell>
+                                                    <TableCell sx={{ fontWeight: 'bold' }}>Descripción</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {(endpoint as any).responseFields.map((row: any, i: number) => (
+                                                    <TableRow key={i} sx={{ '&:last-child td': { border: 0 } }}>
+                                                        <TableCell><code style={{ color: '#2e7d32', fontWeight: 600 }}>{row.field}</code></TableCell>
+                                                        <TableCell><code style={{ fontSize: '0.78rem', color: '#6a1b9a' }}>{row.type}</code></TableCell>
+                                                        <TableCell><Typography variant="body2">{row.description}</Typography></TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Box>
+                            )}
+
                             {endpoint.body && (
                                 <Box>
                                     <Typography variant="subtitle2" gutterBottom>Cuerpo de la Petición (JSON):</Typography>
