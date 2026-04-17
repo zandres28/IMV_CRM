@@ -1045,60 +1045,157 @@ const MonthlyBilling: React.FC = () => {
             <Dialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Registrar Pago</DialogTitle>
                 <DialogContent>
-                    {selectedPayment && (
+                    {selectedPayment && (() => {
+                        const monthIndex = MONTHS.indexOf(selectedPayment.paymentMonth.toLowerCase());
+                        const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 5);
+                        const firstDayOfMonth = new Date(selectedPayment.paymentYear, monthIndex, 1);
+
+                        // Cuotas incluidas en el cobro base (dentro del período de facturación)
+                        const includedInstallments = selectedPayment.client?.productsSold?.flatMap(product =>
+                            (product.installmentPayments || [])
+                                .filter(inst => {
+                                    const dueDate = new Date(inst.dueDate);
+                                    return (inst.status === 'pending' || inst.status === 'overdue') &&
+                                        dueDate >= firstDayOfMonth && dueDate <= billingPeriodEnd;
+                                })
+                                .map(inst => ({ ...inst, productName: product.productName }))
+                        ) || [];
+
+                        // Cuotas ya pagadas (para referencia)
+                        const paidInstallments = selectedPayment.client?.productsSold?.flatMap(product =>
+                            (product.installmentPayments || [])
+                                .filter(inst => inst.status === 'paid' || inst.status === 'completed')
+                                .map(inst => ({ ...inst, productName: product.productName }))
+                        ) || [];
+
+                        // Cuotas futuras opcionales (fuera del período, se pueden pagar anticipadamente)
+                        const futureInstallments = selectedPayment.client?.productsSold?.flatMap(product =>
+                            (product.installmentPayments || [])
+                                .filter(inst => {
+                                    const dueDate = new Date(inst.dueDate);
+                                    return (inst.status === 'pending' || inst.status === 'overdue') &&
+                                        dueDate > billingPeriodEnd;
+                                })
+                                .map(inst => ({ ...inst, productName: product.productName }))
+                        ) || [];
+
+                        const extraAmount = futureInstallments
+                            .filter(i => extraInstallmentIds.includes(i.id))
+                            .reduce((sum, i) => sum + Number(i.amount), 0);
+
+                        const allInstallments = [...includedInstallments, ...futureInstallments, ...paidInstallments];
+                        const hasProducts = allInstallments.length > 0;
+
+                        return (
                         <Box sx={{ pt: 2 }}>
                             <Alert severity="info" sx={{ mb: 2 }}>
                                 <Typography variant="body2">
                                     <strong>Cliente:</strong> {selectedPayment.client?.fullName || 'Desconocido'}
                                 </Typography>
-                                <Typography variant="body2">
-                                    <strong>Monto Base:</strong> {formatCurrency(selectedPayment.amount)}
-                                </Typography>
-                                {extraInstallmentIds.length > 0 && (
+                                {Number(selectedPayment.servicePlanAmount) > 0 && (
+                                    <Typography variant="body2">
+                                        Plan de servicio: {formatCurrency(selectedPayment.servicePlanAmount)}
+                                    </Typography>
+                                )}
+                                {Number(selectedPayment.additionalServicesAmount) > 0 && (
+                                    <Typography variant="body2">
+                                        Servicios adicionales: {formatCurrency(selectedPayment.additionalServicesAmount)}
+                                    </Typography>
+                                )}
+                                {Number(selectedPayment.productInstallmentsAmount) > 0 && (
+                                    <Typography variant="body2">
+                                        Cuotas de productos: {formatCurrency(selectedPayment.productInstallmentsAmount)}
+                                    </Typography>
+                                )}
+                                {extraAmount > 0 && (
                                     <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
-                                        <strong>+ Adicionales:</strong> {formatCurrency(
-                                            selectedPayment.client?.productsSold?.flatMap(p => p.installmentPayments || [])
-                                                .filter(i => extraInstallmentIds.includes(i.id))
-                                                .reduce((sum, i) => sum + Number(i.amount), 0) || 0
-                                        )}
+                                        + Cuotas adicionales seleccionadas: {formatCurrency(extraAmount)}
                                     </Typography>
                                 )}
                                 <Typography variant="h6" sx={{ mt: 1 }}>
-                                    <strong>Total a Pagar:</strong> {formatCurrency(
-                                        Number(selectedPayment.amount) + 
-                                        (selectedPayment.client?.productsSold?.flatMap(p => p.installmentPayments || [])
-                                            .filter(i => extraInstallmentIds.includes(i.id))
-                                            .reduce((sum, i) => sum + Number(i.amount), 0) || 0)
-                                    )}
+                                    <strong>Total a Pagar:</strong> {formatCurrency(Number(selectedPayment.amount) + extraAmount)}
                                 </Typography>
                             </Alert>
 
-                            {/* Selección de cuotas adicionales */}
-                            {selectedPayment.client?.productsSold && selectedPayment.client.productsSold.length > 0 && (
-                                <Box sx={{ mb: 2, border: '1px solid #e0e0e0', borderRadius: 1, p: 1 }}>
-                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Agregar cuotas adicionales:</Typography>
-                                    <List dense sx={{ maxHeight: 150, overflow: 'auto' }}>
-                                        {selectedPayment.client.productsSold.flatMap(product => 
-                                            product.installmentPayments
-                                                ?.filter(inst => {
-                                                    // Mostrar cuotas pendientes que NO están incluidas en el cobro base
-                                                    // Asumimos que el cobro base incluye las que vencen en este mes
-                                                    const dueDate = new Date(inst.dueDate);
-                                                    const monthIndex = MONTHS.indexOf(selectedPayment.paymentMonth.toLowerCase());
-                                                    const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 5);
-                                                    
-                                                    return inst.status === 'pending' && dueDate > billingPeriodEnd;
-                                                })
-                                                .map(inst => (
-                                                    <ListItem key={`${product.id}-${inst.id}`} disablePadding>
+                            {/* Cuotas de productos/servicios */}
+                            {hasProducts && (
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+                                        Cuotas de productos
+                                    </Typography>
+
+                                    {/* Cuotas incluidas en el cobro base */}
+                                    {includedInstallments.length > 0 && (
+                                        <Box sx={{ mb: 1, border: '1px solid #1976d2', borderRadius: 1, p: 1, bgcolor: '#e3f2fd' }}>
+                                            <Typography variant="caption" sx={{ color: '#1565c0', fontWeight: 700, display: 'block', mb: 0.5 }}>
+                                                ✓ Incluidas en este cobro (se marcarán como pagadas)
+                                            </Typography>
+                                            <List dense>
+                                                {includedInstallments.map(inst => (
+                                                    <ListItem key={inst.id} disablePadding sx={{ py: 0.25 }}>
+                                                        <ListItemText
+                                                            primary={
+                                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                                    {inst.productName} — Cuota {inst.installmentNumber}
+                                                                </Typography>
+                                                            }
+                                                            secondary={
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {formatCurrency(inst.amount)} · Vence: {formatLocalDate(inst.dueDate)}
+                                                                </Typography>
+                                                            }
+                                                        />
+                                                    </ListItem>
+                                                ))}
+                                            </List>
+                                        </Box>
+                                    )}
+
+                                    {/* Cuotas ya pagadas (referencia) */}
+                                    {paidInstallments.length > 0 && (
+                                        <Box sx={{ mb: 1, border: '1px solid #c8e6c9', borderRadius: 1, p: 1, bgcolor: '#f1f8f1' }}>
+                                            <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 700, display: 'block', mb: 0.5 }}>
+                                                ✓ Ya pagadas (referencia)
+                                            </Typography>
+                                            <List dense>
+                                                {paidInstallments.map(inst => (
+                                                    <ListItem key={inst.id} disablePadding sx={{ py: 0.25 }}>
+                                                        <ListItemText
+                                                            primary={
+                                                                <Typography variant="body2" sx={{ color: '#388e3c' }}>
+                                                                    {inst.productName} — Cuota {inst.installmentNumber}
+                                                                </Typography>
+                                                            }
+                                                            secondary={
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {formatCurrency(inst.amount)} · Pagada: {inst.paymentDate ? formatLocalDate(inst.paymentDate) : '—'}
+                                                                </Typography>
+                                                            }
+                                                        />
+                                                    </ListItem>
+                                                ))}
+                                            </List>
+                                        </Box>
+                                    )}
+
+                                    {/* Cuotas futuras opcionales */}
+                                    {futureInstallments.length > 0 && (
+                                        <Box sx={{ border: '1px solid #ffe082', borderRadius: 1, p: 1, bgcolor: '#fffde7' }}>
+                                            <Typography variant="caption" sx={{ color: '#f57f17', fontWeight: 700, display: 'block', mb: 0.5 }}>
+                                                Cuotas futuras — puede pagar anticipadamente (opcional):
+                                            </Typography>
+                                            <List dense>
+                                                {futureInstallments.map(inst => (
+                                                    <ListItem key={inst.id} disablePadding sx={{ py: 0.25 }}>
                                                         <ListItemIcon sx={{ minWidth: 36 }}>
                                                             <Checkbox
                                                                 edge="start"
+                                                                size="small"
                                                                 checked={extraInstallmentIds.includes(inst.id)}
                                                                 tabIndex={-1}
                                                                 disableRipple
                                                                 onChange={() => {
-                                                                    setExtraInstallmentIds(prev => 
+                                                                    setExtraInstallmentIds(prev =>
                                                                         prev.includes(inst.id)
                                                                             ? prev.filter(id => id !== inst.id)
                                                                             : [...prev, inst.id]
@@ -1106,14 +1203,23 @@ const MonthlyBilling: React.FC = () => {
                                                                 }}
                                                             />
                                                         </ListItemIcon>
-                                                        <ListItemText 
-                                                            primary={`${product.productName} - Cuota ${inst.installmentNumber}`}
-                                                            secondary={`${formatCurrency(inst.amount)} - Vence: ${formatLocalDate(inst.dueDate)}`}
+                                                        <ListItemText
+                                                            primary={
+                                                                <Typography variant="body2">
+                                                                    {inst.productName} — Cuota {inst.installmentNumber}
+                                                                </Typography>
+                                                            }
+                                                            secondary={
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {formatCurrency(inst.amount)} · Vence: {formatLocalDate(inst.dueDate)}
+                                                                </Typography>
+                                                            }
                                                         />
                                                     </ListItem>
-                                                ))
-                                        )}
-                                    </List>
+                                                ))}
+                                            </List>
+                                        </Box>
+                                    )}
                                 </Box>
                             )}
 
@@ -1152,7 +1258,8 @@ const MonthlyBilling: React.FC = () => {
                                 onChange={(e) => setPaymentNotes(e.target.value)}
                             />
                         </Box>
-                    )}
+                        );
+                    })()}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>

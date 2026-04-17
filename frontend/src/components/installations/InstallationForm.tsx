@@ -55,7 +55,8 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
         installationFee: prefillData?.installationFee ?? 40000,
         serviceStatus: 'active' as Installation['serviceStatus'],
         installationDate: new Date().toISOString().split('T')[0],
-        retirementDate: ''
+        retirementDate: '',
+        scheduledTimeSlot: '',
     }), [prefillData]);
 
     const [formData, setFormData] = React.useState<Partial<Installation>>(buildDefaultForm);
@@ -74,7 +75,8 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
                 onuSerialNumber: installation.onuSerialNumber || '',
                 ipAddress: installation.ipAddress || '',
                 notes: installation.notes || '',
-                installationFee: installation.installationFee || 0
+                installationFee: installation.installationFee || 0,
+                scheduledTimeSlot: installation.scheduledTimeSlot || '',
             };
             // Preferir ID del plan si viene en la instalación
             if (installation.servicePlan?.id) {
@@ -337,6 +339,23 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
                                 required
                                 InputLabelProps={{ shrink: true }}
                             />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Franja Horaria</InputLabel>
+                                <Select
+                                    value={(formData as any).scheduledTimeSlot || ''}
+                                    name="scheduledTimeSlot"
+                                    onChange={handleSelectChange}
+                                    label="Franja Horaria"
+                                >
+                                    <MenuItem value="">Sin definir</MenuItem>
+                                    <MenuItem value="8:00 am a 10:00 am">8:00 am a 10:00 am</MenuItem>
+                                    <MenuItem value="10:00 am a 12:00 m">10:00 am a 12:00 m</MenuItem>
+                                    <MenuItem value="2:00 pm a 4:00 pm">2:00 pm a 4:00 pm</MenuItem>
+                                    <MenuItem value="4:00 pm a 6:00 pm">4:00 pm a 6:00 pm</MenuItem>
+                                </Select>
+                            </FormControl>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <TextField

@@ -44,12 +44,26 @@ const ServiceRequestForm: React.FC = () => {
         planId: ''
     });
     const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
+    const [cities, setCities] = useState<string[]>(['Cali']);
 
     const [plans, setPlans] = useState<ServicePlan[]>([]);
     const [loadingPlans, setLoadingPlans] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        const fetchOptions = async () => {
+            try {
+                const response = await axios.get(`${API_URL}/public/client-options`);
+                if (response.data?.cities?.length) {
+                    setCities(response.data.cities);
+                    setFormData(prev => ({ ...prev, city: response.data.cities[0] }));
+                }
+            } catch (e) { /* usar default */ }
+        };
+        fetchOptions();
+    }, []);
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -222,15 +236,19 @@ const ServiceRequestForm: React.FC = () => {
                                     />
                                 </Grid>
                                 <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Ciudad / Municipio"
-                                        name="city"
-                                        value={formData.city}
-                                        onChange={handleChange}
-                                        required
-                                        variant="outlined"
-                                    />
+                                    <FormControl fullWidth required variant="outlined">
+                                        <InputLabel>Ciudad / Municipio</InputLabel>
+                                        <Select
+                                            name="city"
+                                            value={formData.city}
+                                            label="Ciudad / Municipio"
+                                            onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value as string }))}
+                                        >
+                                            {cities.map(city => (
+                                                <MenuItem key={city} value={city}>{city}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
                                 </Grid>
 
                                 <Grid item xs={12}>

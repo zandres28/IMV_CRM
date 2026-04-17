@@ -60,6 +60,8 @@ import {
   Assessment as ChartIcon,
   Code as ApiIcon,
   Image as ImageIcon,
+  Campaign as CampaignIcon,
+  CalendarMonth as CalendarMonthIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import AuthService from './services/AuthService';
@@ -185,6 +187,8 @@ function App() {
     if (path.includes('/admin/service-plans')) return 'Planes de Servicio';
     if (path.includes('/admin/technicians')) return 'Gestión de Técnicos';
     if (path.includes('/admin/promotions')) return 'Gestor de Imágenes Promocionales';
+    if (path.includes('/admin/avisos')) return 'Avisos Masivos WhatsApp';
+    if (path.includes('/installations/agenda')) return 'Agenda de Instalaciones';
     if (path.includes('/admin/interaction-types')) return 'Tipos de Interacción';
     
     return 'Nexum CRM';
@@ -320,6 +324,13 @@ function App() {
           </ListItem>
         )}
 
+        {AuthService.hasPermission('installations.view') && (
+          <ListItem button component={Link} to="/installations/agenda" onClick={handleDrawerToggle} selected={location.pathname === '/installations/agenda'}>
+            <ListItemIcon><CalendarMonthIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Agenda de Instalaciones" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+          </ListItem>
+        )}
+
         {AuthService.hasPermission('clients.crm.view') && (
           <ListItem button component={Link} to="/interactions" onClick={handleDrawerToggle} selected={location.pathname === '/interactions'}>
             <ListItemIcon><SupportIcon sx={{ fontSize: 18 }} /></ListItemIcon>
@@ -407,6 +418,11 @@ function App() {
         <ListItem button component={Link} to="/admin/promotions" onClick={handleDrawerToggle} selected={location.pathname === '/admin/promotions'}>
           <ListItemIcon><ImageIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Imágenes Promocionales" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        <ListItem button component={Link} to="/admin/avisos" onClick={handleDrawerToggle} selected={location.pathname === '/admin/avisos'}>
+          <ListItemIcon><CampaignIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Avisos Masivos" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
         </ListItem>
 
         {(AuthService.hasPermission('admin.plans.view') || AuthService.hasPermission('admin.technicians.view')) && (

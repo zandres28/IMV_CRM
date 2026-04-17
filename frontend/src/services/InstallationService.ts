@@ -30,6 +30,7 @@ export interface Installation {
     serviceStatus: 'active' | 'suspended' | 'cancelled';
     installationDate: string;
     retirementDate?: string;
+    scheduledTimeSlot?: string;
     isActive: boolean;
     isDeleted?: boolean;
     deletedAt?: string | null;
@@ -58,6 +59,14 @@ export const InstallationService = {
 
     update: async (id: number, installation: Partial<Installation>) => {
         const response = await axios.put(`${API_URL}/installations/${id}`, installation);
+        return response.data;
+    },
+
+    getScheduled: async (from?: string, to?: string): Promise<Installation[]> => {
+        const params = new URLSearchParams();
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        const response = await axios.get(`${API_URL}/installations/scheduled?${params.toString()}`);
         return response.data;
     },
 

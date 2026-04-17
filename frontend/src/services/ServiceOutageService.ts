@@ -34,6 +34,30 @@ export interface ServiceOutageFilters {
   status?: 'pending' | 'applied' | 'cancelled' | 'all';
   startDate?: string;
   endDate?: string;
+  ponId?: string;
+}
+
+export interface BulkUpdateServiceOutageData {
+  outageIds: number[];
+  startDate: string;
+  endDate: string;
+  reason: string;
+  notes?: string;
+}
+
+export interface BulkCreateByPonData {
+  ponId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  notes?: string;
+}
+
+export interface BulkCreateByPonPreview {
+  ponId: string;
+  totalInstallations: number;
+  totalClients: number;
+  sampleClients: string[];
 }
 
 export interface PendingDiscountsResponse {
@@ -73,7 +97,55 @@ export class ServiceOutageService {
       params.append('endDate', filters.endDate);
     }
 
+    if (filters?.ponId && filters.ponId.trim()) {
+      params.append('ponId', filters.ponId.trim());
+    }
+
     const response = await axios.get(`${API_BASE_URL}/service-outages?${params.toString()}`);
+    return response.data;
+  }
+
+  /**
+   * Actualizar múltiples caídas en bloque
+   */
+  static async bulkUpdate(data: BulkUpdateServiceOutageData): Promise<{ updatedCount: number; updatedIds: number[]; message: string }> {
+    const response = await axios.put(`${API_BASE_URL}/service-outages/bulk`, data);
+    return response.data;
+  }
+
+  /**
+   * Eliminar múltiples caídas en bloque
+   */
+  static async bulkDelete(outageIds: number[]): Promise<{ deletedCount: number; deletedIds: number[]; message: string }> {
+    const response = await axios.delete(`${API_BASE_URL}/service-outages/bulk`, {
+      data: { outageIds },
+    });
+    return response.data;
+  }
+
+  /**
+   * Obtener lista de PON IDs disponibles
+   */
+  static async getPonOptions(): Promise<string[]> {
+    const response = await axios.get(`${API_BASE_URL}/service-outages/pon-options`);
+    return response.data;
+  }
+
+  /**
+   * Crear caída masiva por PON
+   */
+  static async bulkCreateByPon(data: BulkCreateByPonData): Promise<{ message: string; createdCount: number; skippedCount: number; totalInstallations: number; ponId: string }> {
+    const response = await axios.post(`${API_BASE_URL}/service-outages/bulk/pon`, data);
+    return response.data;
+  }
+
+  /**
+   * Previsualizar impacto por PON
+   */
+  static async previewByPon(ponId: string): Promise<BulkCreateByPonPreview> {
+    const params = new URLSearchParams();
+    params.set('ponId', ponId);
+    const response = await axios.get(`${API_BASE_URL}/service-outages/bulk/pon/preview?${params.toString()}`);
     return response.data;
   }
 
@@ -133,10 +205,7 @@ export class ServiceOutageService {
    */
   static calculateDiscount(monthlyFee: number, startDate: string, endDate: string): number {
     const days = this.calculateDays(startDate, endDate);
-    const start = new Date(startDate);
-    const year = start.getFullYear();
-    const month = start.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInMonth = 30;
     const discountAmount = (monthlyFee / daysInMonth) * days;
     return Math.round(discountAmount);
   }

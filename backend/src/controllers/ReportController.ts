@@ -112,12 +112,13 @@ export const ReportController = {
             // REPORTE DE SERVICIOS ADICIONALES
             // ==========================================
             if (reportType === 'services') {
-                // Buscamos clientes que tengan servicios adicionales activos O productos pendientes/activos
+                const { serviceType = 'all', sortBy = 'clientName', sortOrder = 'asc' } = req.query;
 
                 let queryBuilder = clientRepository
                     .createQueryBuilder('client')
                     .leftJoinAndSelect('client.additionalServices', 'service', 'service.status = :svcStatus', { svcStatus: 'active' })
-                    .leftJoinAndSelect('client.productsSold', 'product', 'product.status = :prodStatus', { prodStatus: 'pending' })
+                    .leftJoinAndSelect('client.productsSold', 'product', 'product.status != :prodCancelled', { prodCancelled: 'cancelled' })
+                    .leftJoinAndSelect('product.installmentPayments', 'installment')
                     .where('client.status = :status', { status: 'active' });
 
                 if (search) {
@@ -127,55 +128,88 @@ export const ReportController = {
                     );
                 }
 
-                const { serviceType = 'all' } = req.query;
-
-                // Filtrar para que tenga AL MENOS uno de los dos (servicio o producto) dependiendo del filtro
                 queryBuilder.andWhere(new Brackets(qb => {
                     if (serviceType === 'service') {
                         qb.where('service.id IS NOT NULL');
                     } else if (serviceType === 'product') {
                         qb.where('product.id IS NOT NULL');
                     } else {
-                        // 'all' (default): uno u otro
                         qb.where('service.id IS NOT NULL')
                             .orWhere('product.id IS NOT NULL');
                     }
                 }));
 
-                const total = await queryBuilder.getCount();
-                const clients = await queryBuilder
-                    .skip(skip)
-                    .take(pageSizeNum)
-                    .getMany();
+                const clients = await queryBuilder.getMany();
 
-                const rows = clients.map(client => {
-                    const services = client.additionalServices?.map(s => `${s.serviceName} ($${s.monthlyFee})`) || [];
-                    const products = client.productsSold?.map(p => `${p.productName} (Cuota: $${p.installmentAmount})`) || [];
+                // Construir filas aplanadas: una fila por servicio o producto
+                const allRows: any[] = [];
 
-                    const combinedList = [...services, ...products].join(', ');
+                for (const client of clients) {
+                    if (serviceType !== 'product') {
+                        for (const service of client.additionalServices || []) {
+                            allRows.push({
+                                id: `SVC-${service.id}`,
+                                clientId: client.id,
+                                fullName: client.fullName,
+                                primaryPhone: client.primaryPhone,
+                                city: client.city,
+                                itemName: service.serviceName,
+                                itemType: 'service',
+                                saleDate: service.startDate || null,
+                                totalAmount: service.monthlyFee,
+                                installmentAmount: null,
+                                totalInstallments: null,
+                                paidInstallments: null,
+                                pendingInstallments: null,
+                            });
+                        }
+                    }
+                    if (serviceType !== 'service') {
+                        for (const product of client.productsSold || []) {
+                            const paidCount = product.installmentPayments?.filter((i: any) => i.status === 'completed').length ?? 0;
+                            const pendingCount = product.installmentPayments?.filter((i: any) => i.status !== 'completed').length ?? 0;
+                            allRows.push({
+                                id: `PRD-${product.id}`,
+                                clientId: client.id,
+                                fullName: client.fullName,
+                                primaryPhone: client.primaryPhone,
+                                city: client.city,
+                                itemName: product.productName,
+                                itemType: 'product',
+                                saleDate: product.saleDate || null,
+                                totalAmount: product.totalAmount,
+                                installmentAmount: product.installmentAmount,
+                                totalInstallments: product.installments,
+                                paidInstallments: paidCount,
+                                pendingInstallments: pendingCount,
+                            });
+                        }
+                    }
+                }
 
-                    const servicesTotal = client.additionalServices?.reduce((sum, s) => sum + Number(s.monthlyFee), 0) || 0;
-                    const productsTotal = client.productsSold?.reduce((sum, p) => sum + Number(p.installmentAmount), 0) || 0;
-
-                    const totalAdditional = servicesTotal + productsTotal;
-
-                    return {
-                        id: `CL-${String(client.id).padStart(4, '0')}`,
-                        clientId: client.id,
-                        fullName: client.fullName,
-                        primaryPhone: client.primaryPhone,
-                        plan: 'N/A',
-                        servicesList: combinedList,
-                        totalAdditional: totalAdditional,
-                        city: client.city
-                    };
+                // Ordenar filas
+                allRows.sort((a, b) => {
+                    let aVal: any, bVal: any;
+                    if (sortBy === 'saleDate') {
+                        aVal = a.saleDate ? new Date(a.saleDate).getTime() : 0;
+                        bVal = b.saleDate ? new Date(b.saleDate).getTime() : 0;
+                    } else {
+                        aVal = (a.fullName || '').toLowerCase();
+                        bVal = (b.fullName || '').toLowerCase();
+                    }
+                    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+                    return 0;
                 });
 
+                const total = allRows.length;
+                const paginatedRows = allRows.slice(skip, skip + pageSizeNum);
+
                 return res.json({
-                    data: rows,
+                    data: paginatedRows,
                     summary: {
                         totalFiltered: total,
-                        totalRevenue: rows.reduce((sum, r) => sum + r.totalAdditional, 0)
+                        totalRevenue: allRows.reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0)
                     },
                     pagination: { page: pageNum, pageSize: pageSizeNum, total }
                 });

@@ -34,6 +34,9 @@ router.get('/search/onu/:serial', requirePermission(PERMISSIONS.INSTALLATIONS.VI
 // Buscar por Etiqueta NAP
 router.get('/search/label/:label', requirePermission(PERMISSIONS.INSTALLATIONS.VIEW), (req, res) => installationController.searchByNapLabel(req, res));
 
+// Instalaciones agendadas (agenda de instalaciones pendientes)
+router.get('/scheduled', requirePermission(PERMISSIONS.INSTALLATIONS.VIEW), (req, res) => installationController.getScheduled(req, res));
+
 // Reiniciar ONU/ONT desde OLT
 router.post('/:installationId/reboot', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), OltController.rebootOnu);
 

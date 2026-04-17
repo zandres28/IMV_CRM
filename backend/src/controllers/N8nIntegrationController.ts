@@ -535,6 +535,43 @@ export const N8nIntegrationController = {
         }
     },
 
+    // Endpoint para enviar avisos masivos (emergencias, mantenimiento, suspensiones, etc.) vía n8n
+    // Requiere header x-api-key igual a process.env.N8N_API_KEY
+    // Body: { message, ponId?, planId?, installationDateFrom?, installationDateTo? }
+    // Devuelve array de destinatarios listos para iterar en n8n → Evolution API (sendText)
+    sendAviso: async (req: Request, res: Response) => {
+        try {
+            const { AvisoController } = await import('./AvisoController');
+
+            const { message, ponId, planId, installationDateFrom, installationDateTo } = req.body as {
+                message?: string;
+                ponId?: string;
+                planId?: number;
+                installationDateFrom?: string;
+                installationDateTo?: string;
+            };
+
+            if (!message || message.trim() === '') {
+                return res.status(400).json({ message: 'El campo message es requerido' });
+            }
+
+            const recipients = await AvisoController._buildRecipients({ ponId, planId, installationDateFrom, installationDateTo });
+
+            // Transformar al formato que espera n8n para enviar via Evolution API
+            const payload = recipients.map(r => ({
+                number: r.number,
+                options: { delay: 1200, presence: 'composing' },
+                textMessage: { text: message.trim() },
+                clientData: r.clientData,
+            }));
+
+            return res.json(payload);
+        } catch (error) {
+            console.error('Error sendAviso:', error);
+            return res.status(500).json({ message: 'Internal error', error: error instanceof Error ? error.message : 'unknown' });
+        }
+    },
+
     // Obtener deuda actual de un cliente por teléfono
 
     // Obtener detalles del cliente por teléfono para sincronización con Chatwoot

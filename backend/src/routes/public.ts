@@ -3,6 +3,7 @@ import { MonthlyBillingController } from "../controllers/MonthlyBillingControlle
 import { ClientController } from "../controllers/ClientController";
 import { ServicePlanController } from "../controllers/ServicePlanController";
 import { PublicConsentController } from "../controllers/PublicConsentController";
+import { SystemSettingController } from "../controllers/SystemSettingController";
 import { publicApiLimiter } from "../middlewares/rateLimit.middleware";
 import path from "path";
 import fs from "fs";
@@ -17,6 +18,7 @@ router.get("/billing/:identificationNumber", MonthlyBillingController.getPublicC
 
 // Rutas de registro público
 router.get("/plans", servicePlanController.getPublicList.bind(servicePlanController));
+router.get("/client-options", SystemSettingController.getPublicClientOptions);
 router.post("/register", ClientController.registerPublic);
 router.post("/consent-log", PublicConsentController.logConsent);
 
