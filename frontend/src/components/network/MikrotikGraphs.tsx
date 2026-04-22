@@ -108,7 +108,7 @@ export const MikrotikGraphs: React.FC = () => {
             </Box>
             
             <Alert severity="info" sx={{ mb: 3 }}>
-                Visualizando datos directamente desde <strong>192.168.1.9</strong>. Requiere conexión VPN/LAN.
+                Visualizando datos directamente desde <strong>192.168.40.10</strong>. Requiere conexión VPN/LAN.
             </Alert>
 
             {loading && <LinearProgress sx={{ mb: 2 }} />}
