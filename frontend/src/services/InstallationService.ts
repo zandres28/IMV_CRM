@@ -103,5 +103,10 @@ export const InstallationService = {
     searchByOnuSerial: async (serial: string): Promise<Installation> => {
         const response = await axios.get(`${API_URL}/installations/search/onu/${encodeURIComponent(serial)}`);
         return response.data;
+    },
+
+    getOnuStatus: async (id: number): Promise<{ onlineStatus: string; isOnline: boolean }> => {
+        const response = await axios.get(`${API_URL}/installations/${id}/onu-status`);
+        return response.data;
     }
 };

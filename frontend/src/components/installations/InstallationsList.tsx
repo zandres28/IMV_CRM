@@ -56,6 +56,8 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState('');
+    const [onuStatusMap, setOnuStatusMap] = useState<Record<number, { onlineStatus: string; isOnline: boolean } | null>>({});
+    const [loadingOnuStatus, setLoadingOnuStatus] = useState(false);
 
     const [notificationOpen, setNotificationOpen] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -94,12 +96,32 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
             if (data.length === 0 && !AuthService.hasRole('Technician')) {
                 handleOpenNewForm();
             }
+
+            // Cargar estado de ONU para todas las instalaciones en paralelo
+            setLoadingOnuStatus(true);
+            const statusMap: Record<number, { onlineStatus: string; isOnline: boolean } | null> = {};
+            
+            await Promise.all(
+                data.map(async (inst) => {
+                    try {
+                        const status = await InstallationService.getOnuStatus(inst.id);
+                        statusMap[inst.id] = status;
+                    } catch (err) {
+                        console.error(`Error obteniendo estado de ONU para instalación ${inst.id}:`, err);
+                        statusMap[inst.id] = null;
+                    }
+                })
+            );
+            
+            setOnuStatusMap(statusMap);
+            setLoadingOnuStatus(false);
         } catch (error: any) {
             console.error('Error al cargar las instalaciones:', error);
             const msg = error?.response?.data?.message || error?.message || 'Error al cargar las instalaciones';
             setNotificationMessage(msg);
             setNotificationSeverity('error');
             setNotificationOpen(true);
+            setLoadingOnuStatus(false);
         }
     }, [clientId, handleOpenNewForm]);
 
@@ -457,6 +479,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                             <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>ID (P/O)</TableCell>
                             <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Mensual</TableCell>
                             <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Costo</TableCell>
+                            <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>ONU</TableCell>
                             <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Estado</TableCell>
                             <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Acciones</TableCell>
                         </TableRow>
@@ -483,6 +506,27 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                 <TableCell sx={{ fontSize: '0.7rem' }}>{installation.ponId}/{installation.onuId}</TableCell>
                                 <TableCell sx={{ fontSize: '0.7rem', fontWeight: 700 }}>{formatCurrency(installation.monthlyFee)}</TableCell>
                                 <TableCell sx={{ fontSize: '0.7rem', fontWeight: 700 }}>{formatCurrency(installation.installationFee || 0)}</TableCell>
+                                <TableCell>
+                                    {loadingOnuStatus ? (
+                                        <CircularProgress size={16} />
+                                    ) : onuStatusMap[installation.id] ? (
+                                        <Chip
+                                            label={onuStatusMap[installation.id].isOnline ? 'ONLINE' : 'OFFLINE'}
+                                            icon={onuStatusMap[installation.id].isOnline ? <WifiIcon /> : <WifiOffIcon />}
+                                            sx={{ 
+                                                height: 18, 
+                                                fontSize: '0.6rem', 
+                                                fontWeight: 800,
+                                                bgcolor: onuStatusMap[installation.id].isOnline ? '#1cc88a20' : '#e74a3b20',
+                                                color: onuStatusMap[installation.id].isOnline ? '#1cc88a' : '#e74a3b',
+                                                border: `1px solid ${onuStatusMap[installation.id].isOnline ? '#1cc88a' : '#e74a3b'}`
+                                            }}
+                                            size="small"
+                                        />
+                                    ) : (
+                                        <Typography sx={{ fontSize: '0.65rem', color: '#858796' }}>—</Typography>
+                                    )}
+                                </TableCell>
                                 <TableCell>
                                     {installation.isDeleted ? (
                                         <Chip label="ELIMINADA" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#e74a3b', color: 'white' }} size="small" />
