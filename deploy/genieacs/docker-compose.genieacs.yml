@@ -1,0 +1,93 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: genieacs-mongo
+    restart: unless-stopped
+    env_file:
+      - ./genieacs.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+    volumes:
+      - genieacs_mongo_data:/data/db
+    networks:
+      - imv_crm_net
+
+  genieacs-cwmp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genieacs-cwmp
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    env_file:
+      - ./genieacs.env
+    command: genieacs-cwmp
+    ports:
+      - "7547:7547"
+    volumes:
+      - ./ext:/opt/genieacs/ext
+    networks:
+      - imv_crm_net
+
+  genieacs-nbi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genieacs-nbi
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    env_file:
+      - ./genieacs.env
+    command: genieacs-nbi
+    ports:
+      - "127.0.0.1:7557:7557"
+    volumes:
+      - ./ext:/opt/genieacs/ext
+    networks:
+      - imv_crm_net
+
+  genieacs-fs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genieacs-fs
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    env_file:
+      - ./genieacs.env
+    command: genieacs-fs
+    ports:
+      - "127.0.0.1:7567:7567"
+    volumes:
+      - ./ext:/opt/genieacs/ext
+    networks:
+      - imv_crm_net
+
+  genieacs-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: genieacs-ui
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - genieacs-nbi
+      - genieacs-fs
+    env_file:
+      - ./genieacs.env
+    command: genieacs-ui
+    ports:
+      - "127.0.0.1:3005:3000"
+    networks:
+      - imv_crm_net
+
+volumes:
+  genieacs_mongo_data:
+
+networks:
+  imv_crm_net:
+    external: true
