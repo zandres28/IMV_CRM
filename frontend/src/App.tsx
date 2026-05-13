@@ -178,6 +178,7 @@ function App() {
     if (path.includes('/service-outages')) return 'Caídas de Servicio';
     if (path.includes('/service-transfers')) return 'Traslados';
     if (path.includes('/network/mikrotik')) return 'Monitor Mikrotik';
+    if (path.includes('/network/devices')) return 'Dispositivos de Red';
     if (path.includes('/billing')) return 'Centro de Facturación';
     if (path.includes('/consultas')) return 'Consultas Avanzadas';
     if (path.includes('/admin/users')) return 'Gestión de Usuarios';
@@ -369,6 +370,11 @@ function App() {
         <ListItem button component={Link} to="/network/mikrotik" onClick={handleDrawerToggle} selected={location.pathname === '/network/mikrotik'}>
           <ListItemIcon><NetworkIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Monitor Mikrotik" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
+        </ListItem>
+
+        <ListItem button component={Link} to="/network/devices" onClick={handleDrawerToggle} selected={location.pathname === '/network/devices'}>
+          <ListItemIcon><RouterIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Dispositivos de Red" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
         </ListItem>
 
         <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.05)' }} />

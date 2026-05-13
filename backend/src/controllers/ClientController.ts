@@ -9,10 +9,120 @@ import { PublicConsentLog } from "../entities/PublicConsentLog";
 import { User } from "../entities/User";
 import { NotificationService } from "../services/NotificationService";
 import { OltService } from "../services/OltService";
+import { formatPhoneForWhatsapp } from './N8nIntegrationController';
+import axios from 'axios';
 
 const clientRepository = AppDataSource.getRepository(Client);
 const servicePlanRepository = AppDataSource.getRepository(ServicePlan);
 const consentLogRepository = AppDataSource.getRepository(PublicConsentLog);
+
+const buildPublicRequestWhatsappUrl = (data: {
+    fullName: string;
+    planName: string;
+    installationAddress: string;
+    city: string;
+    primaryPhone: string;
+}): string | null => {
+    const adminPhone = process.env.WHATSAPP_ADMIN_PHONE || process.env.PUBLIC_WHATSAPP_TARGET_PHONE;
+    const targetPhone = formatPhoneForWhatsapp(adminPhone);
+
+    if (!targetPhone) return null;
+
+    const text = `Hola IMV, me interesa el servicio de ${data.planName}. Mi nombre es ${data.fullName}, ciudad ${data.city}, direccion ${data.installationAddress}, celular ${formatPhoneForWhatsapp(data.primaryPhone)}.`;
+    return `https://api.whatsapp.com/send/?phone=${targetPhone}&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
+};
+
+const sendPublicRequestWhatsappNotification = async (data: {
+    fullName: string;
+    identificationNumber: string;
+    city: string;
+    installationAddress: string;
+    primaryPhone: string;
+    planName: string;
+    planSpeedMbps?: number | null;
+    planMonthlyFee?: number | null;
+}) => {
+    const message = [
+        'Nueva solicitud web IMV',
+        `Cliente: ${data.fullName}`,
+        `Documento: ${data.identificationNumber}`,
+        `Ciudad: ${data.city}`,
+        `Direccion: ${data.installationAddress}`,
+        `Celular: ${formatPhoneForWhatsapp(data.primaryPhone)}`,
+        `Plan: ${data.planName}${data.planSpeedMbps ? ` (${data.planSpeedMbps} Mbps)` : ''}`,
+        `Mensualidad: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(Number(data.planMonthlyFee || 0))}`
+    ].join('\n');
+
+    const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL || process.env.N8N_NOTIFICATIONS_WEBHOOK || process.env.REACT_APP_N8N_NOTIFICATIONS_WEBHOOK;
+    const webhookApiKey = process.env.WHATSAPP_WEBHOOK_API_KEY || process.env.N8N_API_KEY;
+    const adminPhone = process.env.WHATSAPP_ADMIN_PHONE;
+
+    if (webhookUrl) {
+        const payload = {
+            event: 'public_service_request',
+            source: 'crm_public_form',
+            number: adminPhone ? formatPhoneForWhatsapp(adminPhone) : undefined,
+            message,
+            clientData: {
+                fullName: data.fullName,
+                identificationNumber: data.identificationNumber,
+                city: data.city,
+                installationAddress: data.installationAddress,
+                primaryPhone: formatPhoneForWhatsapp(data.primaryPhone)
+            }
+        };
+
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+
+        if (webhookApiKey) {
+            headers['x-api-key'] = webhookApiKey;
+        }
+
+        try {
+            await axios.post(webhookUrl, payload, { headers, timeout: 10000 });
+            console.log('[WHATSAPP] Solicitud web enviada por webhook');
+            return;
+        } catch (error) {
+            console.error('[WHATSAPP] Error enviando webhook de solicitud web:', error);
+        }
+    }
+
+    const evolutionApiUrl = process.env.EVOLUTION_API_URL;
+    const evolutionInstance = process.env.EVOLUTION_INSTANCE;
+    const evolutionApiKey = process.env.EVOLUTION_API_KEY;
+
+    if (evolutionApiUrl && evolutionInstance && evolutionApiKey && adminPhone) {
+        const endpoint = `${evolutionApiUrl.replace(/\/$/, '')}/message/sendText/${evolutionInstance}`;
+        const payload = {
+            number: formatPhoneForWhatsapp(adminPhone),
+            options: {
+                delay: 800,
+                presence: 'composing'
+            },
+            textMessage: {
+                text: message
+            }
+        };
+
+        try {
+            await axios.post(endpoint, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: evolutionApiKey
+                },
+                timeout: 10000
+            });
+            console.log('[WHATSAPP] Solicitud web enviada por Evolution API');
+            return;
+        } catch (error) {
+            console.error('[WHATSAPP] Error enviando solicitud web por Evolution API:', error);
+        }
+    }
+
+    console.warn('[WHATSAPP] No se envio notificacion: faltan variables WHATSAPP_WEBHOOK_URL o configuracion EVOLUTION_API_* + WHATSAPP_ADMIN_PHONE');
+};
 
 export const ClientController = {
     // Registro público de clientes
@@ -30,8 +140,11 @@ export const ClientController = {
                 policyUrl
             } = req.body;
 
+            const normalizedId = String(identificationNumber || '').trim();
+            const normalizedPlanId = Number(planId);
+
             // Validaciones básicas
-            if (!fullName || !identificationNumber || !primaryPhone || !planId) {
+            if (!fullName || !normalizedId || !primaryPhone || !Number.isInteger(normalizedPlanId) || normalizedPlanId <= 0) {
                 return res.status(400).json({ message: "Faltan datos requeridos" });
             }
 
@@ -41,51 +154,114 @@ export const ClientController = {
 
             // Verificar si el cliente ya existe
             const existingClient = await clientRepository.findOne({ 
-                where: { identificationNumber },
+                where: { identificationNumber: normalizedId },
                 withDeleted: true
             });
 
-            if (existingClient) {
-                return res.status(400).json({ message: "Ya existe un cliente con este número de documento" });
-            }
-
             // Obtener el plan seleccionado
-            const plan = await servicePlanRepository.findOne({ where: { id: planId } });
+            const plan = await servicePlanRepository.findOne({ where: { id: normalizedPlanId } });
             if (!plan) {
                 return res.status(400).json({ message: "El plan seleccionado no es válido" });
             }
 
-            // Crear el cliente
+            // Asegurar que req sea tratado como AuthRequest
+            const user = (req as AuthRequest).user;
+
+            const email = req.body.email || 'pending@email.com'; // Email temporal o pedirlo en el form
+
+            if (existingClient) {
+                if (existingClient.deletedAt) {
+                    await clientRepository.recover(existingClient);
+                }
+
+                existingClient.fullName = fullName?.toUpperCase().trim() || existingClient.fullName;
+                existingClient.identificationNumber = normalizedId;
+                existingClient.installationAddress = installationAddress || existingClient.installationAddress;
+                existingClient.city = city || existingClient.city || 'Unknown';
+                existingClient.sucursal = existingClient.sucursal || user?.sucursal || 'CALI';
+                existingClient.primaryPhone = primaryPhone || existingClient.primaryPhone;
+                existingClient.secondaryPhone = secondaryPhone || existingClient.secondaryPhone || null;
+                existingClient.email = email || existingClient.email;
+                existingClient.requestedPlanId = plan.id;
+                existingClient.requestedPlanName = plan.name;
+                existingClient.requestedPlanSpeedMbps = plan.speedMbps;
+                existingClient.requestedPlanMonthlyFee = Number(plan.monthlyFee || 0);
+                existingClient.requestedInstallationFee = Number(plan.installationFee || 0);
+
+                await clientRepository.save(existingClient);
+
+                const updateNote = `Solicitud Web actualizada/reenviada. Plan solicitado: ${plan.name} (${plan.speedMbps} Mbps).`;
+                await createNoteInteraction(
+                    existingClient.id,
+                    updateNote,
+                    'Solicitud Web',
+                    undefined
+                );
+
+                await sendPublicRequestWhatsappNotification({
+                    fullName: existingClient.fullName,
+                    identificationNumber: existingClient.identificationNumber,
+                    city: existingClient.city,
+                    installationAddress: existingClient.installationAddress,
+                    primaryPhone: existingClient.primaryPhone,
+                    planName: plan.name,
+                    planSpeedMbps: plan.speedMbps,
+                    planMonthlyFee: Number(plan.monthlyFee || 0)
+                });
+
+                const whatsappUrl = buildPublicRequestWhatsappUrl({
+                    fullName: existingClient.fullName,
+                    planName: plan.name,
+                    installationAddress: existingClient.installationAddress,
+                    city: existingClient.city,
+                    primaryPhone: existingClient.primaryPhone
+                });
+
+                return res.status(200).json({
+                    message: 'Solicitud actualizada correctamente',
+                    clientId: existingClient.id,
+                    alreadyExists: true,
+                    whatsappUrl
+                });
+            }
+
             const newClient = clientRepository.create({
-                fullName: fullName.toUpperCase().trim(),
-                identificationNumber: identificationNumber.trim(),
-                installationAddress: installationAddress,
-                city: city || 'Unknown', // Ajustar según requerimientos
-                primaryPhone: primaryPhone,
+                fullName: fullName?.toUpperCase().trim() || '',
+                identificationNumber: normalizedId,
+                installationAddress: installationAddress || '',
+                city: city || 'Unknown',
+                sucursal: user?.sucursal || 'CALI',
+                primaryPhone: primaryPhone || '',
                 secondaryPhone: secondaryPhone || null,
-                email: 'pending@email.com', // Email temporal o pedirlo en el form
-                status: 'pendiente_instalacion', // Estado específico para identificarlo
-                requestedPlanId: plan.id,
-                requestedPlanName: plan.name,
-                requestedPlanSpeedMbps: plan.speedMbps,
-                requestedPlanMonthlyFee: Number(plan.monthlyFee),
-                requestedInstallationFee: Number(plan.installationFee)
+                email: email,
+                status: 'pendiente_instalacion',
+                requestedPlanId: plan?.id,
+                requestedPlanName: plan?.name,
+                requestedPlanSpeedMbps: plan?.speedMbps,
+                requestedPlanMonthlyFee: Number(plan?.monthlyFee || 0),
+                requestedInstallationFee: Number(plan?.installationFee || 0)
             });
 
             await clientRepository.save(newClient);
 
-            const consentLog = consentLogRepository.create({
-                identificationNumber: identificationNumber.trim(),
-                fullName: fullName.toUpperCase().trim(),
-                source: 'solicitud',
-                accepted: true,
-                policyUrl: policyUrl ? String(policyUrl).trim() : '/Politica_Tratamiento_Datos_IMV.pdf',
-                clientId: newClient.id,
-                ipAddress: req.ip || null,
-                userAgent: req.headers['user-agent'] || null
+            await sendPublicRequestWhatsappNotification({
+                fullName: newClient.fullName,
+                identificationNumber: newClient.identificationNumber,
+                city: newClient.city,
+                installationAddress: newClient.installationAddress,
+                primaryPhone: newClient.primaryPhone,
+                planName: plan.name,
+                planSpeedMbps: plan.speedMbps,
+                planMonthlyFee: Number(plan.monthlyFee || 0)
             });
 
-            await consentLogRepository.save(consentLog);
+            const whatsappUrl = buildPublicRequestWhatsappUrl({
+                fullName: newClient.fullName,
+                planName: plan.name,
+                installationAddress: newClient.installationAddress,
+                city: newClient.city,
+                primaryPhone: newClient.primaryPhone
+            });
 
             // Crear nota/interacción con el plan solicitado
             const noteContent = `Solicitud de Servicio desde Web.\nPlan solicitado: ${plan.name} (${plan.speedMbps} Mbps) - ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(plan.monthlyFee)}\nCliente registrado automáticamente.`;
@@ -122,7 +298,11 @@ export const ClientController = {
                 console.error('Error enviando notificación de solicitud web:', notifyError);
             }
 
-            return res.status(201).json({ message: "Solicitud recibida correctamente", clientId: newClient.id });
+            return res.status(201).json({
+                message: "Solicitud recibida correctamente",
+                clientId: newClient.id,
+                whatsappUrl
+            });
 
         } catch (error) {
             console.error("Error en registro público:", error);

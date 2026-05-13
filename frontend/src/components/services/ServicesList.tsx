@@ -112,7 +112,6 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                                         sx={{ height: 20, fontSize: '0.6rem', fontWeight: 800 }}
                                     />
                                 </Box>
-                                
                                 <Grid container spacing={1}>
                                     <Grid item xs={6}>
                                         <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>Tarifa</Typography>
@@ -123,9 +122,14 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                                         <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{formatDate(service.startDate)}</Typography>
                                     </Grid>
                                 </Grid>
-
+                                {/* Notas */}
+                                {service.notes && (
+                                    <Box mt={1}>
+                                        <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>Notas</Typography>
+                                        <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#6c757d' }}>{service.notes}</Typography>
+                                    </Box>
+                                )}
                                 <Divider sx={{ my: 1, opacity: 0.5 }} />
-
                                 <Box display="flex" justifyContent="flex-end" gap={1}>
                                     {!AuthService.hasRole('tecnico') && (
                                         <>
@@ -141,16 +145,17 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
             ) : (
                 <TableContainer>
                     <Table>
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: '#4e73df' }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Servicio</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tarifa Mensual</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Inicio</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fin</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
-                            </TableRow>
-                        </TableHead>
+                                <TableHead>
+                                    <TableRow sx={{ backgroundColor: '#4e73df' }}>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Servicio</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tarifa Mensual</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Inicio</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fin</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Notas</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
+                                    </TableRow>
+                                </TableHead>
                         <TableBody>
                             {services.map((service, index) => (
                                 <TableRow 
@@ -167,6 +172,13 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                                     <TableCell>{formatDate(service.startDate)}</TableCell>
                                     <TableCell>
                                         {service.endDate ? formatDate(service.endDate) : '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                        {service.notes ? (
+                                            <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#6c757d' }}>{service.notes}</Typography>
+                                        ) : (
+                                            <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#b0b0b0', fontStyle: 'italic' }}>Sin notas</Typography>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Chip

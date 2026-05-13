@@ -22,6 +22,7 @@ import { InteractionTypesManager } from '../components/admin/InteractionTypesMan
 import ServiceRequestForm from '../components/public/ServiceRequestForm';
 import RolesManager from '../components/admin/RolesManager';
 import { MikrotikGraphs } from '../components/network/MikrotikGraphs';
+import { NetworkDevicesManager } from '../components/network/NetworkDevicesManager';
 import { PromotionsManager } from '../components/admin/PromotionsManager';
 import { AvisosManager } from '../components/admin/AvisosManager';
 import OnuSearch from '../components/installations/OnuSearch';
@@ -87,6 +88,10 @@ const router = createBrowserRouter([
             {
                 path: "network/mikrotik",
                 element: <MikrotikGraphs />
+            },
+            {
+                path: "network/devices",
+                element: <NetworkDevicesManager />
             },
             {
                 path: "installations/onu-search",

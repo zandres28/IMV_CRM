@@ -567,12 +567,12 @@ export const ClientList: React.FC = () => {
                                         </Box>
                                     </Box>
 
-                                    {(instWithSerial || installations.length > 0) && (
+                                    {ponEntry?.nombre && (
                                         <Box mb={1}>
                                             <Chip
-                                                label={instWithSerial?.napLabel ? `Etiqueta NAP: ${instWithSerial.napLabel}` : 'Sin asignar'}
+                                                label={`Etiqueta NAP: ${ponEntry.nombre}`}
                                                 size="small"
-                                                color={instWithSerial?.napLabel ? 'info' : 'default'}
+                                                color="info"
                                             />
                                         </Box>
                                     )}
@@ -598,13 +598,13 @@ export const ClientList: React.FC = () => {
                                             <Typography variant="caption" color="text.secondary">Cargando info...</Typography>
                                         ) : (
                                             <>
-                                                {/* Planes activos y suspendidos */}
-                                                {services.installations?.filter(inst => !inst.isDeleted && inst.serviceStatus !== 'cancelled').map((inst) => (
+                                                {/* Planes activos */}
+                                                {services.installations?.filter(inst => inst.isActive).map((inst) => (
                                                     <Chip
                                                         key={`plan-${inst.id}`}
                                                         label={inst.servicePlan?.name || inst.serviceType}
                                                         size="small"
-                                                        color={inst.serviceStatus === 'active' ? 'primary' : 'warning'}
+                                                        color="primary"
                                                         variant="filled"
                                                         sx={{ fontWeight: 'bold' }}
                                                     />
@@ -846,25 +846,22 @@ export const ClientList: React.FC = () => {
                                                         sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#e74a3b', color: 'white' }}
                                                     />
                                                 )}
-                                                {/* Planes activos y suspendidos */}
-                                                {services?.installations?.filter(inst => !inst.isDeleted && inst.serviceStatus !== 'cancelled').map((inst) => {
-                                                    const isSuspended = inst.serviceStatus === 'suspended';
-                                                    return (
-                                                        <Chip
-                                                            key={`plan-${inst.id}`}
-                                                            label={(inst.servicePlan?.name || inst.serviceType).toUpperCase()}
-                                                            size="small"
-                                                            sx={{ 
-                                                                height: 18, 
-                                                                fontSize: '0.6rem', 
-                                                                fontWeight: 800, 
-                                                                bgcolor: isSuspended ? '#f6c23e20' : '#1cc88a20', 
-                                                                color: isSuspended ? '#f6c23e' : '#1cc88a',
-                                                                border: `1px solid ${isSuspended ? '#f6c23e' : '#1cc88a'}`
-                                                            }}
-                                                        />
-                                                    );
-                                                })}
+                                                {/* Planes activos */}
+                                                {services?.installations?.filter(inst => inst.isActive).map((inst) => (
+                                                    <Chip
+                                                        key={`plan-${inst.id}`}
+                                                        label={(inst.servicePlan?.name || inst.serviceType).toUpperCase()}
+                                                        size="small"
+                                                        sx={{ 
+                                                            height: 18, 
+                                                            fontSize: '0.6rem', 
+                                                            fontWeight: 800, 
+                                                            bgcolor: '#1cc88a20', 
+                                                            color: '#1cc88a',
+                                                            border: '1px solid #1cc88a'
+                                                        }}
+                                                    />
+                                                ))}
                                                 {/* Servicios adicionales activos */}
                                                 {(() => {
                                                     if (!services) return null;
@@ -923,11 +920,11 @@ export const ClientList: React.FC = () => {
                                             {client.installationAddress}
                                         </TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#5a5c69' }}>{client.city}</TableCell>
-                                        <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>
+                                        <TableCell sx={{ fontSize: '0.7rem' }}>
                                             {instWithSerial?.napLabel ? (
                                                 <Chip label={instWithSerial.napLabel} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, borderColor: '#4e73df', color: '#4e73df' }} variant="outlined" />
                                             ) : (
-                                                <Typography sx={{ fontSize: '0.7rem', color: '#c0c0c0', fontStyle: 'italic' }}>Sin asignar</Typography>
+                                                ponEntry?.nombre || '-'
                                             )}
                                         </TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>{formatPhoneForDisplay(client.primaryPhone)}</TableCell>

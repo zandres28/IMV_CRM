@@ -12,10 +12,10 @@ import { ServiceOutage } from '../entities/ServiceOutage';
 import { In, Between, Like } from 'typeorm';
 
 // Helper: Formatear teléfono para WhatsApp (Evolution API requiere código país 57)
-const formatPhoneForWhatsapp = (phone: string | null | undefined): string => {
+export const formatPhoneForWhatsapp = (phone: string | null | undefined): string => {
     if (!phone) return '';
     let clean = phone.replace(/\D/g, ''); // Eliminar no numéricos
-    // Si ya tiene 57 y longitud 12 (57+10 digitos), dejarlo
+    // Si ya tiene 57 y longitud 12 (57+10 dígitos), dejarlo
     if (clean.startsWith('57') && clean.length === 12) return clean;
     // Si tiene 10 dígitos y empieza por 3 (móvil Colombia), agregar 57
     if (clean.length === 10 && clean.startsWith('3')) return `57${clean}`;
