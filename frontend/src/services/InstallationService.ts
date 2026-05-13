@@ -51,7 +51,7 @@ export const InstallationService = {
         return response.data;
     },
 
-    getByClient: async (clientId: number, opts?: { includeDeleted?: boolean }) => {
+    getByClient: async (clientId: number, opts?: { includeDeleted?: boolean }): Promise<Installation[]> => {
         const includeDeleted = opts?.includeDeleted ? 'true' : 'false';
         const response = await axios.get(`${API_URL}/installations/client/${clientId}?includeDeleted=${includeDeleted}`);
         return response.data;
