@@ -51,6 +51,7 @@ const ServiceRequestForm: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [whatsappUrl, setWhatsappUrl] = useState<string>('');
 
     useEffect(() => {
         const fetchOptions = async () => {
@@ -97,16 +98,34 @@ const ServiceRequestForm: React.FC = () => {
             return;
         }
 
+        if (!formData.fullName.trim() || !formData.identificationNumber.trim() || !formData.primaryPhone.trim()) {
+            setError('Completa los datos personales obligatorios antes de enviar la solicitud.');
+            return;
+        }
+
+        const parsedPlanId = Number(formData.planId);
+        if (!Number.isInteger(parsedPlanId) || parsedPlanId <= 0) {
+            setError('Selecciona un plan válido antes de enviar la solicitud.');
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
 
         try {
-            await axios.post(`${API_URL}/public/register`, {
+            const response = await axios.post(`${API_URL}/public/register`, {
                 ...formData,
-                planId: parseInt(formData.planId),
+                planId: parsedPlanId,
                 dataPolicyAccepted: acceptDataPolicy,
                 policyUrl: '/Politica_Tratamiento_Datos_IMV.pdf'
             });
+
+            const waUrl = response.data?.whatsappUrl;
+            if (waUrl && typeof waUrl === 'string') {
+                setWhatsappUrl(waUrl);
+                window.open(waUrl, '_blank', 'noopener,noreferrer');
+            }
+
             setSuccess(true);
         } catch (err: any) {
             console.error('Error submitting form', err);
@@ -144,6 +163,16 @@ const ServiceRequestForm: React.FC = () => {
                     <Typography variant="body1" paragraph>
                         Gracias por registrar tus datos. Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo prontamente para coordinar la instalación.
                     </Typography>
+                    {whatsappUrl && (
+                        <Button
+                            variant="outlined"
+                            color="success"
+                            onClick={() => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')}
+                            sx={{ mt: 1, mr: 1 }}
+                        >
+                            Abrir WhatsApp
+                        </Button>
+                    )}
                     <Button 
                         variant="contained" 
                         onClick={() => window.location.reload()}
@@ -195,7 +224,7 @@ const ServiceRequestForm: React.FC = () => {
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
-                                        label="Nombre Completo"
+                                        label="Nombres y Apellidos Completos"
                                         name="fullName"
                                         value={formData.fullName}
                                         onChange={handleChange}

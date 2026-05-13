@@ -36,6 +36,7 @@ import notificationRoutes from "./routes/notification.routes";
 import avisoRoutes from "./routes/avisos";
 import promotionRoutes from "./routes/promotions";
 import mikrotikRoutes from "./routes/mikrotik";
+import networkDeviceRoutes from "./routes/network-devices";
 import { startOltDisconnectScheduler } from "./services/OltSchedulerService";
 import path from "path";
 
@@ -139,6 +140,7 @@ app.use("/api/installations", authMiddleware, installationRoutes);
 app.use("/api/promotions", authMiddleware, promotionRoutes);
 app.use("/api/avisos", authMiddleware, avisoRoutes);
 app.use("/api/mikrotik", authMiddleware, mikrotikRoutes);
+app.use("/api/network-devices", authMiddleware, networkDeviceRoutes);
 app.use("/api/service-plans", authMiddleware, servicePlanRoutes);
 app.use("/api/technicians", authMiddleware, technicianRoutes);
 app.use("/api/monthly-billing", authMiddleware, monthlyBillingRoutes);

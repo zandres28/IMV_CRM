@@ -19,16 +19,6 @@ import { ClientService } from '../../services/ClientService';
 import { useNavigate } from 'react-router-dom';
 import { formatPhoneForDisplay } from '../../utils/formatters';
 import AuthService from '../../services/AuthService';
-import { SystemSettingService } from '../../services/SystemSettingService';
-
-const DEFAULT_CITIES = ['Cali'];
-const DEFAULT_STATUSES = [
-    { value: 'active', label: 'Activo' },
-    { value: 'pendiente_instalacion', label: 'Instalación Pendiente' },
-    { value: 'suspended', label: 'Suspendido' },
-    { value: 'cancelled', label: 'Cancelado' },
-    { value: 'retired', label: 'Retirado' },
-];
 
 interface ClientFormProps {
     client?: Client;
@@ -39,8 +29,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
     const navigate = useNavigate();
     const [isEditable, setIsEditable] = useState(!client);
     const currentUser = AuthService.getCurrentUser();
-    const [cities, setCities] = useState<string[]>(DEFAULT_CITIES);
-    const [clientStatuses, setClientStatuses] = useState<{ value: string; label: string }[]>(DEFAULT_STATUSES);
     const [formData, setFormData] = useState({
         fullName: '',
         identificationNumber: '',
@@ -53,20 +41,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         suspension_extension_date: '',
         sucursal: currentUser?.sucursal || 'CALI'
     });
-
-    useEffect(() => {
-        const loadOptions = async () => {
-            try {
-                const citiesSetting = await SystemSettingService.getSetting('client_cities');
-                if (citiesSetting?.value) setCities(JSON.parse(citiesSetting.value));
-            } catch (e) { /* usar defaults */ }
-            try {
-                const statusesSetting = await SystemSettingService.getSetting('client_statuses');
-                if (statusesSetting?.value) setClientStatuses(JSON.parse(statusesSetting.value));
-            } catch (e) { /* usar defaults */ }
-        };
-        loadOptions();
-    }, []);
 
     useEffect(() => {
         if (client) {
@@ -185,7 +159,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                             fullWidth
                             required
                             name="fullName"
-                            label="Nombre Completo"
+                            label="Nombres y Apellidos completos"
                             value={formData.fullName}
                             onChange={handleInputChange}
                             disabled={!isEditable}
@@ -217,19 +191,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth required disabled={!isEditable}>
-                            <InputLabel>Ciudad</InputLabel>
-                            <Select
-                                name="city"
-                                value={formData.city}
-                                onChange={handleSelectChange}
-                                label="Ciudad"
-                            >
-                                {cities.map(city => (
-                                    <MenuItem key={city} value={city}>{city}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                        <TextField
+                            fullWidth
+                            required
+                            name="city"
+                            label="Ciudad"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            disabled={!isEditable}
+                        />
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
@@ -296,9 +266,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                                 onChange={handleSelectChange}
                                 label="Estado"
                             >
-                                {clientStatuses.map(s => (
-                                    <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
-                                ))}
+                                <MenuItem value="active">Activo</MenuItem>
+                                <MenuItem value="suspended">Suspendido</MenuItem>
+                                <MenuItem value="cancelled">Cancelado</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
