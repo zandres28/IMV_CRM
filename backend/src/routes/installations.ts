@@ -43,4 +43,7 @@ router.post('/:installationId/reboot', requirePermission(PERMISSIONS.INSTALLATIO
 // Activar/Desactivar servicio en OLT
 router.post('/:installationId/olt-service', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), OltController.toggleService);
 
+// Obtener estado de ONU (Online/Offline)
+router.get('/:installationId/onu-status', requirePermission(PERMISSIONS.INSTALLATIONS.VIEW), OltController.getOnuRunState);
+
 export default router;

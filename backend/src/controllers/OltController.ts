@@ -135,5 +135,37 @@ export const OltController = {
         } catch (error: any) {
             return res.status(500).json({ message: "Error OLT", error: error.message });
         }
+    },
+
+    getOnuRunState: async (req: Request, res: Response) => {
+        try {
+            const { installationId } = req.params;
+            
+            const installation = await findInstallation(installationId);
+
+            if (!installation) {
+                return res.status(404).json({ message: "Instalación no encontrada" });
+            }
+
+            if (!installation.ponId || !installation.onuId) {
+                return res.status(400).json({ 
+                    message: "La instalación no tiene datos de OLT configurados",
+                    onlineStatus: null 
+                });
+            }
+
+            const oltService = new OltService();
+            const runState = await oltService.getOnuRunState(installation.ponId, installation.onuId);
+
+            return res.json({ 
+                message: "Estado de ONU obtenido",
+                onlineStatus: runState || 'unknown',
+                isOnline: runState?.toLowerCase() === 'online'
+            });
+
+        } catch (error: any) {
+            console.error("Error obteniendo estado de ONU:", error);
+            return res.status(500).json({ message: "Error al consultar estado de ONU", error: error.message });
+        }
     }
 };
