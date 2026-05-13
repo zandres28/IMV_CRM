@@ -133,6 +133,38 @@ export class OltService {
     }
 
     /**
+     * Obtiene SOLO el estado online/offline de una ONU.
+     * Parsea la salida de getOnuStatus y extrae la columna "Run state".
+     * Retorna: "Online", "Offline", "Failed", etc. o null si no se puede parsear.
+     */
+    async getOnuRunState(ponId: string, onuId: string): Promise<string | null> {
+        try {
+            const output = await this.getOnuStatus(ponId, onuId);
+            
+            // Buscar líneas con información de ONU
+            // Formato típico:
+            // 0/0 1  5    DF51A6B7...   Active   Online  success   match    CLIENTE...
+            // Las columnas son: F/S P ONT SN Control Run Config Match Desc
+            
+            const lines = output.split('\n');
+            for (const line of lines) {
+                // Buscar una línea que contenga el onuId en la posición correcta
+                // Regex para capturar: puerto(\\d+)\\s+onuId(\\d+)...Run state...
+                const match = line.match(new RegExp(`\\d+/\\d+\\s+\\d+\\s+${onuId}\\s+\\S+\\s+\\S+\\s+(\\S+)`));
+                if (match) {
+                    const runState = match[1]; // Captura "Online", "Offline", etc.
+                    return runState;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error(`Error obteniendo run state de ONU ${ponId}/${onuId}:`, error);
+            return null;
+        }
+    }
+
+    /**
      * Busca una ONU por Serial Number en toda la OLT y devuelve su ubicación.
      * Retorna { ponId: "0/0/1", onuId: "5" } o null si no se encuentra.
      */
