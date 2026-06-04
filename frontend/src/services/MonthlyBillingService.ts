@@ -152,8 +152,8 @@ const MonthlyBillingService = {
         return response.data;
     },
 
-    setReminderStatus: async (clientIds: number[], sent: boolean): Promise<any> => {
-        const response = await axios.post(`${ROOT_API_URL}/interactions/set-reminder-status`, { clientIds, sent });
+    setReminderStatus: async (clientIds: number[], sent: boolean, month?: string, year?: number): Promise<any> => {
+        const response = await axios.post(`${ROOT_API_URL}/interactions/set-reminder-status`, { clientIds, sent, month, year });
         return response.data;
     }
 };
