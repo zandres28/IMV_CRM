@@ -512,15 +512,15 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                         <CircularProgress size={16} />
                                     ) : onuStatusMap[installation.id] ? (
                                         <Chip
-                                            label={onuStatusMap[installation.id].isOnline ? 'ONLINE' : 'OFFLINE'}
-                                            icon={onuStatusMap[installation.id].isOnline ? <WifiIcon /> : <WifiOffIcon />}
+                                            label={onuStatusMap[installation.id]?.isOnline ? 'ONLINE' : 'OFFLINE'}
+                                            icon={onuStatusMap[installation.id]?.isOnline ? <WifiIcon /> : <WifiOffIcon />}
                                             sx={{ 
                                                 height: 18, 
                                                 fontSize: '0.6rem', 
                                                 fontWeight: 800,
-                                                bgcolor: onuStatusMap[installation.id].isOnline ? '#1cc88a20' : '#e74a3b20',
-                                                color: onuStatusMap[installation.id].isOnline ? '#1cc88a' : '#e74a3b',
-                                                border: `1px solid ${onuStatusMap[installation.id].isOnline ? '#1cc88a' : '#e74a3b'}`
+                                                bgcolor: onuStatusMap[installation.id]?.isOnline ? '#1cc88a20' : '#e74a3b20',
+                                                color: onuStatusMap[installation.id]?.isOnline ? '#1cc88a' : '#e74a3b',
+                                                border: `1px solid ${onuStatusMap[installation.id]?.isOnline ? '#1cc88a' : '#e74a3b'}`
                                             }}
                                             size="small"
                                         />

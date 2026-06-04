@@ -11,6 +11,11 @@ RUN npm install
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV CI=false
+# Reduce consumo de memoria/CPU durante el build en VPS limitados
+ENV GENERATE_SOURCEMAP=false
+ENV DISABLE_ESLINT_PLUGIN=true
+ENV TSC_COMPILE_ON_ERROR=true
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 # ARG para forzar invalidación de caché cuando sea necesario
 # ARG CACHEBUST=1

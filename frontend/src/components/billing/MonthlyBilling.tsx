@@ -77,11 +77,14 @@ const MonthlyBilling: React.FC = () => {
     const [stats, setStats] = useState<BillingStats | null>(null);
     const [loading, setLoading] = useState(false);
     const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [filterReminder, setFilterReminder] = useState<'all' | 'sent' | 'not_sent'>('all');
     const [viewMode, setViewMode] = useState<'month' | 'cumulative'>('month');
     const [searchTerm, setSearchTerm] = useState('');
     
     const filteredPayments = payments.filter(payment => {
         if (!payment.client) return false; // Skip orphan payments
+        if (filterReminder === 'sent' && !payment.reminderSent) return false;
+        if (filterReminder === 'not_sent' && payment.reminderSent) return false;
         if (!searchTerm) return true;
         const searchLower = searchTerm.toLowerCase();
         return (
@@ -123,7 +126,7 @@ const MonthlyBilling: React.FC = () => {
     const handleUpdateReminderStatus = async (clientIds: number[], sent: boolean) => {
         try {
             setLoading(true);
-            await MonthlyBillingService.setReminderStatus(clientIds, sent);
+            await MonthlyBillingService.setReminderStatus(clientIds, sent, selectedMonth, selectedYear);
             setSnackbar({ 
                 open: true, 
                 message: sent ? 'Recordatorios marcados como enviados' : 'Recordatorios reseteados (habilitados para envío)', 
@@ -143,7 +146,10 @@ const MonthlyBilling: React.FC = () => {
         try {
             const status = filterStatus === 'all' ? undefined : filterStatus;
             const data = await MonthlyBillingService.getMonthlyBilling(selectedMonth, selectedYear, status, viewMode);
-            setPayments(data.payments);
+            setPayments(data.payments.map(payment => ({
+                ...payment,
+                reminderSent: Boolean(payment.reminderSent)
+            })));
             setStats(data.stats);
         } catch (error) {
             console.error('Error cargando datos de facturación:', error);
@@ -159,11 +165,17 @@ const MonthlyBilling: React.FC = () => {
     // Limpiar selección al cambiar filtros
     useEffect(() => {
         setSelectedPaymentIds([]);
-    }, [selectedMonth, selectedYear, filterStatus, searchTerm]);
+    }, [selectedMonth, selectedYear, filterStatus, filterReminder, searchTerm]);
 
     const handleClearFilters = () => {
         setSearchTerm('');
         setFilterStatus('all');
+        setFilterReminder('all');
+        setPage(0);
+    };
+
+    const handleReminderFilterChange = (value: 'all' | 'sent' | 'not_sent') => {
+        setFilterReminder(value);
         setPage(0);
     };
 
@@ -350,6 +362,25 @@ const MonthlyBilling: React.FC = () => {
         }).format(Number(amount) || 0);
     };
 
+    const reminderStats = payments.reduce(
+        (acc, payment) => {
+            acc.total += 1;
+            if (payment.reminderSent) {
+                acc.sent += 1;
+            } else {
+                acc.notSent += 1;
+            }
+            return acc;
+        },
+        { total: 0, sent: 0, notSent: 0 }
+    );
+
+    const reminderFilterLabel = filterReminder === 'sent'
+        ? 'Enviados por WhatsApp'
+        : filterReminder === 'not_sent'
+            ? 'No enviados'
+            : 'Todos';
+
     const paginatedPayments = filteredPayments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
     const renderMobileCards = () => (
@@ -380,6 +411,27 @@ const MonthlyBilling: React.FC = () => {
                              <Typography variant="h6" color="primary">
                                 {formatCurrency(Number(payment.amount))}
                              </Typography>
+                        </Box>
+
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                            <Chip
+                                size="small"
+                                color={payment.reminderSent ? 'success' : 'default'}
+                                icon={payment.reminderSent ? <ReminderOnIcon /> : <ReminderOffIcon />}
+                                label={payment.reminderSent ? 'Recordatorio enviado' : 'Sin envío'}
+                            />
+                            <Tooltip title={payment.reminderSent ? 'Deshabilitar envío (Ya enviado)' : 'Habilitar envío (No enviado)'}>
+                                <IconButton
+                                    size="small"
+                                    color={payment.reminderSent ? 'success' : 'default'}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleUpdateReminderStatus([payment.client.id], !payment.reminderSent);
+                                    }}
+                                >
+                                    {payment.reminderSent ? <ReminderOnIcon /> : <ReminderOffIcon />}
+                                </IconButton>
+                            </Tooltip>
                         </Box>
 
                         {payment.client?.secondaryPhone && (
@@ -528,6 +580,49 @@ const MonthlyBilling: React.FC = () => {
                     </Grid>
                 </Grid>
             )}
+
+            <Grid container spacing={3} sx={{ mb: 3, px: isMobile ? 0 : 3 }}>
+                <Grid item xs={12}>
+                    <Card sx={{ borderLeft: '4px solid #20c997', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <CardContent sx={{ py: '16px !important' }}>
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#20c997', textTransform: 'uppercase', mb: 1 }}>
+                                Recordatorios WhatsApp - {selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1)} {selectedYear}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                <Chip
+                                    label={`Total: ${reminderStats.total}`}
+                                    size="small"
+                                    variant={filterReminder === 'all' ? 'filled' : 'outlined'}
+                                    color={filterReminder === 'all' ? 'primary' : 'default'}
+                                    onClick={() => handleReminderFilterChange('all')}
+                                    clickable
+                                />
+                                <Chip
+                                    icon={<ReminderOnIcon />}
+                                    label={`Enviados: ${reminderStats.sent}`}
+                                    size="small"
+                                    color={filterReminder === 'sent' ? 'success' : 'default'}
+                                    variant={filterReminder === 'sent' ? 'filled' : 'outlined'}
+                                    onClick={() => handleReminderFilterChange('sent')}
+                                    clickable
+                                />
+                                <Chip
+                                    icon={<ReminderOffIcon />}
+                                    label={`No enviados: ${reminderStats.notSent}`}
+                                    size="small"
+                                    color={filterReminder === 'not_sent' ? 'warning' : 'default'}
+                                    variant={filterReminder === 'not_sent' ? 'filled' : 'outlined'}
+                                    onClick={() => handleReminderFilterChange('not_sent')}
+                                    clickable
+                                />
+                            </Box>
+                            <Typography sx={{ mt: 1, fontSize: '0.75rem', color: '#858796' }}>
+                                Filtro activo: <strong>{reminderFilterLabel}</strong>
+                            </Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
 
             {/* Nuevas tarjetas de desglose */}
             {stats && (
@@ -688,12 +783,23 @@ const MonthlyBilling: React.FC = () => {
                             <MenuItem value="overdue" sx={{ fontSize: '0.75rem' }}>Vencido</MenuItem>
                         </Select>
                     </FormControl>
+                    <FormControl size="small" sx={{ minWidth: 180 }}>
+                        <Select
+                            value={filterReminder}
+                            onChange={(e) => setFilterReminder(e.target.value as 'all' | 'sent' | 'not_sent')}
+                            sx={{ fontSize: '0.75rem' }}
+                        >
+                            <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>Todos los recordatorios</MenuItem>
+                            <MenuItem value="sent" sx={{ fontSize: '0.75rem' }}>Enviado por WhatsApp</MenuItem>
+                            <MenuItem value="not_sent" sx={{ fontSize: '0.75rem' }}>No enviado</MenuItem>
+                        </Select>
+                    </FormControl>
                     <Button
                         variant="outlined"
                         size="small"
                         startIcon={<ClearIcon />}
                         onClick={handleClearFilters}
-                        disabled={!searchTerm && filterStatus === 'all'}
+                        disabled={!searchTerm && filterStatus === 'all' && filterReminder === 'all'}
                         sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
                     >
                         Limpiar Filtros

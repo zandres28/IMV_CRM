@@ -8,14 +8,13 @@ import { ProductInstallment } from '../entities/ProductInstallment';
 import { Interaction } from '../entities/Interaction';
 import { SystemSetting } from '../entities/SystemSetting';
 import { InteractionType } from '../entities/InteractionType';
-import { ServiceOutage } from '../entities/ServiceOutage';
 import { In, Between, Like } from 'typeorm';
 
 // Helper: Formatear teléfono para WhatsApp (Evolution API requiere código país 57)
 export const formatPhoneForWhatsapp = (phone: string | null | undefined): string => {
     if (!phone) return '';
     let clean = phone.replace(/\D/g, ''); // Eliminar no numéricos
-    // Si ya tiene 57 y longitud 12 (57+10 dígitos), dejarlo
+    // Si ya tiene 57 y longitud 12 (57+10 digitos), dejarlo
     if (clean.startsWith('57') && clean.length === 12) return clean;
     // Si tiene 10 dígitos y empieza por 3 (móvil Colombia), agregar 57
     if (clean.length === 10 && clean.startsWith('3')) return `57${clean}`;
@@ -35,22 +34,6 @@ export const N8nIntegrationController = {
             const additionalServiceRepository = AppDataSource.getRepository(AdditionalService);
             const productInstallmentRepository = AppDataSource.getRepository(ProductInstallment);
             const interactionRepository = AppDataSource.getRepository(Interaction);
-
-            // Rango de fechas del mes actual para buscar interacciones de envío previo
-            const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-            const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-            endOfMonth.setHours(23, 59, 59, 999); // Fix for full day coverage
-
-            // Obtener interacciones de tipo "Recordatorio Enviado" del mes actual
-            const sentReminders = await interactionRepository.find({
-                where: {
-                    subject: 'Recordatorio WhatsApp Automático',
-                    created_at: Between(startOfMonth, endOfMonth)
-                }
-            });
-
-            // Mapa de clientes que ya recibieron recordatorio este mes
-            const sentClientIds = new Set(sentReminders.map(i => i.clientId));
 
             // Construir query de clientes con filtros opcionales
             const clientQuery = clientRepository
@@ -100,6 +83,31 @@ export const N8nIntegrationController = {
             if (req.query.year) {
                 queryYear = parseInt(req.query.year as string, 10);
             }
+
+            // Helper para calcular indices de mes
+            const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const queryMonthIndex = monthNames.indexOf(queryMonth);
+            const safeMonthIndex = queryMonthIndex !== -1 ? queryMonthIndex : currentDate.getMonth();
+
+            // Rango de fechas del mes consultado para buscar interacciones de envío previo
+            // Alineado con MonthlyBillingController.getMonthlyBilling
+            const startOfQueryMonth = new Date(queryYear, safeMonthIndex, 1);
+            const endOfQueryMonth = new Date(queryYear, safeMonthIndex + 1, 0);
+            endOfQueryMonth.setHours(23, 59, 59, 999);
+
+            // Obtener interacciones de tipo "Recordatorio Enviado" SOLO de clientes del set actual
+            const sentReminders = await interactionRepository.find({
+                where: {
+                    clientId: In(clientIds),
+                    // Soporta registros con variaciones de codificación en el subject.
+                    subject: Like('Recordatorio WhatsApp Autom%'),
+                    created_at: Between(startOfQueryMonth, endOfQueryMonth)
+                },
+                select: ['clientId']
+            });
+
+            // Mapa de clientes que ya recibieron recordatorio en el mes consultado
+            const sentClientIds = new Set(sentReminders.map(i => i.clientId));
 
             // --- OPTIMIZACIÓN DE CONSULTAS (BULK FETCH) ---
             // Traer todos los datos relacionados en 3 consultas masivas en lugar de N consultas por cliente
@@ -156,11 +164,6 @@ export const N8nIntegrationController = {
 
             const reminders = [];
 
-            // Helper para calcular indices de mes
-            const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-            const queryMonthIndex = monthNames.indexOf(queryMonth);
-            const safeMonthIndex = queryMonthIndex !== -1 ? queryMonthIndex : currentDate.getMonth();
-
             // Calcular fecha límite (5 del mes siguiente al consultado)
             const deadlineDate = new Date(queryYear, safeMonthIndex + 1, 5);
             const deadlineMonthName = deadlineDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
@@ -173,24 +176,6 @@ export const N8nIntegrationController = {
 
             const vencidoMin = vencidoMinSetting ? parseInt(vencidoMinSetting.value) : 0;
             const vencidoMax = vencidoMaxSetting ? parseInt(vencidoMaxSetting.value) : 15;
-
-            // Obtener caídas de servicio del mes consultado (usando safeMonthIndex ya calculado)
-            const serviceOutageRepository = AppDataSource.getRepository(ServiceOutage);
-            const monthStart = new Date(queryYear, safeMonthIndex, 1);
-            const monthEnd = new Date(queryYear, safeMonthIndex + 1, 0);
-            const allOutages = await serviceOutageRepository
-                .createQueryBuilder('outage')
-                .where('outage.clientId IN (:...ids)', { ids: clientIds })
-                .andWhere('outage.status IN (:...statuses)', { statuses: ['pending', 'applied'] })
-                .andWhere('outage.startDate <= :monthEnd', { monthEnd: monthEnd.toISOString().split('T')[0] })
-                .andWhere('outage.endDate >= :monthStart', { monthStart: monthStart.toISOString().split('T')[0] })
-                .getMany();
-
-            const outagesMap = new Map<number, ServiceOutage[]>();
-            allOutages.forEach(o => {
-                if (!outagesMap.has(o.installationId)) outagesMap.set(o.installationId, []);
-                outagesMap.get(o.installationId)!.push(o);
-            });
 
             for (const client of clients) {
                 // Obtener instalaciones activas
@@ -242,119 +227,81 @@ export const N8nIntegrationController = {
                 const payments = paymentsMap.get(client.id) || [];
 
 
-                // Para cada instalación activa, crear un registro de recordatorio
-                for (const installation of activeInstallations) {
-                    // Buscar pago específico para esta instalación
-                    // PRIORIDAD: 
-                    // 1. Pago mensual explícito (monthly) asociado a la instalación.
-                    // 2. Pago mensual explícito (monthly) SIN instalación (genérico).
-                    // 3. Fallback: Cualquier pago asociado a la instalación que NO sea de instalación (type != 'installation')
-                    // 4. Fallback: Cualquier pago general que NO sea de instalación.
+                // Un solo registro por cliente para alinear conteos con MonthlyBilling
+                const primaryInstallation = activeInstallations[0];
 
-                    // EXCLUSIÓN: Ignorar pagos de tipo 'installation' (costo de activación) para el cálculo de deuda mensual,
-                    // a menos que sea lo único que existe (caso raro, pero se maneja por defecto si todo falla).
-
-                    let payment = payments.find(p => p.installation?.id === installation.id && p.paymentType === 'monthly');
-                    
-                    if (!payment) {
-                        // Buscar pago mensual genérico
-                        payment = payments.find(p => !p.installation && p.paymentType === 'monthly');
-                    }
-
-                    if (!payment) {
-                        // Fallback: Buscar pago asociado que NO sea 'installation'
-                        payment = payments.find(p => p.installation?.id === installation.id && p.paymentType !== 'installation');
-                    }
-
-                    if (!payment) {
-                         // Fallback final: Buscar pago general que NO sea 'installation'
-                         payment = payments.find(p => !p.installation && p.paymentType !== 'installation');
-                    }
-
-                    // FIX: Si no se encontró pago específico o está pendiente, pero existe al menos un pago PAGADO
-                    // para este cliente en el mes, asumimos que está al día (para evitar cobros duplicados en multi-servicio).
-                    // PERO: Excluir pagos de tipo 'installation' para no confundir el costo de instalación con la mensualidad.
-                    if (!payment || payment.status !== 'paid') {
-                        const paidPayment = payments.find(p => p.status === 'paid' && p.paymentType !== 'installation');
-                        if (paidPayment) {
-                            payment = paidPayment;
-                        }
-                    }
-                    
-                    // Calcular días transcurridos desde la fecha de vencimiento
-                    let dias = 0;
-                    let tipo = 'RECORDATORIO';
-                    
-                    if (payment && payment.status === 'paid') {
-                        // Si ya pagó, no calcular días de mora ni marcar como vencido
-                        tipo = 'PAGADO';
-                        dias = 0;
-                    } else if (payment && payment.dueDate) {
-                        const dueDate = new Date(payment.dueDate);
-                        // Ajustar zona horaria si es necesario o trabajar con fechas puras
-                        // Se asume que dueDate en DB es medianoche local o UTC correctamente manejada env-wise.
-                        const diffTime = currentDate.getTime() - dueDate.getTime();
-                        dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
-                        // Determinar tipo de recordatorio
-                        if (dias < vencidoMin) {
-                            tipo = 'PROXIMO';
-                        } else if (dias >= vencidoMin && dias <= vencidoMax) {
-                            tipo = 'VENCIDO';
-                        } else {
-                            tipo = 'ULTIMO';
-                        }
-                    }
-
-                    // CALCULO DEL VALOR (PRORRATEO)
-                    // Si existe un pago generado, usar su desglose.
-                    // Prioridad: servicePlanAmount del pago encontrado.
-                    // Fallback: installation.monthlyFee (pero esto ignora prorrateo si no hay pago generado)
-                    let valorMensualidad = Number(installation.monthlyFee);
-                    
-                    if (payment) {
-                        // Si hay pago, confiar en el cálculo del generador de facturas
-                        // servicePlanAmount contiene el valor base (prorrateado o completo)
-                        valorMensualidad = Number(payment.servicePlanAmount);
-                    }
-
-                    // Calcular información de cuotas de productos (Ej: "1/3")
-                    const cuota = productInstallments.length > 0 
-                        ? productInstallments.map(p => `${p.installmentNumber}/${p.product.installments}`).join(', ') 
-                        : '';
-
-                    // Calcular descuento por caída de servicio para esta instalación
-                    const installationOutages = outagesMap.get(installation.id) || [];
-                    const totalDescuentoCorte = installationOutages.reduce((sum, o) => sum + Number(o.discountAmount), 0);
-                    const totalDiasCorte = installationOutages.reduce((sum, o) => sum + o.days, 0);
-                    const detalleCorte = installationOutages.length > 0
-                        ? installationOutages.map(o => `${o.days}d (${o.startDate} - ${o.endDate}): $${Number(o.discountAmount).toLocaleString('es-CO')}`).join(' | ')
-                        : '';
-
-                    const reminderData = {
-                        'ID Cliente': `CL-${String(client.id).padStart(4, '0')}`,
-                        'Nombre Completo': client.fullName,
-                        'Celular 1': formatPhoneForWhatsapp(client.primaryPhone),
-                        'Celular 2': formatPhoneForWhatsapp(client.secondaryPhone) || '',
-                        'PLAN': installation.servicePlan?.name || installation.serviceType,
-                        'MES': queryMonth,
-                        'FECHA_LIMITE': formattedDeadline,
-                        'DIAS': dias,
-                        'VALOR': valorMensualidad, // Ahora usa el valor real (posiblemente prorrateado) del pago
-                        'ADICIONAL': Number(additionalAmount) + Number(productDebt),
-                        'DETALLE_ADICIONAL': [additionalDetails, productDetails].filter(d => d && d !== '').join(', ') || 'Ninguno',
-                        'CUOTA': cuota,
-                        'TIPO': tipo,
-                        'DESCUENTO_CORTE': totalDescuentoCorte,
-                        'DIAS_CORTE': totalDiasCorte,
-                        'DETALLE_CORTE': detalleCorte,
-                        'ENVIADO': sentClientIds.has(client.id) ? 'YES' : 'NO',
-                        'estado_pago': payment?.status || 'pending',
-                        'installation_id': installation.id
-                    };
-
-                    reminders.push(reminderData);
+                // PRIORIDAD DE PAGO (a nivel cliente):
+                // 1. Pago mensual explícito (monthly)
+                // 2. Fallback: cualquier pago NO installation
+                let payment = payments.find(p => p.paymentType === 'monthly');
+                if (!payment) {
+                    payment = payments.find(p => p.paymentType !== 'installation');
                 }
+
+                // Si existe algún pago pagado del mes (no installation), priorizarlo para estado final.
+                if (!payment || payment.status !== 'paid') {
+                    const paidPayment = payments.find(p => p.status === 'paid' && p.paymentType !== 'installation');
+                    if (paidPayment) {
+                        payment = paidPayment;
+                    }
+                }
+
+                let dias = 0;
+                let tipo = 'RECORDATORIO';
+
+                if (payment && payment.status === 'paid') {
+                    tipo = 'PAGADO';
+                    dias = 0;
+                } else if (payment && payment.dueDate) {
+                    const dueDate = new Date(payment.dueDate);
+                    const diffTime = currentDate.getTime() - dueDate.getTime();
+                    dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (dias < vencidoMin) {
+                        tipo = 'PROXIMO';
+                    } else if (dias >= vencidoMin && dias <= vencidoMax) {
+                        tipo = 'VENCIDO';
+                    } else {
+                        tipo = 'ULTIMO';
+                    }
+                }
+
+                // VALOR base del plan: desde pago generado o suma de instalaciones activas si no existe pago
+                let valorMensualidad = activeInstallations.reduce((sum, inst) => sum + Number(inst.monthlyFee || 0), 0);
+                if (payment) {
+                    const outageDiscount = Number(payment.outageDiscountAmount || 0);
+                    valorMensualidad = Math.max(0, Number(payment.servicePlanAmount) - outageDiscount);
+                }
+
+                const cuota = productInstallments.length > 0
+                    ? productInstallments.map(p => `${p.installmentNumber}/${p.product.installments}`).join(', ')
+                    : '';
+
+                const planDetails = [...new Set(activeInstallations.map(inst => inst.servicePlan?.name || inst.serviceType).filter(Boolean))].join(', ');
+                const outageDiscountValue = payment ? Number(payment.outageDiscountAmount || 0) : 0;
+
+                const reminderData = {
+                    'ID Cliente': `CL-${String(client.id).padStart(4, '0')}`,
+                    'Nombre Completo': client.fullName,
+                    'Celular 1': formatPhoneForWhatsapp(client.primaryPhone),
+                    'Celular 2': formatPhoneForWhatsapp(client.secondaryPhone) || '',
+                    'PLAN': planDetails || 'N/A',
+                    'MES': queryMonth,
+                    'FECHA_LIMITE': formattedDeadline,
+                    'DIAS': dias,
+                    'VALOR': valorMensualidad,
+                    'DESCUENTO': outageDiscountValue,
+                    'ADICIONAL': Number(additionalAmount) + Number(productDebt),
+                    'DETALLE_ADICIONAL': [additionalDetails, productDetails].filter(d => d && d !== '').join(', ') || 'Ninguno',
+                    'CUOTA': cuota,
+                    'TIPO': tipo,
+                    'ENVIADO': sentClientIds.has(client.id) ? 'YES' : 'NO',
+                    'estado_pago': payment?.status || 'pending',
+                    'installation_id': primaryInstallation?.id || null,
+                    'installation_ids': activeInstallations.map(inst => inst.id)
+                };
+
+                reminders.push(reminderData);
             }
 
             // --- FILTER LOGIC (IN-MEMORY) ---
@@ -419,19 +366,62 @@ export const N8nIntegrationController = {
     // Endpoint para marcar un recordatorio como enviado
     markAsSent: async (req: Request, res: Response) => {
         try {
-            const { clientId, installationId } = req.body;
-            
-            if (!clientId) {
+            const { clientId, installationId, month, year } = req.body as {
+                clientId?: string | number;
+                installationId?: number;
+                month?: string;
+                year?: string | number;
+            };
+
+            if (clientId === undefined || clientId === null || String(clientId).trim() === '') {
                 return res.status(400).json({ message: 'Client ID is required' });
+            }
+
+            // Acepta clientId numerico o formato tipo "CL-0019".
+            let normalizedClientId: number | null = null;
+            if (typeof clientId === 'number' && Number.isFinite(clientId)) {
+                normalizedClientId = Math.trunc(clientId);
+            } else {
+                const raw = String(clientId).trim();
+                if (/^\d+$/.test(raw)) {
+                    normalizedClientId = parseInt(raw, 10);
+                } else {
+                    const digits = raw.match(/(\d+)/g);
+                    if (digits && digits.length > 0) {
+                        normalizedClientId = parseInt(digits[digits.length - 1], 10);
+                    }
+                }
+            }
+
+            if (!normalizedClientId || Number.isNaN(normalizedClientId)) {
+                return res.status(400).json({ message: 'Invalid clientId format' });
             }
 
             const interactionRepository = AppDataSource.getRepository(Interaction);
             const interactionTypeRepository = AppDataSource.getRepository(InteractionType);
             const clientRepository = AppDataSource.getRepository(Client);
 
-            const client = await clientRepository.findOne({ where: { id: Number(clientId) } });
+            const client = await clientRepository.findOne({ where: { id: normalizedClientId } });
             if (!client) {
                 return res.status(404).json({ message: 'Client not found' });
+            }
+
+            // Por defecto, se registra en la fecha actual. Si se envian month/year,
+            // se registra dentro de ese mes para que coincida con la campanita del periodo consultado.
+            let interactionDate = new Date();
+            if (month !== undefined && year !== undefined) {
+                const normalizedMonth = String(month)
+                    .trim()
+                    .toUpperCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '');
+                const y = parseInt(String(year), 10);
+                const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+                const monthIndex = monthNames.indexOf(normalizedMonth);
+
+                if (!Number.isNaN(y) && monthIndex !== -1) {
+                    interactionDate = new Date(y, monthIndex, 15, 12, 0, 0, 0);
+                }
             }
 
             // Buscar o crear el tipo de interacción
@@ -452,8 +442,9 @@ export const N8nIntegrationController = {
                 subject: 'Recordatorio WhatsApp Automático',
                 interactionType: type,
                 status: 'completado',
-                notes: `Se envió recordatorio automático de pago para el cliente ${client.fullName}.`,
+                notes: `Se envió recordatorio automático de pago para el cliente ${client.fullName}.${installationId ? ` Instalación: ${installationId}.` : ''}`,
                 description: `Se envió recordatorio automático de pago vía N8N el ${new Date().toLocaleString()}.`,
+                created_at: interactionDate,
             });
 
             await interactionRepository.save(interaction);
@@ -771,18 +762,42 @@ export const N8nIntegrationController = {
     // Modificar estado de recordatorio (Enviado / No Enviado)
     setReminderStatus: async (req: Request, res: Response) => {
         try {
-            const { clientId, clientIds, sent } = req.body;
+            const { clientId, clientIds, sent, month, year } = req.body;
             // sent = true -> Marcar como enviado (Crear interacción)
             // sent = false -> Resetear (Borrar interacción)
 
             const interactionRepository = AppDataSource.getRepository(Interaction);
             const interactionTypeRepository = AppDataSource.getRepository(InteractionType);
             
-            const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-            const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-            endOfMonth.setHours(23, 59, 59, 999);
+            let startOfMonth: Date;
+            let endOfMonth: Date;
+            let createdAtDate: Date;
+
+            if (month && year) {
+                const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+                const queryMonthIndex = monthNames.indexOf(month.trim().toUpperCase());
+                const safeMonthIndex = queryMonthIndex !== -1 ? queryMonthIndex : new Date().getMonth();
+                const queryYear = parseInt(year, 10) || new Date().getFullYear();
+
+                startOfMonth = new Date(queryYear, safeMonthIndex, 1);
+                endOfMonth = new Date(queryYear, safeMonthIndex + 1, 0);
+                endOfMonth.setHours(23, 59, 59, 999);
+
+                const now = new Date();
+                if (now.getFullYear() === queryYear && now.getMonth() === safeMonthIndex) {
+                    createdAtDate = now;
+                } else {
+                    const targetDay = Math.min(now.getDate(), new Date(queryYear, safeMonthIndex + 1, 0).getDate());
+                    createdAtDate = new Date(queryYear, safeMonthIndex, targetDay, 12, 0, 0);
+                }
+            } else {
+                startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+                endOfMonth.setHours(23, 59, 59, 999);
+                createdAtDate = new Date();
+            }
             
-            console.log(`[setReminderStatus] Range: ${startOfMonth.toISOString()} - ${endOfMonth.toISOString()}`);
+            console.log(`[setReminderStatus] Range: ${startOfMonth.toISOString()} - ${endOfMonth.toISOString()} | CreatedAt: ${createdAtDate.toISOString()}`);
 
             const targetIds = clientId ? [clientId] : (clientIds || []);
             
@@ -806,7 +821,7 @@ export const N8nIntegrationController = {
                     const existing = await interactionRepository.findOne({
                         where: {
                             clientId: id,
-                            subject: 'Recordatorio WhatsApp Automático',
+                            subject: Like('Recordatorio WhatsApp Autom%'),
                             created_at: Between(startOfMonth, endOfMonth)
                         }
                     });
@@ -820,7 +835,7 @@ export const N8nIntegrationController = {
                              interactionType: type,
                              priority: 'media',
                              status: 'completado',
-                             created_at: new Date()
+                             created_at: createdAtDate
                         });
                         await interactionRepository.save(interaction);
                         createdCount++;
@@ -831,7 +846,7 @@ export const N8nIntegrationController = {
                 // RESET (DELETE)
                 const result = await interactionRepository.delete({
                      clientId: In(targetIds),
-                     subject: 'Recordatorio WhatsApp Automático',
+                     subject: Like('Recordatorio WhatsApp Autom%'),
                      created_at: Between(startOfMonth, endOfMonth)
                 });
                 return res.json({ success: true, message: `Reseteados: ${result.affected}` });
@@ -855,7 +870,7 @@ export const N8nIntegrationController = {
 
             // Base criteria: Auto Reminder + Current Month
             let criteria: any = {
-                subject: 'Recordatorio WhatsApp Automático',
+                subject: Like('Recordatorio WhatsApp Autom%'),
                 created_at: Between(startOfMonth, endOfMonth)
             };
 

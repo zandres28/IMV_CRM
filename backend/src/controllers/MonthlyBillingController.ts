@@ -8,7 +8,7 @@ import { ProductSold } from "../entities/ProductSold";
 import { ProductInstallment } from "../entities/ProductInstallment";
 import { ServiceOutage } from "../entities/ServiceOutage";
 import { Interaction } from "../entities/Interaction";
-import { Between, Brackets, In } from "typeorm";
+import { Between, Brackets, In, Like } from "typeorm";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { hasPermission, PERMISSIONS } from "../utils/permissions";
 
@@ -38,7 +38,8 @@ export class MonthlyBillingController {
             const endMonth = new Date(yearNum, monthIndex + 1, 0);
             endMonth.setHours(23, 59, 59, 999);
             await interactionRepository.delete({
-                subject: 'Recordatorio WhatsApp Automático',
+                // Usar LIKE para soportar registros históricos con problemas de codificación (Automático/Autom�tico)
+                subject: Like('Recordatorio WhatsApp Autom%'),
                 created_at: Between(startMonth, endMonth)
             });
             // ----------------------------------------------
@@ -528,7 +529,8 @@ export class MonthlyBillingController {
                 const sentInteractions = await interactionRepository.find({
                     where: {
                         clientId: In(clientIds),
-                        subject: 'Recordatorio WhatsApp Automático',
+                        // Evita falsos NO enviados por variantes de codificación en el subject.
+                        subject: Like('Recordatorio WhatsApp Autom%'),
                         created_at: Between(startMonth, endMonth)
                     },
                     select: ['clientId']
