@@ -44,9 +44,10 @@ import { Client } from '../../types/Client';
 interface InstallationsListProps {
     clientId: number;
     client?: Client;
+    onChange?: () => void;
 }
 
-export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, client }) => {
+export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, client, onChange }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [installations, setInstallations] = useState<Installation[]>([]);
@@ -164,6 +165,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
             setNotificationSeverity('success');
             setNotificationOpen(true);
             loadInstallations();
+            onChange?.();
         } catch (error: any) {
             console.error('Error al crear la instalación:', error);
             const msg = error?.response?.data?.message || 'Error al crear la instalación';
@@ -181,6 +183,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                 setNotificationSeverity('success');
                 setNotificationOpen(true);
                 loadInstallations();
+                onChange?.();
             }
         } catch (error: any) {
             console.error('Error al actualizar la instalación:', error);
@@ -222,6 +225,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
             setNotificationSeverity('success');
             setNotificationOpen(true);
             await loadInstallations(false);
+            onChange?.();
         } catch (error: any) {
             console.error('Error al eliminar la instalación:', error);
             const data = error?.response?.data;
@@ -242,6 +246,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
             setNotificationSeverity('success');
             setNotificationOpen(true);
             await loadInstallations(false);
+            onChange?.();
         } catch (error: any) {
             console.error('Error al restaurar instalación:', error);
             const msg = error?.response?.data?.message || 'Error al restaurar la instalación';
@@ -259,7 +264,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
             return;
         }
 
-        const isSuspended = installation.serviceStatus === 'suspended';
+        const isSuspended = installation.serviceStatus === 'suspendido';
         const action = isSuspended ? 'enable' : 'disable'; // If suspended, enable. If active (or cancelled?), disable.
         // Actually, logic is: 'active' -> 'disable'. 'suspended' -> 'enable'.
         // If cancelled, what? Probably stay cancelled. But let's assume active/suspended toggle.
@@ -294,7 +299,8 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
             setNotificationOpen(true);
             
             // Reload to reflect new status
-            await loadInstallations(); 
+            await loadInstallations();
+            onChange?.();
         } catch (error: any) {
             console.error(`Error al ${actionText} el servicio:`, error);
             const msg = error?.response?.data?.message || `Error al conectar con la OLT o enviar el comando.`;
@@ -329,9 +335,9 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
 
     const getStatusChipProps = (status: string) => {
         const statusMap: Record<string, { label: string; color: 'success' | 'warning' | 'error' }> = {
-            active: { label: 'Activo', color: 'success' },
-            suspended: { label: 'Suspendido', color: 'warning' },
-            cancelled: { label: 'Cancelado', color: 'error' }
+            activo: { label: 'Activo', color: 'success' },
+            suspendido: { label: 'Suspendido', color: 'warning' },
+            retirado: { label: 'Retirado', color: 'error' }
         };
         return statusMap[status] || { label: status, color: 'default' };
     };
@@ -386,7 +392,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                             sx={{ 
                                 mb: 2, 
                                 borderRadius: 2,
-                                borderLeft: `4px solid ${installation.isDeleted ? '#e74a3b' : (installation.serviceStatus === 'active' ? '#1cc88a' : (installation.serviceStatus === 'suspended' ? '#f6c23e' : '#e74a3b'))}`,
+                                borderLeft: `4px solid ${installation.isDeleted ? '#e74a3b' : (installation.serviceStatus === 'activo' ? '#1cc88a' : (installation.serviceStatus === 'suspendido' ? '#f6c23e' : '#e74a3b'))}`,
                                 boxShadow: '0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1)'
                             }}
                         >
@@ -402,9 +408,9 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                             height: 20, 
                                             fontSize: '0.6rem', 
                                             fontWeight: 800,
-                                            bgcolor: installation.isDeleted ? '#e74a3b' : (installation.serviceStatus === 'active' ? '#1cc88a20' : '#f6c23e20'),
-                                            color: installation.isDeleted ? 'white' : (installation.serviceStatus === 'active' ? '#1cc88a' : '#f6c23e'),
-                                            border: installation.isDeleted ? 'none' : `1px solid ${installation.serviceStatus === 'active' ? '#1cc88a' : '#f6c23e'}`
+                                            bgcolor: installation.isDeleted ? '#e74a3b' : (installation.serviceStatus === 'activo' ? '#1cc88a20' : '#f6c23e20'),
+                                            color: installation.isDeleted ? 'white' : (installation.serviceStatus === 'activo' ? '#1cc88a' : '#f6c23e'),
+                                            border: installation.isDeleted ? 'none' : `1px solid ${installation.serviceStatus === 'activo' ? '#1cc88a' : '#f6c23e'}`
                                         }}
                                     />
                                 </Box>
@@ -436,8 +442,8 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                             <IconButton size="small" onClick={() => handleEdit(installation)} disabled={installation.isDeleted} sx={{ color: '#4e73df' }} title="Editar"><EditIcon fontSize="small" /></IconButton>
                                             <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
                                             <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
-                                            <IconButton size="small" onClick={() => handleToggleService(installation)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }} title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}>
-                                                {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
+                                            <IconButton size="small" onClick={() => handleToggleService(installation)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: installation.serviceStatus === 'suspendido' ? '#1cc88a' : '#858796' }} title={installation.serviceStatus === 'suspendido' ? 'Habilitar Servicio' : 'Suspender Servicio'}>
+                                                {installation.serviceStatus === 'suspendido' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
                                             </IconButton>
                                             <IconButton size="small" onClick={() => handleDelete(installation)} disabled={installation.isDeleted} sx={{ color: '#e74a3b' }} title="Eliminar"><DeleteIcon fontSize="small" /></IconButton>
                                             {installation.isDeleted && (
@@ -545,9 +551,9 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                                 height: 18, 
                                                 fontSize: '0.6rem', 
                                                 fontWeight: 800,
-                                                bgcolor: installation.serviceStatus === 'active' ? '#1cc88a20' : installation.serviceStatus === 'suspended' ? '#f6c23e20' : '#e74a3b20',
-                                                color: installation.serviceStatus === 'active' ? '#1cc88a' : installation.serviceStatus === 'suspended' ? '#f6c23e' : '#e74a3b',
-                                                border: `1px solid ${installation.serviceStatus === 'active' ? '#1cc88a' : installation.serviceStatus === 'suspended' ? '#f6c23e' : '#e74a3b'}`
+                                                bgcolor: installation.serviceStatus === 'activo' ? '#1cc88a20' : installation.serviceStatus === 'suspendido' ? '#f6c23e20' : '#e74a3b20',
+                                                color: installation.serviceStatus === 'activo' ? '#1cc88a' : installation.serviceStatus === 'suspendido' ? '#f6c23e' : '#e74a3b',
+                                                border: `1px solid ${installation.serviceStatus === 'activo' ? '#1cc88a' : installation.serviceStatus === 'suspendido' ? '#f6c23e' : '#e74a3b'}`
                                             }}
                                             size="small"
                                         />
@@ -586,11 +592,11 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                             <IconButton
                                                 size="small"
                                                 onClick={() => handleToggleService(installation)}
-                                                title={installation.serviceStatus === 'suspended' ? 'Habilitar Servicio' : 'Suspender Servicio'}
+                                                title={installation.serviceStatus === 'suspendido' ? 'Habilitar Servicio' : 'Suspender Servicio'}
                                                 disabled={installation.isDeleted || !installation.onuSerialNumber}
-                                                sx={{ color: installation.serviceStatus === 'suspended' ? '#1cc88a' : '#858796' }}
+                                                sx={{ color: installation.serviceStatus === 'suspendido' ? '#1cc88a' : '#858796' }}
                                             >
-                                                {installation.serviceStatus === 'suspended' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
+                                                {installation.serviceStatus === 'suspendido' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
                                             </IconButton>
                                             <IconButton
                                                 size="small"

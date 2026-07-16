@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, CircularProgress, Alert } from '@mui/material';
+import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ClientForm } from './ClientForm';
 import { ClientRetirementDialog } from './ClientRetirementDialog';
@@ -16,7 +16,7 @@ import { AdditionalServiceService } from '../../services/AdditionalServiceServic
 import { ProductService } from '../../services/ProductService';
 import { Payment } from '../../services/MonthlyBillingService';
 import AuthService from '../../services/AuthService';
-import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, Restore as RestoreIcon, PowerSettingsNew as PowerIcon, RestartAlt as RestartIcon } from '@mui/icons-material';
+import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, PowerSettingsNew as PowerIcon, RestartAlt as RestartIcon } from '@mui/icons-material';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -229,7 +229,7 @@ export const ClientDetail: React.FC = () => {
                 monthYear: `Cuota ${inst.installmentNumber}`,
                 type: `Producto: ${product.productName}`,
                 amount: inst.amount,
-                status: inst.status === 'completed' ? 'paid' : inst.status,
+                status: inst.status === 'completado' ? 'pagado' : inst.status,
                 paymentDate: inst.paymentDate,
                 method: '-',
                 isProduct: true
@@ -246,9 +246,10 @@ export const ClientDetail: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         const statusMap: Record<string, 'success' | 'warning' | 'error' | 'default' | 'info'> = {
-            active: 'success',
-            suspended: 'warning',
-            cancelled: 'error',
+            activo: 'success',
+            suspendido: 'warning',
+            retirado: 'error',
+            inactivo: 'default',
             pendiente_instalacion: 'info'
         };
         return statusMap[status] || 'default';
@@ -256,9 +257,10 @@ export const ClientDetail: React.FC = () => {
 
     const getStatusLabel = (status: string) => {
         const statusMap: Record<string, string> = {
-            active: 'Activo',
-            suspended: 'Suspendido',
-            cancelled: 'Cancelado',
+            activo: 'Activo',
+            suspendido: 'Suspendido',
+            retirado: 'Retirado',
+            inactivo: 'Inactivo',
             pendiente_instalacion: 'Pendiente Instalación'
         };
         return statusMap[status] || status;
@@ -294,7 +296,7 @@ export const ClientDetail: React.FC = () => {
     // Obtener planes con su estado de instalación
     // Se muestran instalaciones activas Y suspendidas (no canceladas ni eliminadas)
     const plansWithStatus = installations
-        .filter(inst => !inst.isDeleted && inst.serviceStatus !== 'cancelled')
+        .filter(inst => !inst.isDeleted && inst.serviceStatus !== 'retirado')
         .map(inst => ({
             name: inst.servicePlan?.name || inst.serviceType,
             status: inst.serviceStatus
@@ -311,8 +313,8 @@ export const ClientDetail: React.FC = () => {
 
     // --- ACCIONES RÁPIDAS (OLT / ESTADO) ---
     // Buscar la instalación principal (prioridad: activa > suspendida > la primera que no esté eliminada)
-    const activeInstallation = installations.find(i => i.serviceStatus === 'active' && !i.isDeleted) 
-                            || installations.find(i => i.serviceStatus === 'suspended' && !i.isDeleted)
+    const activeInstallation = installations.find(i => i.serviceStatus === 'activo' && !i.isDeleted) 
+                            || installations.find(i => i.serviceStatus === 'suspendido' && !i.isDeleted)
                             || installations.find(i => !i.isDeleted) 
                             || null;
 
@@ -334,26 +336,26 @@ export const ClientDetail: React.FC = () => {
     const handleToggleServiceStatus = async () => {
         if (!activeInstallation) return;
         const currentStatus = activeInstallation.serviceStatus;
-        const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-        const actionText = newStatus === 'active' ? 'ACTIVAR' : 'SUSPENDER';
+        const newStatus = currentStatus === 'activo' ? 'suspendido' : 'activo';
+        const actionText = newStatus === 'activo' ? 'ACTIVAR' : 'SUSPENDER';
 
         if (!window.confirm(`¿Seguro que deseas ${actionText} el servicio de este cliente? Esto ejecutará la orden en la OLT.`)) return;
 
         setLoadingAction(true);
         try {
             // Llamar a la API real de la OLT
-            await InstallationService.toggleOltService(activeInstallation.id, newStatus === 'active' ? 'enable' : 'disable');
+            await InstallationService.toggleOltService(activeInstallation.id, newStatus === 'activo' ? 'enable' : 'disable');
             // Recargar todo para actualizar estado
             await loadInstallations();
             await loadClient();
-            if (newStatus === 'active') {
+            if (newStatus === 'activo') {
                 alert('ONU activada correctamente. Si el dispositivo ya estaba activo, no se realizaron cambios.');
             } else {
                 alert('ONU deshabilitada correctamente. Si el dispositivo ya estaba suspendido, no se realizaron cambios.');
             }
         } catch (error) {
             console.error(error);
-            alert(`Error al intentar ${newStatus === 'active' ? 'activar' : 'suspender'} la ONU.`);
+            alert(`Error al intentar ${newStatus === 'activo' ? 'activar' : 'suspender'} la ONU.`);
         } finally {
             setLoadingAction(false);
         }
@@ -384,8 +386,8 @@ export const ClientDetail: React.FC = () => {
                     p: 3, 
                     mb: 2,
                     borderLeft: 6,
-                    borderColor: client.status === 'active' ? 'success.main' : 
-                                 client.status === 'suspended' ? 'warning.main' : 
+                    borderColor: client.status === 'activo' ? 'success.main' : 
+                                 client.status === 'suspendido' ? 'warning.main' : 
                                  client.status === 'pendiente_instalacion' ? 'info.main' : 'error.main'
                 }}
             >
@@ -422,7 +424,7 @@ export const ClientDetail: React.FC = () => {
                                 ))}
                                 {/* Chips de servicios adicionales especiales */}
                                 {(() => {
-                                    const activeServices = additionalServices.filter(s => s.status === 'active');
+                                    const activeServices = additionalServices.filter(s => s.status === 'activo');
                                     const hasNetflix = activeServices.some(s => /netflix/i.test(s.serviceName));
                                     const hasTeleLatino = activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g,'')) || /tele\s+latino/i.test(s.serviceName));
                                     const hasTvBox = activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g,'')));
@@ -525,13 +527,13 @@ export const ClientDetail: React.FC = () => {
                                     </Tooltip>
 
                                     {!AuthService.hasRole('tecnico') && (
-                                        <Tooltip title={activeInstallation.serviceStatus === 'active' ? 'Suspender Servicio' : 'Activar Servicio'}>
+                                        <Tooltip title={activeInstallation.serviceStatus === 'activo' ? 'Suspender Servicio' : 'Activar Servicio'}>
                                             <IconButton 
                                                 onClick={handleToggleServiceStatus}
                                                 disabled={loadingAction}
-                                                color={activeInstallation.serviceStatus === 'active' ? 'error' : 'success'}
+                                                color={activeInstallation.serviceStatus === 'activo' ? 'error' : 'success'}
                                                 size="small"
-                                                sx={{ border: '1px solid', borderColor: activeInstallation.serviceStatus === 'active' ? 'error.main' : 'success.main' }}
+                                                sx={{ border: '1px solid', borderColor: activeInstallation.serviceStatus === 'activo' ? 'error.main' : 'success.main' }}
                                             >
                                                 <PowerIcon />
                                             </IconButton>
@@ -541,7 +543,7 @@ export const ClientDetail: React.FC = () => {
                             )}
                             {/* ------------------------------------- */}
 
-                            {client.status === 'cancelled' && (
+                            {client.status === 'retirado' && (
                                 <Box ml={2} textAlign="right">
                                     <Typography variant="caption" display="block">Retiro: {client.retirementDate ? new Date(client.retirementDate).toLocaleDateString() : '-'}</Typography>
                                     {client.retirementReason && (
@@ -552,11 +554,11 @@ export const ClientDetail: React.FC = () => {
                             {!AuthService.hasRole('tecnico') && (
                             <Button
                                 variant="outlined"
-                                color={client.status === 'cancelled' ? 'secondary' : 'error'}
+                                color={client.status === 'retirado' ? 'secondary' : 'error'}
                                 sx={{ ml: 1 }}
                                 onClick={() => setOpenRetireDialog(true)}
                             >
-                                {client.status === 'cancelled' ? 'Editar Retiro' : 'Retirar'}
+                                {client.status === 'retirado' ? 'Editar Retiro' : 'Retirar'}
                             </Button>
                             )}
                         </Box>
@@ -618,7 +620,7 @@ export const ClientDetail: React.FC = () => {
             ) : (
                 <>
                     <TabPanel value={tabValue} index={0}>
-                        <ClientForm client={client} onSave={loadClient} />
+                        <ClientForm client={client} onSave={() => { loadClient(); loadInstallations(); }} />
                     </TabPanel>
 
                     <TabPanel value={tabValue} index={1}>
@@ -630,7 +632,7 @@ export const ClientDetail: React.FC = () => {
                     </TabPanel>
 
                     <TabPanel value={tabValue} index={3}>
-                        <InstallationsList clientId={client.id} client={client} />
+                        <InstallationsList clientId={client.id} client={client} onChange={() => { loadInstallations(); loadClient(); }} />
                     </TabPanel>
 
                     <TabPanel value={tabValue} index={4}>
@@ -659,12 +661,12 @@ export const ClientDetail: React.FC = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <Chip 
-                                                    label={payment.status === 'paid' ? 'Pagado' : 
-                                                           payment.status === 'pending' ? 'Pendiente' : 
-                                                           payment.status === 'overdue' ? 'Vencido' : 'Cancelado'}
-                                                    color={payment.status === 'paid' ? 'success' : 
-                                                           payment.status === 'pending' ? 'warning' : 
-                                                           payment.status === 'overdue' ? 'error' : 'default'}
+                                                    label={payment.status === 'pagado' ? 'Pagado' : 
+                                                           payment.status === 'pendiente' ? 'Pendiente' : 
+                                                           payment.status === 'vencido' ? 'Vencido' : 'Anulado'}
+                                                    color={payment.status === 'pagado' ? 'success' : 
+                                                           payment.status === 'pendiente' ? 'warning' : 
+                                                           payment.status === 'vencido' ? 'error' : 'default'}
                                                     size="small"
                                                 />
                                             </TableCell>
