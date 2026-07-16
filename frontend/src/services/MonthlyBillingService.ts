@@ -79,6 +79,9 @@ export interface BillingStats {
     overdue: number;
     totalAmount: number;
     paidAmount: number;
+    paidServicePlanAmount: number;
+    paidAdditionalServicesAmount: number;
+    paidProductsAmount: number;
     pendingAmount: number;
     totalServicePlan: number;
     totalAdditionalServices: number;

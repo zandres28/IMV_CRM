@@ -196,10 +196,44 @@ export class MonthlyBillingController {
                     where: { client: { id: client.id }, status: 'active' }
                 });
                 let additionalServicesAmount = 0;
+                const clientRetirementDate = client.retirementDate
+                    ? (parseLocalDate(client.retirementDate as unknown as string) || new Date(client.retirementDate))
+                    : null;
+
                 for (const service of additionalServices) {
                     const serviceStartDate = parseLocalDate(service.startDate as unknown as string) || new Date(service.startDate);
-                    // Los servicios adicionales NO se prorratean, siempre se cobra tarifa completa
-                    if (serviceStartDate <= lastDayOfMonth && (!service.endDate || (parseLocalDate(service.endDate as unknown as string) || new Date(service.endDate)) >= firstDayOfMonth)) {
+                    const serviceEndDate = service.endDate
+                        ? (parseLocalDate(service.endDate as unknown as string) || new Date(service.endDate))
+                        : null;
+
+                    // Tope de cobro para no superar la fecha de retiro del cliente en el mes facturado
+                    let billingEndDate = lastDayOfMonth;
+                    if (serviceEndDate && serviceEndDate < billingEndDate) {
+                        billingEndDate = serviceEndDate;
+                    }
+                    if (clientRetirementDate && clientRetirementDate < billingEndDate) {
+                        billingEndDate = clientRetirementDate;
+                    }
+
+                    // Mantener regla histórica: solo prorratear en caso de retiro (cliente o fin de servicio antes de fin de mes)
+                    const shouldProrateAdditional = billingEndDate.getTime() < lastDayOfMonth.getTime();
+
+                    // Si el servicio no cruza el rango facturable, no se cobra
+                    if (serviceStartDate > billingEndDate || billingEndDate < firstDayOfMonth) {
+                        continue;
+                    }
+
+                    if (shouldProrateAdditional) {
+                        const billingStartDate = serviceStartDate > firstDayOfMonth ? serviceStartDate : firstDayOfMonth;
+                        if (billingEndDate < billingStartDate) continue;
+
+                        const billedDays = Math.floor((billingEndDate.getTime() - billingStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        const monthlyFee = Number(service.monthlyFee);
+                        const dailyRate = Math.ceil((monthlyFee / 30) / 500) * 500;
+
+                        additionalServicesAmount += dailyRate * billedDays;
+                        isProrated = true;
+                    } else {
                         additionalServicesAmount += Number(service.monthlyFee);
                     }
                 }
@@ -567,6 +601,12 @@ export class MonthlyBillingController {
                 totalAmount: paymentsWithReminder.reduce((sum, p) => sum + Number(p.amount), 0),
                 paidAmount: paymentsWithReminder.filter(p => p.status === 'paid')
                     .reduce((sum, p) => sum + Number(p.amount), 0),
+                paidServicePlanAmount: paymentsWithReminder.filter(p => p.status === 'paid')
+                    .reduce((sum, p) => sum + Number(p.servicePlanAmount || 0), 0),
+                paidAdditionalServicesAmount: paymentsWithReminder.filter(p => p.status === 'paid')
+                    .reduce((sum, p) => sum + Number(p.additionalServicesAmount || 0), 0),
+                paidProductsAmount: paymentsWithReminder.filter(p => p.status === 'paid')
+                    .reduce((sum, p) => sum + Number(p.productInstallmentsAmount || 0), 0),
                 pendingAmount: paymentsWithReminder.filter(p => p.status === 'pending' || p.status === 'overdue')
                     .reduce((sum, p) => sum + Number(p.amount), 0),
                 // Desglose por tipo de concepto

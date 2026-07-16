@@ -11,7 +11,7 @@ import { LessThanOrEqual } from 'typeorm';
  */
 export const startOltDisconnectScheduler = () => {
     // Ejecutar cada minuto
-    cron.schedule('* * * * *', async () => {
+    cron.schedule('*/5 * * * *', async () => {
         try {
             const installationRepo = AppDataSource.getRepository(Installation);
 
