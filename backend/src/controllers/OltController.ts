@@ -37,12 +37,11 @@ export const OltController = {
             }
 
             const oltService = new OltService();
-            const output = await oltService.rebootOnu(installation.ponId, installation.onuId);
+            await oltService.rebootOnu(installation.ponId, installation.onuId);
 
             return res.json({ 
                 message: "Comando de reinicio enviado exitosamente", 
-                details: { ponId: installation.ponId, onuId: installation.onuId, sn: installation.onuSerialNumber },
-                log: output 
+                details: { ponId: installation.ponId, onuId: installation.onuId, sn: installation.onuSerialNumber }
             });
 
         } catch (error: any) {
@@ -75,21 +74,20 @@ export const OltController = {
             }
 
             const oltService = new OltService();
-            let output = '';
             let messageAction = '';
 
             if (action === 'enable') {
-                output = await oltService.activateOnu(installation.ponId, installation.onuId);
+                await oltService.activateOnu(installation.ponId, installation.onuId);
                 messageAction = 'activado';
-                installation.serviceStatus = 'active';
+                installation.serviceStatus = 'activo';
                 await AppDataSource.getRepository(Installation).save(installation);
             } else if (action === 'disable') {
-                output = await oltService.deactivateOnu(installation.ponId, installation.onuId);
+                await oltService.deactivateOnu(installation.ponId, installation.onuId);
                 messageAction = 'cortado';
-                installation.serviceStatus = 'suspended';
+                installation.serviceStatus = 'suspendido';
                 await AppDataSource.getRepository(Installation).save(installation);
             } else if (action === 'reboot' || action === 'restart') {
-                output = await oltService.rebootOnu(installation.ponId, installation.onuId);
+                await oltService.rebootOnu(installation.ponId, installation.onuId);
                 messageAction = 'reiniciado';
             }
 
@@ -101,7 +99,6 @@ export const OltController = {
                     sn: installation.onuSerialNumber,
                     newStatus: installation.serviceStatus
                 },
-                log: output 
             });
 
         } catch (error: any) {
@@ -120,17 +117,19 @@ export const OltController = {
                 return res.status(404).json({ message: "Instalación no encontrada tras buscar por ID y Serial Number" });
             }
 
-            if (!installation.ponId || !installation.onuId) {
-                return res.status(400).json({ message: "Faltan datos de OLT" });
+            const oltService = new OltService();
+
+            if (installation.onuSerialNumber) {
+                const onu = await oltService.getOnuBySerial(installation.onuSerialNumber);
+                return res.json({ message: "Estado consultado", data: onu });
             }
 
-            const oltService = new OltService();
-            const output = await oltService.getOnuStatus(installation.ponId, installation.onuId);
+            if (installation.ponId && installation.onuId) {
+                const onu = await oltService.getOnuByPonPort(installation.ponId, parseInt(installation.onuId));
+                return res.json({ message: "Estado consultado", data: onu });
+            }
 
-            return res.json({ 
-                message: "Estado consultado",
-                log: output 
-            });
+            return res.status(400).json({ message: "Faltan datos de OLT (serial o ponId)" });
 
         } catch (error: any) {
             return res.status(500).json({ message: "Error OLT", error: error.message });
@@ -147,15 +146,15 @@ export const OltController = {
                 return res.status(404).json({ message: "Instalación no encontrada" });
             }
 
-            if (!installation.ponId || !installation.onuId) {
-                return res.status(400).json({ 
-                    message: "La instalación no tiene datos de OLT configurados",
-                    onlineStatus: null 
-                });
-            }
-
             const oltService = new OltService();
-            const runState = await oltService.getOnuRunState(installation.ponId, installation.onuId);
+            let runState: string | null = null;
+
+            if (installation.onuSerialNumber) {
+                const result = await oltService.getOnuRunStateBySn(installation.onuSerialNumber);
+                runState = result?.state || null;
+            } else if (installation.ponId && installation.onuId) {
+                runState = await oltService.getOnuRunState(installation.ponId, installation.onuId);
+            }
 
             return res.json({ 
                 message: "Estado de ONU obtenido",

@@ -80,17 +80,43 @@ const MonthlyBilling: React.FC = () => {
     const [filterReminder, setFilterReminder] = useState<'all' | 'sent' | 'not_sent'>('all');
     const [viewMode, setViewMode] = useState<'month' | 'cumulative'>('month');
     const [searchTerm, setSearchTerm] = useState('');
+    const [billingComponentFilter, setBillingComponentFilter] = useState<'all' | 'servicePlan' | 'additionalServices' | 'products' | 'installations'>('all');
     
     const filteredPayments = payments.filter(payment => {
         if (!payment.client) return false; // Skip orphan payments
         if (filterReminder === 'sent' && !payment.reminderSent) return false;
         if (filterReminder === 'not_sent' && payment.reminderSent) return false;
-        if (!searchTerm) return true;
-        const searchLower = searchTerm.toLowerCase();
-        return (
-            (payment.client.fullName || '').toLowerCase().includes(searchLower) ||
-            (payment.client.identificationNumber || '').includes(searchLower)
-        );
+        if (searchTerm) {
+            const searchLower = searchTerm.toLowerCase();
+            const clientMatch = (
+                (payment.client.fullName || '').toLowerCase().includes(searchLower) ||
+                (payment.client.identificationNumber || '').includes(searchLower)
+            );
+            if (!clientMatch) return false;
+        }
+
+        // Aplicar filtro de componente de facturación (de las tarjetas)
+        if (billingComponentFilter !== 'all') {
+            switch (billingComponentFilter) {
+                case 'servicePlan':
+                    if (Number(payment.servicePlanAmount || 0) === 0) return false;
+                    break;
+                case 'additionalServices':
+                    if (Number(payment.additionalServicesAmount || 0) === 0) return false;
+                    break;
+                case 'products':
+                    if (Number(payment.productInstallmentsAmount || 0) === 0) return false;
+                    break;
+                case 'installations':
+                    // Mostrar clientes con instalaciones activas (cualquiera que tenga plan)
+                    if (Number(payment.servicePlanAmount || 0) === 0 && !payment.client?.installations?.some(i => i.isActive)) return false;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return true;
     });
 
     // Pagination
@@ -165,18 +191,18 @@ const MonthlyBilling: React.FC = () => {
     // Limpiar selección al cambiar filtros
     useEffect(() => {
         setSelectedPaymentIds([]);
-    }, [selectedMonth, selectedYear, filterStatus, filterReminder, searchTerm]);
+    }, [selectedMonth, selectedYear, filterStatus, filterReminder, searchTerm, billingComponentFilter]);
 
     const handleClearFilters = () => {
         setSearchTerm('');
         setFilterStatus('all');
         setFilterReminder('all');
+        setBillingComponentFilter('all');
         setPage(0);
     };
 
     const handleReminderFilterChange = (value: 'all' | 'sent' | 'not_sent') => {
         setFilterReminder(value);
-        setPage(0);
     };
 
     const handleGenerateBilling = async () => {
@@ -552,13 +578,28 @@ const MonthlyBilling: React.FC = () => {
                         <Card sx={{ borderLeft: '4px solid #1cc88a', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#1cc88a', textTransform: 'uppercase', mb: 1 }}>
-                                    Recaudado
+                                    Recaudado Total
                                 </Typography>
                                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
                                     {formatCurrency(stats.paidAmount)}
                                 </Typography>
                                 <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
                                     {stats.paid} clientes
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <Card sx={{ borderLeft: '4px solid #20c997', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                            <CardContent sx={{ py: '16px !important' }}>
+                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#20c997', textTransform: 'uppercase', mb: 1 }}>
+                                    Recaudado Solo Servicios
+                                </Typography>
+                                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: '#5a5c69' }}>
+                                    {formatCurrency(stats.paidServicePlanAmount || 0)}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.72rem', color: '#858796', mt: 0.5 }}>
+                                    Sin productos ni adicionales
                                 </Typography>
                             </CardContent>
                         </Card>
@@ -624,11 +665,26 @@ const MonthlyBilling: React.FC = () => {
                 </Grid>
             </Grid>
 
-            {/* Nuevas tarjetas de desglose */}
+            {/* Nuevas tarjetas de desglose - Interactivas */}
             {stats && (
                 <Grid container spacing={3} sx={{ mb: 4, px: isMobile ? 0 : 3 }}>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #f6c23e', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card 
+                            onClick={() => setBillingComponentFilter(billingComponentFilter === 'servicePlan' ? 'all' : 'servicePlan')}
+                            sx={{ 
+                                borderLeft: '4px solid #f6c23e', 
+                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease-in-out',
+                                transform: billingComponentFilter === 'servicePlan' ? 'scale(1.02)' : 'scale(1)',
+                                bgcolor: billingComponentFilter === 'servicePlan' ? 'rgba(246, 194, 62, 0.08)' : 'white',
+                                border: billingComponentFilter === 'servicePlan' ? '2px solid #f6c23e' : 'none',
+                                '&:hover': {
+                                    boxShadow: '0 .3rem 2.5rem 0 rgba(58,59,69,.25)',
+                                    transform: 'scale(1.03)'
+                                }
+                            }}
+                        >
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#f6c23e', textTransform: 'uppercase', mb: 1 }}>
                                     Planes de Servicio
@@ -643,7 +699,22 @@ const MonthlyBilling: React.FC = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #6f42c1', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card 
+                            onClick={() => setBillingComponentFilter(billingComponentFilter === 'additionalServices' ? 'all' : 'additionalServices')}
+                            sx={{ 
+                                borderLeft: '4px solid #6f42c1', 
+                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease-in-out',
+                                transform: billingComponentFilter === 'additionalServices' ? 'scale(1.02)' : 'scale(1)',
+                                bgcolor: billingComponentFilter === 'additionalServices' ? 'rgba(111, 66, 193, 0.08)' : 'white',
+                                border: billingComponentFilter === 'additionalServices' ? '2px solid #6f42c1' : 'none',
+                                '&:hover': {
+                                    boxShadow: '0 .3rem 2.5rem 0 rgba(58,59,69,.25)',
+                                    transform: 'scale(1.03)'
+                                }
+                            }}
+                        >
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#6f42c1', textTransform: 'uppercase', mb: 1 }}>
                                     Servicios Adicionales
@@ -658,7 +729,22 @@ const MonthlyBilling: React.FC = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #4e73df', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card 
+                            onClick={() => setBillingComponentFilter(billingComponentFilter === 'products' ? 'all' : 'products')}
+                            sx={{ 
+                                borderLeft: '4px solid #4e73df', 
+                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease-in-out',
+                                transform: billingComponentFilter === 'products' ? 'scale(1.02)' : 'scale(1)',
+                                bgcolor: billingComponentFilter === 'products' ? 'rgba(78, 115, 223, 0.08)' : 'white',
+                                border: billingComponentFilter === 'products' ? '2px solid #4e73df' : 'none',
+                                '&:hover': {
+                                    boxShadow: '0 .3rem 2.5rem 0 rgba(58,59,69,.25)',
+                                    transform: 'scale(1.03)'
+                                }
+                            }}
+                        >
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#4e73df', textTransform: 'uppercase', mb: 1 }}>
                                     Productos/Cuotas
@@ -673,7 +759,22 @@ const MonthlyBilling: React.FC = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #36b9cc', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card 
+                            onClick={() => setBillingComponentFilter(billingComponentFilter === 'installations' ? 'all' : 'installations')}
+                            sx={{ 
+                                borderLeft: '4px solid #36b9cc', 
+                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease-in-out',
+                                transform: billingComponentFilter === 'installations' ? 'scale(1.02)' : 'scale(1)',
+                                bgcolor: billingComponentFilter === 'installations' ? 'rgba(54, 185, 204, 0.08)' : 'white',
+                                border: billingComponentFilter === 'installations' ? '2px solid #36b9cc' : 'none',
+                                '&:hover': {
+                                    boxShadow: '0 .3rem 2.5rem 0 rgba(58,59,69,.25)',
+                                    transform: 'scale(1.03)'
+                                }
+                            }}
+                        >
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#36b9cc', textTransform: 'uppercase', mb: 1 }}>
                                     Instalaciones
@@ -794,12 +895,26 @@ const MonthlyBilling: React.FC = () => {
                             <MenuItem value="not_sent" sx={{ fontSize: '0.75rem' }}>No enviado</MenuItem>
                         </Select>
                     </FormControl>
+                    {billingComponentFilter !== 'all' && (
+                        <Chip
+                            label={`Filtro: ${
+                                billingComponentFilter === 'servicePlan' ? 'Planes' :
+                                billingComponentFilter === 'additionalServices' ? 'Servicios Adic.' :
+                                billingComponentFilter === 'products' ? 'Productos' :
+                                'Instalaciones'
+                            }`}
+                            onDelete={() => setBillingComponentFilter('all')}
+                            color="primary"
+                            variant="filled"
+                            size="small"
+                        />
+                    )}
                     <Button
                         variant="outlined"
                         size="small"
                         startIcon={<ClearIcon />}
                         onClick={handleClearFilters}
-                        disabled={!searchTerm && filterStatus === 'all' && filterReminder === 'all'}
+                        disabled={!searchTerm && filterStatus === 'all' && filterReminder === 'all' && billingComponentFilter === 'all'}
                         sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
                     >
                         Limpiar Filtros

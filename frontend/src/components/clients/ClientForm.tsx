@@ -159,7 +159,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                             fullWidth
                             required
                             name="fullName"
-                            label="Nombres y Apellidos completos"
+                            label="Nombres y Apellidos Completos"
                             value={formData.fullName}
                             onChange={handleInputChange}
                             disabled={!isEditable}

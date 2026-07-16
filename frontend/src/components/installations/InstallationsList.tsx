@@ -264,7 +264,6 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
         // Actually, logic is: 'active' -> 'disable'. 'suspended' -> 'enable'.
         // If cancelled, what? Probably stay cancelled. But let's assume active/suspended toggle.
 
-        const newStatus = isSuspended ? 'active' : 'suspended';
         const actionText = isSuspended ? 'hablitar' : 'suspender';
         
         const confirmed = window.confirm(`¿Estás seguro de que deseas ${actionText} el servicio de internet en la OLT? Esta acción modificará el estado en el CRM también.`);
@@ -508,25 +507,33 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                 <TableCell sx={{ fontSize: '0.7rem', fontWeight: 700 }}>{formatCurrency(installation.monthlyFee)}</TableCell>
                                 <TableCell sx={{ fontSize: '0.7rem', fontWeight: 700 }}>{formatCurrency(installation.installationFee || 0)}</TableCell>
                                 <TableCell>
-                                    {loadingOnuStatus ? (
-                                        <CircularProgress size={16} />
-                                    ) : onuStatusMap[installation.id] ? (
-                                        <Chip
-                                            label={onuStatusMap[installation.id]?.isOnline ? 'ONLINE' : 'OFFLINE'}
-                                            icon={onuStatusMap[installation.id]?.isOnline ? <WifiIcon /> : <WifiOffIcon />}
-                                            sx={{ 
-                                                height: 18, 
-                                                fontSize: '0.6rem', 
-                                                fontWeight: 800,
-                                                bgcolor: onuStatusMap[installation.id]?.isOnline ? '#1cc88a20' : '#e74a3b20',
-                                                color: onuStatusMap[installation.id]?.isOnline ? '#1cc88a' : '#e74a3b',
-                                                border: `1px solid ${onuStatusMap[installation.id]?.isOnline ? '#1cc88a' : '#e74a3b'}`
-                                            }}
-                                            size="small"
-                                        />
-                                    ) : (
-                                        <Typography sx={{ fontSize: '0.65rem', color: '#858796' }}>—</Typography>
-                                    )}
+                                    {(() => {
+                                        const onuStatus = onuStatusMap[installation.id];
+
+                                        if (loadingOnuStatus) {
+                                            return <CircularProgress size={16} />;
+                                        }
+
+                                        if (!onuStatus) {
+                                            return <Typography sx={{ fontSize: '0.65rem', color: '#858796' }}>—</Typography>;
+                                        }
+
+                                        return (
+                                            <Chip
+                                                label={onuStatus.isOnline ? 'ONLINE' : 'OFFLINE'}
+                                                icon={onuStatus.isOnline ? <WifiIcon /> : <WifiOffIcon />}
+                                                sx={{ 
+                                                    height: 18, 
+                                                    fontSize: '0.6rem', 
+                                                    fontWeight: 800,
+                                                    bgcolor: onuStatus.isOnline ? '#1cc88a20' : '#e74a3b20',
+                                                    color: onuStatus.isOnline ? '#1cc88a' : '#e74a3b',
+                                                    border: `1px solid ${onuStatus.isOnline ? '#1cc88a' : '#e74a3b'}`
+                                                }}
+                                                size="small"
+                                            />
+                                        );
+                                    })()}
                                 </TableCell>
                                 <TableCell>
                                     {installation.isDeleted ? (
