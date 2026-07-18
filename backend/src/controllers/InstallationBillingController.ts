@@ -52,11 +52,11 @@ export class InstallationBillingController {
 
       const stats = {
         total: payments.length,
-        paid: payments.filter(p => p.status === 'paid').length,
-        pending: payments.filter(p => p.status === 'pending').length,
+        paid: payments.filter(p => p.status === 'pagado').length,
+        pending: payments.filter(p => p.status === 'pendiente').length,
         totalAmount: payments.reduce((s, p) => s + Number(p.amount), 0),
-        paidAmount: payments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0),
-        pendingAmount: payments.filter(p => p.status === 'pending').reduce((s, p) => s + Number(p.amount), 0)
+        paidAmount: payments.filter(p => p.status === 'pagado').reduce((s, p) => s + Number(p.amount), 0),
+        pendingAmount: payments.filter(p => p.status === 'pendiente').reduce((s, p) => s + Number(p.amount), 0)
       };
 
       res.json({ payments, statistics: stats });
@@ -97,7 +97,7 @@ export class InstallationBillingController {
       const paymentRepo = AppDataSource.getRepository(Payment);
       const payment = await paymentRepo.findOne({ where: { id: parseInt(id), paymentType: 'installation' } });
       if (!payment) return res.status(404).json({ message: 'Pago de instalación no encontrado' });
-      payment.status = 'paid';
+      payment.status = 'pagado';
       payment.paymentMethod = paymentMethod || payment.paymentMethod;
       payment.paymentDate = paymentDate ? new Date(paymentDate) : new Date();
       await paymentRepo.save(payment);
@@ -159,7 +159,7 @@ export class InstallationBillingController {
         paymentMonth: monthNames[dateObj.getMonth()],
         paymentYear: dateObj.getFullYear(),
         dueDate: dateObj,
-        status: 'paid',
+        status: 'pagado',
         paymentDate: dateObj,
         paymentMethod: paymentMethod || 'efectivo',
         paymentType: 'installation',

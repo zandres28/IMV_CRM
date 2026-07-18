@@ -1,0 +1,11 @@
+Detección de desajuste de etiquetado (Mismatch):
+- MikroTik emite: Untagged (->)
+- ONU emite: VLAN 100 (<-)
+- Acción: Configurar VLAN 100 en bridge1, habilitar vlan-filtering y mover gateway.
+
+Estado Final:
+- Se habilitó vlan-filtering en bridge1.
+- VLAN 100 etiquetada en sfp1-MKTK-OLT y bridge1 (CPU).
+- Red 192.168.101.0/24 ahora opera sobre vlan100-clientes.
+- NAT Masquerade habilitado para la red de clientes.
+- ONUs deberían recibir IP y encender LED de Internet.

@@ -9,8 +9,7 @@ import {
     TextField,
     Box,
     Typography,
-    CircularProgress,
-    Divider
+    CircularProgress
 } from '@mui/material';
 import { Warning as WarningIcon, Router as RouterIcon } from '@mui/icons-material';
 import { Client } from '../../types/Client';
@@ -39,7 +38,7 @@ export const ClientRetirementDialog: React.FC<ClientRetirementDialogProps> = ({
     const [reason, setReason] = useState(client.retirementReason || '');
     const [error, setError] = useState<string | null>(null);
 
-    const isEditing = client.status === 'cancelled';
+    const isEditing = client.status === 'retirado';
 
     // Determina si la fecha seleccionada es futura (desconexión programada) o hoy/pasada (inmediata)
     const isFutureDate = retirementDate > new Date().toISOString().split('T')[0];

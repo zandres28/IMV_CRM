@@ -14,9 +14,11 @@ out/
 # Logs and Temporary Files
 *.log
 logs/
-tmp/
 temp/
 coverage/
+tools/scratch/*.log
+tools/scratch/*.bak
+tools/scratch/*.xlsm
 
 # IDE & OS
 .vscode/
@@ -38,4 +40,18 @@ backups/
 docker-compose.yml
 
 # Archivos archivados / datos temporales
-_archivo/datos-temporales/
+# (movido a tools/archive/)
+
+# Agent/IDE config
+.opencode/
+.impeccable/
+
+# Temp files
+tmp/
+backend/tmp/
+
+# Session notes
+memory.md
+
+# Design screenshots
+*.png

@@ -1,0 +1,19 @@
+name: astra-test
+
+services:
+  astra-test:
+    image: potterua/astra:latest
+    container_name: astra-test
+    restart: unless-stopped
+    ports:
+      - "18001:8000"
+    volumes:
+      - ./docker/astra-test/config/config.docker-on-demand.json:/config.json:ro
+      - ./docker/astra-test/config/license.txt:/etc/astra/license.txt:ro
+    networks:
+      - unified-services
+
+networks:
+  unified-services:
+    external: true
+    name: imv_crm_unified-services

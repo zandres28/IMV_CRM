@@ -52,7 +52,7 @@ export const ServiceTransferList: React.FC = () => {
         requestDate: new Date().toISOString().split('T')[0],
         scheduledDate: '',
         completionDate: '',
-        status: 'pending',
+        status: 'pendiente',
         cost: 0,
         technicianId: '',
         notes: '',
@@ -103,7 +103,7 @@ export const ServiceTransferList: React.FC = () => {
                 requestDate: new Date().toISOString().split('T')[0],
                 scheduledDate: '',
                 completionDate: '',
-                status: 'pending',
+                status: 'pendiente',
                 cost: 0,
                 technicianId: '',
                 notes: '',
@@ -154,20 +154,20 @@ export const ServiceTransferList: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'pending': return 'warning';
-            case 'in_progress': return 'info';
-            case 'completed': return 'success';
-            case 'cancelled': return 'error';
+            case 'pendiente': return 'warning';
+            case 'en_progreso': return 'info';
+            case 'completado': return 'success';
+            case 'anulado': return 'error';
             default: return 'default';
         }
     };
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'pending': return 'Pendiente';
-            case 'in_progress': return 'En Progreso';
-            case 'completed': return 'Completado';
-            case 'cancelled': return 'Cancelado';
+            case 'pendiente': return 'Pendiente';
+            case 'en_progreso': return 'En Progreso';
+            case 'completado': return 'Completado';
+            case 'anulado': return 'Anulado';
             default: return status;
         }
     };
@@ -299,10 +299,10 @@ export const ServiceTransferList: React.FC = () => {
                                     label="Estado"
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                 >
-                                    <MenuItem value="pending">Pendiente</MenuItem>
-                                    <MenuItem value="in_progress">En Progreso</MenuItem>
-                                    <MenuItem value="completed">Completado</MenuItem>
-                                    <MenuItem value="cancelled">Cancelado</MenuItem>
+                                    <MenuItem value="pendiente">Pendiente</MenuItem>
+                                    <MenuItem value="en_progreso">En Progreso</MenuItem>
+                                    <MenuItem value="completado">Completado</MenuItem>
+                                    <MenuItem value="anulado">Anulado</MenuItem>
                                 </Select>
                             </FormControl>
 
@@ -330,7 +330,7 @@ export const ServiceTransferList: React.FC = () => {
                                 </Select>
                             </FormControl>
                             
-                            {formData.status === 'completed' && (
+                            {formData.status === 'completado' && (
                                 <TextField
                                     label="Fecha Completado"
                                     type="date"
@@ -342,7 +342,7 @@ export const ServiceTransferList: React.FC = () => {
                             )}
                         </Box>
 
-                        {formData.status === 'completed' && (
+                        {formData.status === 'completado' && (
                             <Box>
                                 <Typography variant="subtitle2" color="text.secondary" mb={1}>
                                     ID del puerto OLT en la nueva ubicación (actualiza la instalación)

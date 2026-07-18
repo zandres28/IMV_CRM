@@ -9,9 +9,9 @@ router.get('/', async (_req: Request, res: Response) => {
   try {
     // Intentar resolver la ruta del CSV desde build o src
     const candidatePaths = [
-      path.resolve(__dirname, '../../../../tmp/pon-clientes.csv'),
-      path.resolve(__dirname, '../../../tmp/pon-clientes.csv'),
-      path.resolve(process.cwd(), 'tmp/pon-clientes.csv')
+      path.resolve(__dirname, '../../../../tools/scratch/pon-clientes.csv'),
+      path.resolve(__dirname, '../../../tools/scratch/pon-clientes.csv'),
+      path.resolve(process.cwd(), 'tools/scratch/pon-clientes.csv')
     ];
 
     let filePath: string | undefined;

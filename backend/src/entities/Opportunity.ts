@@ -12,8 +12,8 @@ export class Opportunity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     value: number;
 
-    @Column()
-    status: string; // prospecto, negociación, ganada, perdida
+    @Column({ type: 'enum', enum: ['prospecto', 'negociación', 'ganada', 'perdida'] })
+    status: string;
 
     @Column({ type: 'datetime', nullable: true })
     expected_close_date: Date;

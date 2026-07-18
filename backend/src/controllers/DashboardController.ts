@@ -49,7 +49,7 @@ export const DashboardController = {
 
             // Active Clients (Current Snapshot)
             const totalActiveClients = await clientRepository.count({
-                where: { status: 'active' }
+                where: { status: 'activo' }
             });
 
             // New Clients (This Month)
@@ -147,7 +147,7 @@ export const DashboardController = {
             const realCollectionRaw = await paymentRepository.createQueryBuilder("payment")
                 .select("SUM(payment.amount)", "total")
                 .where("payment.paymentDate BETWEEN :start AND :end", { start: startOfMonth, end: endOfMonth })
-                .andWhere("payment.status = 'paid'")
+                .andWhere("payment.status = 'pagado'")
                 .getRawOne();
             const realCollection = parseFloat(realCollectionRaw?.total || '0');
 
@@ -160,8 +160,8 @@ export const DashboardController = {
                 .leftJoin("installation.servicePlan", "plan")
                 .leftJoin("installation.client", "client")
                 .select("SUM(plan.monthlyFee)", "total")
-                .where("client.status = :status", { status: 'active' })
-                .andWhere("installation.serviceStatus = :svcStatus", { svcStatus: 'active' })
+                .where("client.status = :status", { status: 'activo' })
+                .andWhere("installation.serviceStatus = :svcStatus", { svcStatus: 'activo' })
                 .getRawOne();
             const projectedRevenue = parseFloat(projectedRevenueRaw?.total || '0');
 
@@ -177,7 +177,7 @@ export const DashboardController = {
             // Status 'overdue' or 'pending' with dueDate < now
             const totalOverdueRaw = await paymentRepository.createQueryBuilder("payment")
                 .select("SUM(payment.amount)", "total")
-                .where("payment.status IN (:...statuses)", { statuses: ['overdue', 'pending'] })
+                .where("payment.status IN (:...statuses)", { statuses: ['vencido', 'pendiente'] })
                 .andWhere("payment.dueDate < :now", { now: new Date() })
                 .getRawOne();
             const totalOverdue = parseFloat(totalOverdueRaw?.total || '0');
@@ -193,7 +193,7 @@ export const DashboardController = {
             .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 31 AND 60 THEN payment.amount ELSE 0 END)", "range31_60")
             .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 61 AND 90 THEN payment.amount ELSE 0 END)", "range61_90")
             .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) > 90 THEN payment.amount ELSE 0 END)", "range90_plus")
-            .where("payment.status IN (:...statuses)", { statuses: ['overdue', 'pending'] })
+            .where("payment.status IN (:...statuses)", { statuses: ['vencido', 'pendiente'] })
             .andWhere("payment.dueDate < :now", { now: new Date() });
 
             const portfolioAgeRaw = await portfolioAgeQuery.getRawOne();
@@ -208,7 +208,7 @@ export const DashboardController = {
             // Clients in Default (Clientes en Mora)
             const clientsInDefaultRaw = await paymentRepository.createQueryBuilder("payment")
                 .select("COUNT(DISTINCT payment.clientId)", "count")
-                .where("payment.status = 'overdue'") // Or check dueDate < now + pending
+                .where("payment.status = 'vencido'")
                 .getRawOne();
             const clientsInDefault = parseInt(clientsInDefaultRaw?.count || '0');
 
@@ -261,7 +261,7 @@ export const DashboardController = {
                     start: new Date(d.getFullYear(), d.getMonth(), 1), 
                     end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59) 
                 })
-                .andWhere("payment.status = 'paid'")
+                .andWhere("payment.status = 'pagado'")
                 .getRawOne();
 
                 const monthName = d.toLocaleString('default', { month: 'short' });

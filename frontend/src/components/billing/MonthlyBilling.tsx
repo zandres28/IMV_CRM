@@ -152,16 +152,17 @@ const MonthlyBilling: React.FC = () => {
     const handleUpdateReminderStatus = async (clientIds: number[], sent: boolean) => {
         try {
             setLoading(true);
-            await MonthlyBillingService.setReminderStatus(clientIds, sent, selectedMonth, selectedYear);
+            const result = await MonthlyBillingService.setReminderStatus(clientIds, sent, selectedMonth, selectedYear);
             setSnackbar({ 
                 open: true, 
-                message: sent ? 'Recordatorios marcados como enviados' : 'Recordatorios reseteados (habilitados para envío)', 
+                message: result?.message || (sent ? 'Recordatorios marcados como enviados' : 'Recordatorios reseteados (habilitados para envío)'), 
                 severity: 'success' 
             });
-            await loadBillingData(); // Reload to see changes
-        } catch (error) {
+            await loadBillingData();
+        } catch (error: any) {
             console.error(error);
-            setSnackbar({ open: true, message: 'Error actualizando estado', severity: 'error' });
+            const msg = error?.response?.data?.message || error?.message || 'Error actualizando estado';
+            setSnackbar({ open: true, message: msg, severity: 'error' });
         } finally {
             setLoading(false);
         }
@@ -355,26 +356,26 @@ const MonthlyBilling: React.FC = () => {
         let status = payment.status;
         
         // Visual override for pending payments that are past due date
-        if (status === 'pending') {
+        if (status === 'pendiente') {
             const dueDate = new Date(payment.dueDate);
             const now = new Date();
             // Reset hours to compare dates only
             dueDate.setHours(23, 59, 59, 999); 
             
             if (now > dueDate) {
-                status = 'overdue';
+                status = 'vencido';
             }
         }
 
         switch (status) {
-            case 'paid':
+            case 'pagado':
                 return { label: 'Pagado', color: 'success' as const };
-            case 'pending':
+            case 'pendiente':
                 return { label: 'Pendiente', color: 'warning' as const };
-            case 'overdue':
+            case 'vencido':
                 return { label: 'Vencido', color: 'error' as const };
-            case 'cancelled':
-                return { label: 'Cancelado', color: 'default' as const };
+            case 'anulado':
+                return { label: 'Anulado', color: 'default' as const };
             default:
                 return { label: status, color: 'default' as const };
         }
@@ -424,8 +425,8 @@ const MonthlyBilling: React.FC = () => {
                                 </Typography>
                             </Box>
                             <Chip 
-                                label={payment.status === 'paid' ? 'Pagado' : (payment.status === 'overdue' ? 'Vencido' : 'Pendiente')} 
-                                color={payment.status === 'paid' ? 'success' : (payment.status === 'overdue' ? 'error' : 'warning')} 
+                                label={payment.status === 'pagado' ? 'Pagado' : (payment.status === 'vencido' ? 'Vencido' : 'Pendiente')} 
+                                color={payment.status === 'pagado' ? 'success' : (payment.status === 'vencido' ? 'error' : 'warning')} 
                                 size="small" 
                             />
                         </Box>
@@ -446,18 +447,20 @@ const MonthlyBilling: React.FC = () => {
                                 icon={payment.reminderSent ? <ReminderOnIcon /> : <ReminderOffIcon />}
                                 label={payment.reminderSent ? 'Recordatorio enviado' : 'Sin envío'}
                             />
+                            {payment.client && (
                             <Tooltip title={payment.reminderSent ? 'Deshabilitar envío (Ya enviado)' : 'Habilitar envío (No enviado)'}>
                                 <IconButton
                                     size="small"
                                     color={payment.reminderSent ? 'success' : 'default'}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        handleUpdateReminderStatus([payment.client.id], !payment.reminderSent);
+                                        handleUpdateReminderStatus([payment.client!.id], !payment.reminderSent);
                                     }}
                                 >
                                     {payment.reminderSent ? <ReminderOnIcon /> : <ReminderOffIcon />}
                                 </IconButton>
                             </Tooltip>
+                            )}
                         </Box>
 
                         {payment.client?.secondaryPhone && (
@@ -474,7 +477,7 @@ const MonthlyBilling: React.FC = () => {
                          >
                             <VisibilityIcon />
                         </IconButton>
-                        {(payment.status === 'pending' || payment.status === 'overdue') && (
+                        {(payment.status === 'pendiente' || payment.status === 'vencido') && (
                             <Button 
                                 variant="contained" 
                                 size="small" 
@@ -812,7 +815,7 @@ const MonthlyBilling: React.FC = () => {
                     sin_metodo: 'Sin Método',
                 };
                 const breakdown = payments
-                    .filter(p => p.status === 'paid')
+                    .filter(p => p.status === 'pagado')
                     .reduce<Record<string, { count: number; total: number }>>((acc, p) => {
                         const method = p.paymentMethod || 'sin_metodo';
                         if (!acc[method]) acc[method] = { count: 0, total: 0 };
@@ -879,9 +882,9 @@ const MonthlyBilling: React.FC = () => {
                             sx={{ fontSize: '0.75rem' }}
                         >
                             <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>Todos los estados</MenuItem>
-                            <MenuItem value="pending" sx={{ fontSize: '0.75rem' }}>Pendiente</MenuItem>
-                            <MenuItem value="paid" sx={{ fontSize: '0.75rem' }}>Pagado</MenuItem>
-                            <MenuItem value="overdue" sx={{ fontSize: '0.75rem' }}>Vencido</MenuItem>
+                            <MenuItem value="pendiente" sx={{ fontSize: '0.75rem' }}>Pendiente</MenuItem>
+                            <MenuItem value="pagado" sx={{ fontSize: '0.75rem' }}>Pagado</MenuItem>
+                            <MenuItem value="vencido" sx={{ fontSize: '0.75rem' }}>Vencido</MenuItem>
                         </Select>
                     </FormControl>
                     <FormControl size="small" sx={{ minWidth: 180 }}>
@@ -959,7 +962,7 @@ const MonthlyBilling: React.FC = () => {
                                 <TableCell>
                                     <Checkbox
                                         checked={selectedPaymentIds.includes(payment.id)}
-                                        onChange={() => toggleSelectOne(payment.id, payment.status)}
+                                        onChange={() => toggleSelectOne(payment.id, payment.status === 'pagado' ? 'pagado' : 'pendiente')}
                                     />
                                 </TableCell>
                                 <TableCell>
@@ -1000,7 +1003,7 @@ const MonthlyBilling: React.FC = () => {
                                             />
                                         )}
                                         
-                                        {payment.client?.additionalServices?.filter(s => s.status === 'active').map((service, i) => {
+                                        {payment.client?.additionalServices?.filter(s => s.status === 'activo').map((service, i) => {
                                             let label = service.name || '';
                                             let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default';
                                             let variant: 'filled' | 'outlined' = 'outlined';
@@ -1034,7 +1037,7 @@ const MonthlyBilling: React.FC = () => {
                                             );
                                         })}
 
-                                        {payment.client?.productsSold?.filter(p => p.status !== 'cancelled' && p.status !== 'paid').map((product, i) => {
+                                        {payment.client?.productsSold?.filter(p => p.status !== 'completado').map((product, i) => {
                                             let label = product.productName;
                                             let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default';
                                             
@@ -1103,7 +1106,7 @@ const MonthlyBilling: React.FC = () => {
                                             <VisibilityIcon />
                                         </IconButton>
                                     </Tooltip>
-                                    {(payment.status === 'pending' || payment.status === 'overdue') && (
+                                    {(payment.status === 'pendiente' || payment.status === 'vencido') && (
                                         <Tooltip title="Registrar pago">
                                             <IconButton 
                                                 size="small" 
@@ -1114,15 +1117,17 @@ const MonthlyBilling: React.FC = () => {
                                             </IconButton>
                                         </Tooltip>
                                     )}
+                                    {payment.client && (
                                     <Tooltip title={payment.reminderSent ? "Deshabilitar envío (Ya enviado)" : "Habilitar envío (No enviado)"}>
                                         <IconButton
                                             size="small"
                                             color={payment.reminderSent ? "success" : "default"}
-                                            onClick={() => handleUpdateReminderStatus([payment.client.id], !payment.reminderSent)}
+                                            onClick={() => handleUpdateReminderStatus([payment.client!.id], !payment.reminderSent)}
                                         >
                                             {payment.reminderSent ? <ReminderOnIcon /> : <ReminderOffIcon />}
                                         </IconButton>
                                     </Tooltip>
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -1158,7 +1163,8 @@ const MonthlyBilling: React.FC = () => {
                             color="info" 
                             startIcon={<ReminderOffIcon />}
                             onClick={() => {
-                                const clientIds = payments.filter(p => selectedPaymentIds.includes(p.id)).map(p => p.client.id);
+                                const clientIds = payments.filter(p => selectedPaymentIds.includes(p.id) && p.client).map(p => p.client!.id);
+                                if (clientIds.length === 0) return;
                                 handleUpdateReminderStatus(clientIds, false);
                             }}
                         >
@@ -1169,7 +1175,8 @@ const MonthlyBilling: React.FC = () => {
                             color="secondary" 
                             startIcon={<ReminderOnIcon />}
                             onClick={() => {
-                                const clientIds = payments.filter(p => selectedPaymentIds.includes(p.id)).map(p => p.client.id);
+                                const clientIds = payments.filter(p => selectedPaymentIds.includes(p.id) && p.client).map(p => p.client!.id);
+                                if (clientIds.length === 0) return;
                                 handleUpdateReminderStatus(clientIds, true);
                             }}
                         >
@@ -1188,10 +1195,14 @@ const MonthlyBilling: React.FC = () => {
 
             <Snackbar
                 open={snackbar.open}
-                autoHideDuration={4000}
+                autoHideDuration={6000}
                 onClose={() => setSnackbar({ ...snackbar, open: false })}
-                message={snackbar.message}
-            />
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled">
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
 
             {/* Dialog para confirmación de cambio masivo */}
             <Dialog open={bulkDialogOpen} onClose={() => setBulkDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -1276,7 +1287,7 @@ const MonthlyBilling: React.FC = () => {
                             (product.installmentPayments || [])
                                 .filter(inst => {
                                     const dueDate = new Date(inst.dueDate);
-                                    return (inst.status === 'pending' || inst.status === 'overdue') &&
+                                    return inst.status === 'pendiente' &&
                                         dueDate >= firstDayOfMonth && dueDate <= billingPeriodEnd;
                                 })
                                 .map(inst => ({ ...inst, productName: product.productName }))
@@ -1285,7 +1296,7 @@ const MonthlyBilling: React.FC = () => {
                         // Cuotas ya pagadas (para referencia)
                         const paidInstallments = selectedPayment.client?.productsSold?.flatMap(product =>
                             (product.installmentPayments || [])
-                                .filter(inst => inst.status === 'paid' || inst.status === 'completed')
+                                .filter(inst => inst.status === 'completado')
                                 .map(inst => ({ ...inst, productName: product.productName }))
                         ) || [];
 
@@ -1294,7 +1305,7 @@ const MonthlyBilling: React.FC = () => {
                             (product.installmentPayments || [])
                                 .filter(inst => {
                                     const dueDate = new Date(inst.dueDate);
-                                    return (inst.status === 'pending' || inst.status === 'overdue') &&
+                                    return inst.status === 'pendiente' &&
                                         dueDate > billingPeriodEnd;
                                 })
                                 .map(inst => ({ ...inst, productName: product.productName }))
@@ -1565,10 +1576,8 @@ const MonthlyBilling: React.FC = () => {
                                                                 const dueDate = new Date(inst.dueDate);
                                                                 const monthIndex = MONTHS.indexOf(selectedPayment.paymentMonth.toLowerCase());
                                                                 const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 5);
-                                                                const billingPeriodStart = new Date(selectedPayment.paymentYear, monthIndex, 1);
-                                                                
-                                                                // Si es un pago histórico, mostrar las que vencían en ese periodo
-                                                                return dueDate <= billingPeriodEnd && (inst.status === 'pending' || inst.status === 'paid');
+                                                                 // Si es un pago histórico, mostrar las que vencían en ese periodo
+                                                                  return dueDate <= billingPeriodEnd && (inst.status === 'pendiente' || inst.status === 'completado');
                                                             })
                                                             .map(inst => (
                                                                 <ListItem key={`${product.id}-${inst.id}`}>

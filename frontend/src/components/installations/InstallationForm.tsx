@@ -53,7 +53,7 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
         notes: '',
         monthlyFee: prefillData?.monthlyFee ?? 0,
         installationFee: prefillData?.installationFee ?? 40000,
-        serviceStatus: 'active' as Installation['serviceStatus'],
+        serviceStatus: 'activo' as Installation['serviceStatus'],
         installationDate: new Date().toISOString().split('T')[0],
         retirementDate: '',
         scheduledTimeSlot: '',
@@ -95,7 +95,7 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
 
     React.useEffect(() => {
         // fetch plans and technicians
-        ServicePlanService.getActive()
+        ServicePlanService.getAppVisible()
             .then(async (active) => {
                 if (Array.isArray(active) && active.length > 0) {
                     setPlans(active);
@@ -379,9 +379,9 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
                                         onChange={handleSelectChange}
                                         label="Estado del Servicio"
                                     >
-                                        <MenuItem value="active">Activo</MenuItem>
-                                        <MenuItem value="suspended">Suspendido</MenuItem>
-                                        <MenuItem value="cancelled">Cancelado</MenuItem>
+                                        <MenuItem value="activo">Activo</MenuItem>
+                                        <MenuItem value="suspendido">Suspendido</MenuItem>
+                                        <MenuItem value="retirado">Retirado</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>

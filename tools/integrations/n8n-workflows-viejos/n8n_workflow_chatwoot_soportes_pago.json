@@ -1,0 +1,606 @@
+{
+  "name": "Chatwoot → Soportes de Pago → CRM (IMV)",
+  "nodes": [
+    {
+      "id": "cw-webhook-01",
+      "name": "Webhook Chatwoot",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "webhookId": "chatwoot-soportes-pago",
+      "parameters": {
+        "path": "chatwoot-soportes-pago",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "cw-code-extract-01",
+      "name": "Extraer Datos del Mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Normalizar payload de Chatwoot\nconst raw = $input.first().json.body || $input.first().json;\nconst data = raw.data || raw;\n\n// ---- Teléfono del cliente ----\nlet phone = '';\nconst senderPhone = data?.conversation?.meta?.sender?.phone_number;\nconst sourceId    = data?.conversation?.contact_inbox?.source_id;\n\nif (senderPhone) {\n  phone = senderPhone.replace(/[^0-9]/g, '');\n} else if (sourceId) {\n  phone = sourceId.split('@')[0].replace(/[^0-9]/g, '');\n}\n\n// Normalizar: si tiene prefijo Colombia (57) y 12 dígitos → quitar prefijo\nif (phone.startsWith('57') && phone.length === 12) {\n  phone = phone.substring(2);\n}\n\n// ---- Adjuntos ----\nconst attachments = data?.attachments || [];\nconst imageExts   = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'bmp'];\n\nconst imageAttachment = attachments.find(a => {\n  const isImageType = ['image', 'file'].includes((a.file_type || '').toLowerCase());\n  const isImageExt  = imageExts.includes((a.extension || '').toLowerCase());\n  const urlHasImg   = imageExts.some(ext => (a.data_url || a.file_url || '').toLowerCase().includes('.' + ext));\n  return isImageType || isImageExt || urlHasImg;\n});\n\nconst attachmentUrl  = imageAttachment?.data_url || imageAttachment?.file_url || '';\nconst conversationId = data?.conversation?.id || data?.conversation_id || null;\nconst messageContent = (data?.content || '').toLowerCase();\nconst isIncoming     = (data?.message_type ?? -1) === 0;\nconst isPrivate      = data?.private === true;\n\nconst paymentKeywords = ['pago', 'soporte', 'comprobante', 'transferencia',\n  'nequi', 'bancolombia', 'daviplata', 'recibo', 'consignacion'];\nconst textSuggestsPayment = paymentKeywords.some(kw => messageContent.includes(kw));\nconst shouldProcess = isIncoming && !isPrivate && !!attachmentUrl;\n\nreturn [{\n  json: {\n    phone,\n    conversationId,\n    attachmentUrl,\n    messageContent: data?.content || '',\n    hasImageAttachment: !!attachmentUrl,\n    isIncoming,\n    isPrivate,\n    textSuggestsPayment,\n    shouldProcess,\n    senderName: data?.conversation?.meta?.sender?.name || 'Cliente',\n    inboxId: data?.conversation?.inbox_id || data?.inbox_id || null\n  }\n}];"
+      }
+    },
+    {
+      "id": "cw-if-has-image-01",
+      "name": "¿Tiene imagen adjunta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        560,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-should-process",
+              "leftValue": "={{ $json.shouldProcess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "cw-code-build-ai-payload-01",
+      "name": "Preparar Llamada a OpenAI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const { phone, conversationId, attachmentUrl, messageContent, senderName } = $input.first().json;\n\nconst prompt = `Eres un asistente que analiza comprobantes de pago de clientes de internet.\nAnaliza la imagen y determina si es un comprobante/soporte/recibo de pago.\n\nSi ES un comprobante, responde SOLO con este JSON:\n{\"es_comprobante\":true,\"monto\":85000,\"metodo\":\"nequi\",\"referencia\":\"1234567890\",\"fecha\":\"2026-03-02\",\"confianza\":0.95}\n\nValores validos para metodo: nequi, bancolombia, daviplata, transferencia, efectivo, otro\nFecha en formato YYYY-MM-DD. Monto como numero entero sin puntos (ej: 85000).\n\nSi NO es comprobante, responde SOLO: {\"es_comprobante\":false}\n\nContexto del mensaje: \"${messageContent}\"`;\n\nreturn [{\n  json: {\n    phone,\n    conversationId,\n    attachmentUrl,\n    senderName,\n    openaiPayload: {\n      model: 'gpt-4o-mini',\n      messages: [{\n        role: 'user',\n        content: [\n          { type: 'text', text: prompt },\n          { type: 'image_url', image_url: { url: attachmentUrl, detail: 'low' } }\n        ]\n      }],\n      max_tokens: 300,\n      response_format: { type: 'json_object' }\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "cw-http-openai-01",
+      "name": "Analizar con OpenAI Vision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer TU_OPENAI_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.openaiPayload) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "cw-code-parse-ai-01",
+      "name": "Procesar Respuesta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const aiResp = $input.first().json;\nconst prev   = $('Preparar Llamada a OpenAI').first().json;\n\nconst phone          = prev.phone;\nconst conversationId = prev.conversationId;\nconst senderName     = prev.senderName;\nconst attachmentUrl  = prev.attachmentUrl;\n\nlet parsed = { es_comprobante: false };\ntry {\n  const content = aiResp?.choices?.[0]?.message?.content || '{}';\n  const match = content.match(/\\{[\\s\\S]*\\}/);\n  if (match) parsed = JSON.parse(match[0]);\n} catch (e) {\n  parsed = { es_comprobante: false, _error: e.message };\n}\n\nlet monto = 0;\nif (parsed.monto != null) {\n  const raw = String(parsed.monto).replace(/[^0-9,.]/g, '');\n  const norm = raw.includes('.') && !raw.includes(',') && raw.split('.')[1]?.length === 3\n    ? raw.replace('.', '') : raw.replace(',', '.');\n  monto = parseFloat(norm) || 0;\n}\n\nlet fecha = parsed.fecha || new Date().toISOString().split('T')[0];\nif (!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha)) fecha = new Date().toISOString().split('T')[0];\n\nconst referencia = String(parsed.referencia || `WA-${Date.now()}`).substring(0, 50);\nconst metodo     = parsed.metodo || 'otro';\nconst confianza  = parseFloat(parsed.confianza) || 0;\n\nreturn [{\n  json: {\n    phone,\n    conversationId,\n    senderName,\n    attachmentUrl,\n    esComprobante: parsed.es_comprobante === true && monto > 0,\n    monto,\n    metodo,\n    referencia,\n    fecha,\n    confianza,\n    confianzaAlta: confianza >= 0.7\n  }\n}];"
+      }
+    },
+    {
+      "id": "cw-if-valid-payment-01",
+      "name": "¿Es comprobante válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-is-receipt",
+              "leftValue": "={{ $json.esComprobante }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "cond-monto-gt0",
+              "leftValue": "={{ $json.monto }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "cw-http-crm-debt-01",
+      "name": "Consultar Deuda en CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://imv_crm-backend-1:3010/api/n8n/client-debt",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "d927994f95870a3ad2a57fa70d0b767dfd273692dd23324f449e9cecffe9dc8b"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cw-code-merge-crm-01",
+      "name": "Combinar Datos CRM + Pago",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crmResp = $input.first().json;\nconst pago    = $('Procesar Respuesta IA').first().json;\n\n// Respuesta CRM: {clientId, clientName, totalDebt, pendingInvoices}\nconst clientFound   = crmResp?.clientId !== undefined && crmResp?.clientId !== null;\nconst clientName    = crmResp?.clientName || pago.senderName || 'Cliente';\nconst pendingAmount = crmResp?.totalDebt || pago.monto;\nconst hasDebt       = (crmResp?.totalDebt || 0) > 0 || (crmResp?.pendingInvoices?.length || 0) > 0;\n\nreturn [{\n  json: {\n    clientFound,\n    clientName,\n    pendingAmount,\n    hasDebt,\n    phone:          pago.phone,\n    conversationId: pago.conversationId,\n    senderName:     pago.senderName,\n    attachmentUrl:  pago.attachmentUrl,\n    monto:          pago.monto,\n    metodo:         pago.metodo,\n    referencia:     pago.referencia,\n    fecha:          pago.fecha,\n    confianza:      pago.confianza\n  }\n}];"
+      }
+    },
+    {
+      "id": "cw-if-client-found-01",
+      "name": "¿Cliente encontrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-client-found",
+              "leftValue": "={{ $json.clientFound }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "cw-http-register-payment-01",
+      "name": "Registrar Pago en CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2480,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://imv_crm-backend-1:3010/api/n8n/register-payment",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "d927994f95870a3ad2a57fa70d0b767dfd273692dd23324f449e9cecffe9dc8b"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ phone: $json.phone, amount: $json.monto, paymentMethod: $json.metodo, reference: $json.referencia, date: $json.fecha }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "cw-code-build-success-msg-01",
+      "name": "Armar Mensaje de Éxito",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        20
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const reg  = $input.first().json;\nconst pago = $('Combinar Datos CRM + Pago').first().json;\n\nconst montoFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(pago.monto);\nconst meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst nombre  = reg?.client || reg?.clientName || pago.clientName || pago.senderName || 'cliente';\nconst mesPago = reg?.month || `${meses[new Date().getMonth()]} ${new Date().getFullYear()}`;\n\nconst icons = { nequi: '🟣', bancolombia: '🟡', daviplata: '🔴', transferencia: '🏦', efectivo: '💵', otro: '💳' };\nconst icon = icons[pago.metodo] || '💳';\n\nconst mensaje = `✅ *¡Pago registrado exitosamente!*\n\nHola ${nombre}, hemos verificado y registrado tu comprobante:\n\n${icon} *Método:* ${pago.metodo.charAt(0).toUpperCase() + pago.metodo.slice(1)}\n💰 *Monto:* ${montoFmt}\n🔖 *Referencia:* ${pago.referencia}\n📅 *Fecha:* ${pago.fecha}\n📋 *Periodo:* ${mesPago}\n\n¡Gracias por tu pago! 🙏`;\n\nreturn [{\n  json: {\n    conversationId: pago.conversationId,\n    mensaje,\n    paymentId: reg?.paymentId,\n    clientName: nombre\n  }\n}];"
+      }
+    },
+    {
+      "id": "cw-http-reply-success-01",
+      "name": "Responder Éxito en Chatwoot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2960,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://chatwoot_app:3000/api/v1/accounts/1/conversations/{{ $json.conversationId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "kVFWDgHMUHTwH8pMR1ixbyBZ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ content: $json.mensaje, message_type: 'outgoing', private: false }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "cw-http-label-paid-01",
+      "name": "Etiquetar Conversación: Pagado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3200,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://chatwoot_app:3000/api/v1/accounts/1/conversations/{{ $('Armar Mensaje de Éxito').item.json.conversationId }}/labels",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "kVFWDgHMUHTwH8pMR1ixbyBZ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"labels\": [\"pagado\"]}",
+        "options": {}
+      }
+    },
+    {
+      "id": "cw-http-reply-no-client-01",
+      "name": "Responder: Cliente No Encontrado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2480,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://chatwoot_app:3000/api/v1/accounts/1/conversations/{{ $json.conversationId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "kVFWDgHMUHTwH8pMR1ixbyBZ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ content: '⚠️ Recibimos tu comprobante de pago, pero no encontramos tu número registrado en nuestro sistema.\\n\\nPor favor comunícate con soporte para que podamos registrar tu pago manualmente. Disculpa los inconvenientes. 🙏', message_type: 'outgoing', private: false }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "cw-http-reply-not-receipt-01",
+      "name": "Responder: No Parece Comprobante",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://chatwoot_app:3000/api/v1/accounts/1/conversations/{{ $json.conversationId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "kVFWDgHMUHTwH8pMR1ixbyBZ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ content: 'Hola, recibimos tu imagen. 📎\\n\\nPara registrar tu pago, envía una foto clara del comprobante (Nequi, Bancolombia, Daviplata, transferencia, etc.) y lo procesaremos automáticamente.\\n\\nSi ya enviaste el soporte correcto y ves este mensaje, escríbenos y te ayudamos.', message_type: 'outgoing', private: false }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Chatwoot": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos del Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos del Mensaje": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene imagen adjunta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene imagen adjunta?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Llamada a OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Preparar Llamada a OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Analizar con OpenAI Vision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar con OpenAI Vision": {
+      "main": [
+        [
+          {
+            "node": "Procesar Respuesta IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Respuesta IA": {
+      "main": [
+        [
+          {
+            "node": "¿Es comprobante válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es comprobante válido?": {
+      "main": [
+        [
+          {
+            "node": "Consultar Deuda en CRM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder: No Parece Comprobante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Deuda en CRM": {
+      "main": [
+        [
+          {
+            "node": "Combinar Datos CRM + Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinar Datos CRM + Pago": {
+      "main": [
+        [
+          {
+            "node": "¿Cliente encontrado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cliente encontrado?": {
+      "main": [
+        [
+          {
+            "node": "Registrar Pago en CRM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder: Cliente No Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Pago en CRM": {
+      "main": [
+        [
+          {
+            "node": "Armar Mensaje de Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar Mensaje de Éxito": {
+      "main": [
+        [
+          {
+            "node": "Responder Éxito en Chatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder Éxito en Chatwoot": {
+      "main": [
+        [
+          {
+            "node": "Etiquetar Conversación: Pagado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2026-03-02",
+      "updatedAt": "2026-03-02",
+      "id": "imv-pagos",
+      "name": "pagos"
+    },
+    {
+      "createdAt": "2026-03-02",
+      "updatedAt": "2026-03-02",
+      "id": "imv-chatwoot",
+      "name": "chatwoot"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-03-02T14:00:00.000Z",
+  "versionId": "v1-imv-chatwoot-soportes-pago"
+}

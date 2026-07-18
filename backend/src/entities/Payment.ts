@@ -29,7 +29,7 @@ export class Payment {
     @Column({ type: 'date', transformer: dateOnlyTransformer })
     dueDate!: Date;
 
-    @Column({ type: 'enum', enum: ['pending', 'paid', 'overdue', 'cancelled'], default: 'pending' })
+    @Column({ type: 'enum', enum: ['pendiente', 'pagado', 'vencido', 'anulado'], default: 'pendiente' })
     status!: string;
 
     @Column({ type: 'enum', enum: ['monthly', 'installation', 'other'], default: 'monthly' })

@@ -96,7 +96,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                             sx={{ 
                                 mb: 2, 
                                 borderRadius: 2,
-                                borderLeft: `4px solid ${service.status === 'active' ? '#1cc88a' : '#858796'}`,
+                                    borderLeft: `4px solid ${service.status === 'activo' ? '#1cc88a' : '#858796'}`,
                                 boxShadow: '0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1)'
                             }}
                         >
@@ -106,8 +106,8 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                                         {service.serviceName}
                                     </Typography>
                                     <Chip
-                                        label={service.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
-                                        color={service.status === 'active' ? 'success' : 'default'}
+                                        label={service.status === 'activo' ? 'ACTIVO' : 'INACTIVO'}
+                                        color={service.status === 'activo' ? 'success' : 'default'}
                                         size="small"
                                         sx={{ height: 20, fontSize: '0.6rem', fontWeight: 800 }}
                                     />
@@ -182,8 +182,8 @@ export const ServicesList: React.FC<ServicesListProps> = ({ clientId }) => {
                                     </TableCell>
                                     <TableCell>
                                         <Chip
-                                            label={service.status === 'active' ? 'Activo' : 'Inactivo'}
-                                            color={service.status === 'active' ? 'success' : 'default'}
+                                            label={service.status === 'activo' ? 'Activo' : 'Inactivo'}
+                                            color={service.status === 'activo' ? 'success' : 'default'}
                                             size="small"
                                         />
                                     </TableCell>

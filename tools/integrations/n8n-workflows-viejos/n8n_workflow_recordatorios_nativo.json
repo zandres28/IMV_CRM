@@ -1,0 +1,422 @@
+{
+  "name": "NetFlow CRM - Recordatorios Nativos",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerInterval": "cron",
+        "cronExpression": "0 9 5,30 * *"
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ],
+      "id": "schedule-trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://histaminic-hosea-stiltedly.ngrok-free.dev/api/n8n/payment-reminders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "imv_crm_n8n_secret_key_2025"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "name": "Get Reminders from CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ],
+      "id": "get-reminders"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        300
+      ],
+      "id": "loop-items"
+    },
+    {
+      "parameters": {
+        "jsCode": "let mensaje = \"\";\nconst datos = $json;\nconst total = datos.VALOR + datos.ADICIONAL;\n\nif (datos.ADICIONAL != 0) { \n  mensaje = `Adicionales:\n\n📺 TVBOX Financiado (3 meses): * $${datos.ADICIONAL.toLocaleString()}*\n🗓️ Cuota Número: * ${datos.CUOTA} de 3*\n\n💲*TOTAL A PAGAR: $${total.toLocaleString()} * `;\n}\n\nreturn { \n  add: mensaje,\n  TOTAL: total\n};"
+      },
+      "name": "Adicionales Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ],
+      "id": "adicionales-logic"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.TIPO }}",
+                    "rightValue": "RECORDATORIO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recordatorio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.TIPO }}",
+                    "rightValue": "ULTIMO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ultimo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.TIPO }}",
+                    "rightValue": "VENCIDO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Vencido"
+            }
+          ]
+        }
+      },
+      "name": "Switch by Tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1060,
+        300
+      ],
+      "id": "switch-node"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Zona horaria: America/Bogota\nfecha de hoy: {{ $now.toFormat('yyyy-MM-dd') }}\n\nHola {{ $json['Nombre Completo'] }},\n\nTe recordamos que tu factura del plan *{{ $json.PLAN }}* por valor de *${{ $json.VALOR.toLocaleString() }}* del mes de {{ $json.MES }} está próxima a vencer.\n\n{{ $json.add }}\n\nRealiza tu pago en:\n- Nequi: 3001234567\n- Bancolombia: 123456789\n\nEnvía tu comprobante por este medio.",
+              "role": "assistant"
+            }
+          ]
+        }
+      },
+      "name": "AI - Recordatorio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        140
+      ],
+      "id": "ai-recordatorio",
+      "credentials": {
+        "openAiApi": {
+          "id": "H6A1s3MW9pHuTWeX",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=URGENTE: Hola {{ $json['Nombre Completo'] }},\n\nTu servicio de internet *{{ $json.PLAN }}* se encuentra VENCIDO.\n\nValor pendiente: *${{ $json.VALOR.toLocaleString() }}*\n{{ $json.add }}\n\nPor favor paga inmediatamente para evitar suspensión.",
+              "role": "assistant"
+            }
+          ]
+        }
+      },
+      "name": "AI - Vencido",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        450
+      ],
+      "id": "ai-vencido",
+      "credentials": {
+        "openAiApi": {
+          "id": "H6A1s3MW9pHuTWeX",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://imvevoapi.duckdns.org/message/sendText/imv_chatwoot2",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "979AF1D6D474-435D-89FB-725780FC0F99"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json['Celular 1'] }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1600,
+        300
+      ],
+      "id": "send-wpp"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://histaminic-hosea-stiltedly.ngrok-free.dev/api/n8n/mark-sent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "imv_crm_n8n_secret_key_2025"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "clientId",
+              "value": "={{ $json['ID Cliente'].replace('CL-', '').replace(/^0+/, '') }}"
+            },
+            {
+              "name": "installationId",
+              "value": "={{ $json['installation_id'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Mark as Sent in CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1800,
+        300
+      ],
+      "id": "mark-sent"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Reminders from CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Reminders from CRM": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Adicionales Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adicionales Logic": {
+      "main": [
+        [
+          {
+            "node": "Switch by Tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by Tipo": {
+      "main": [
+        [
+          {
+            "node": "AI - Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI - Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI - Vencido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI - Recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI - Vencido": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Mark as Sent in CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Sent in CRM": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

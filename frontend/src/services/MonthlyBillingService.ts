@@ -57,7 +57,7 @@ export interface Payment {
     paymentMonth: string;
     paymentYear: number;
     dueDate: string;
-    status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+    status: 'pendiente' | 'pagado' | 'vencido' | 'anulado';
     paymentType: 'monthly' | 'installation' | 'other';
     paymentMethod?: 'efectivo' | 'nequi' | 'bancolombia' | 'daviplata' | 'transferencia' | 'otro';
     servicePlanAmount: number;

@@ -63,7 +63,7 @@ async function run() {
   const clientRepo = AppDataSource.getRepository(Client);
   const installationRepo = AppDataSource.getRepository(Installation);
   
-  const csvPath = path.resolve(__dirname, '../../../tmp/PAGOS_INSTALACIONES.csv');
+  const csvPath = path.resolve(__dirname, '../../../tools/scratch/PAGOS_INSTALACIONES.csv');
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
   const lines = csvContent.split('\n').filter(l => l.trim());
   

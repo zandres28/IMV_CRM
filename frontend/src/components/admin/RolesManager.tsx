@@ -36,11 +36,6 @@ import {
 } from '@mui/icons-material';
 import RoleService, { Role, Permission } from '../../services/RoleService';
 
-interface PermissionGroup {
-    name: string;
-    permissions: Permission[];
-}
-
 const RolesManager: React.FC = () => {
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);

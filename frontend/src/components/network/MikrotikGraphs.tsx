@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Paper, Typography, Alert, Grid, Card, CardContent, Button, LinearProgress } from '@mui/material';
+import { Box, Typography, Alert, Grid, Card, CardContent, Button, LinearProgress } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 
 const AuthenticatedImage = ({ src, alt, style, onError }: { src: string, alt: string, style?: React.CSSProperties, onError?: (e: any) => void }) => {
@@ -8,9 +8,9 @@ const AuthenticatedImage = ({ src, alt, style, onError }: { src: string, alt: st
 
     useEffect(() => {
         let isMounted = true;
+        let objectUrl: string | null = null;
         const fetchImage = async () => {
             try {
-                // AuthService usa 'accessToken', no 'token'
                 const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
                 // Si no hay token, no intentamos fetch
                 if (!token) {
@@ -35,8 +35,8 @@ const AuthenticatedImage = ({ src, alt, style, onError }: { src: string, alt: st
                 
                 const blob = await response.blob();
                 if (isMounted) {
-                    const url = URL.createObjectURL(blob);
-                    setImageSrc(url);
+                    objectUrl = URL.createObjectURL(blob);
+                    setImageSrc(objectUrl);
                 }
             } catch (error) {
                 console.error('Error fetching image:', error);
@@ -52,9 +52,9 @@ const AuthenticatedImage = ({ src, alt, style, onError }: { src: string, alt: st
 
         return () => {
             isMounted = false;
-            if (imageSrc) URL.revokeObjectURL(imageSrc);
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
-    }, [src]);
+    }, [src, onError]);
 
     if (loading) return <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LinearProgress style={{ width: '50%' }} /></div>;
     if (!imageSrc) return <div style={{ color: 'red', textAlign: 'center', padding: 20 }}>Error cargando imagen</div>;
@@ -69,8 +69,6 @@ export const MikrotikGraphs: React.FC = () => {
     // Estado para "cache busting" (forzar recarga de imágenes)
     const [timestamp, setTimestamp] = useState(Date.now());
     const [loading, setLoading] = useState(false);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-
     const handleRefresh = () => {
         setLoading(true);
         setTimestamp(Date.now());
@@ -108,7 +106,7 @@ export const MikrotikGraphs: React.FC = () => {
             </Box>
             
             <Alert severity="info" sx={{ mb: 3 }}>
-                Visualizando datos directamente desde <strong>192.168.40.10</strong>. Requiere conexion VPN/LAN.
+                Visualizando datos directamente desde <strong>192.168.1.9</strong>. Requiere conexion VPN/LAN.
             </Alert>
 
             {loading && <LinearProgress sx={{ mb: 2 }} />}

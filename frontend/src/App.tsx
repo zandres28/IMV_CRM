@@ -1,74 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Container, 
-  Button, 
-  Menu, 
-  MenuItem, 
-  IconButton, 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemText, 
-  ListItemIcon, 
-  Divider, 
-  useTheme, 
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  Menu,
+  MenuItem,
+  IconButton,
+  Drawer,
+  Divider,
+  useTheme,
   useMediaQuery,
-  Collapse,
   Chip,
-  ListSubheader,
   Tooltip,
   Avatar,
-  InputBase,
-  Badge
+  Badge,
 } from '@mui/material';
-import { 
-  KeyboardArrowDown, 
-  AccountCircle, 
-  Logout, 
-  Dashboard as DashboardIcon, 
+import {
+  Logout,
   Menu as MenuIcon,
-  People as PeopleIcon,
-  Receipt as ReceiptIcon,
-  Router as RouterIcon,
-  Search as SearchIcon,
-  ExpandLess,
-  ExpandMore,
-  Settings as SettingsIcon,
-  AccountTree as EnvironmentIcon,
   Notifications as NotificationsIcon,
-  HelpOutline as HelpIcon,
-  Lan as NetworkIcon,
-  BarChart as ReportsIcon,
-  SupportAgent as SupportIcon,
-  Inventory as ProductsIcon,
-  Payment as PaymentIcon,
-  PointOfSale as FastSaleIcon,
-  Settings as SystemIcon,
-  Home as HomeIcon,
-  ArrowForwardIos as ArrowIcon,
-  Warning as WarningIcon,
-  Assignment as AssignmentIcon,
-  SyncAlt as TransferIcon,
-  Build as ParameterIcon,
-  PeopleAlt as UsersIcon,
-  Handyman as TechnicianIcon,
-  Assessment as ChartIcon,
-  Code as ApiIcon,
-  Image as ImageIcon,
-  Campaign as CampaignIcon,
-  CalendarMonth as CalendarMonthIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import AuthService from './services/AuthService';
 import NotificationService, { Notification } from './services/NotificationService';
 
 import SessionTimeoutHandler from './components/SessionTimeoutHandler';
+import Sidebar from './components/layout/Sidebar';
 import { jwtDecode } from 'jwt-decode';
+import { tokens } from './theme';
 
 const ENVIRONMENTS = [
   { id: 'prod', name: 'Producción (IMV)', color: '#1976d2' },
@@ -84,21 +45,13 @@ function App() {
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerCollapsed, setDrawerCollapsed] = useState(false);
-  const [clientsMenuAnchor, setClientsMenuAnchor] = useState<null | HTMLElement>(null);
-  const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Environment state (default to prod or from localStorage)
-  const [currentEnv, setCurrentEnv] = useState(() => {
+  const [currentEnv] = useState(() => {
     const saved = localStorage.getItem('crm_env');
     return ENVIRONMENTS.find(e => e.id === saved) || ENVIRONMENTS[0];
   });
-  
-  // Mobile menu states
-  const [mobileClientsOpen, setMobileClientsOpen] = useState(false);
-  const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
-  const [paramsOpen, setParamsOpen] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
 
   // Notification State
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -195,13 +148,6 @@ function App() {
     return 'Nexum CRM';
   };
 
-  const handleEnvChange = (env: typeof ENVIRONMENTS[0]) => {
-    setCurrentEnv(env);
-    localStorage.setItem('crm_env', env.id);
-    handleAdminMenuClose();
-    // Opcional: recargar datos o mostrar notificación
-  };
-
   useEffect(() => {
     const checkTokenExpiry = () => {
       const token = AuthService.getAccessToken();
@@ -240,22 +186,6 @@ function App() {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleClientsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setClientsMenuAnchor(event.currentTarget);
-  };
-
-  const handleClientsMenuClose = () => {
-    setClientsMenuAnchor(null);
-  };
-
-  const handleAdminMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAdminMenuAnchor(event.currentTarget);
-  };
-
-  const handleAdminMenuClose = () => {
-    setAdminMenuAnchor(null);
-  };
-
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
   };
@@ -269,203 +199,22 @@ function App() {
     navigate('/login');
   };
 
-  const isClientsActive = location.pathname.startsWith('/clients') || 
-                          location.pathname.startsWith('/interactions') ||
-                          location.pathname.startsWith('/service-outages');
-
-  const isAdminActive = location.pathname.startsWith('/admin');
-
   const drawerWidth = drawerCollapsed ? 0 : 240;
 
   const drawer = (
-    <Box sx={{ p: 0, height: '100%', overflowX: 'hidden' }}>
-      {/* Brand Logo sticky */}
-      <Box sx={{ 
-        p: 2, 
-        mb: 2, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        height: 70,
-        position: 'sticky',
-        top: 0,
-        zIndex: 2,
-        bgcolor: '#121212' // Mismo color negro del menú
-      }}>
-        <Box 
-          component="img" 
-          src="/nexum_logo.png" 
-          alt="Nexum Logo" 
-          sx={{ maxHeight: 50, maxWidth: '100%', objectFit: 'contain' }} 
-        />
-      </Box>
-
-      <List sx={{ px: 1 }}>
-        <ListItem button component={Link} to="/dashboard" onClick={handleDrawerToggle} selected={location.pathname === '/dashboard'}>
-          <ListItemIcon><DashboardIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="INICIO" primaryTypographyProps={{ sx: { fontSize: '0.85rem', fontWeight: 700 } }} />
-        </ListItem>
-        {/* La subcabecera CLIENTES ya no es sticky, solo normal */}
-        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1, position: 'static' }}>
-          CLIENTES
-        </ListSubheader>
-        
-        {AuthService.hasPermission('clients.list.view') && (
-          <ListItem button component={Link} to="/clients" onClick={handleDrawerToggle} selected={location.pathname === '/clients'}>
-            <ListItemIcon><PeopleIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Clientes" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
-
-        {AuthService.hasPermission('installations.view') && (
-          <ListItem button component={Link} to="/installation-billing" onClick={handleDrawerToggle} selected={location.pathname === '/installation-billing'}>
-            <ListItemIcon><RouterIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Instalaciones" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
-
-        {AuthService.hasPermission('installations.view') && (
-          <ListItem button component={Link} to="/installations/agenda" onClick={handleDrawerToggle} selected={location.pathname === '/installations/agenda'}>
-            <ListItemIcon><CalendarMonthIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Agenda de Instalaciones" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
-
-        {AuthService.hasPermission('clients.crm.view') && (
-          <ListItem button component={Link} to="/interactions" onClick={handleDrawerToggle} selected={location.pathname === '/interactions'}>
-            <ListItemIcon><SupportIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Solicitudes CRM" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
-
-        {AuthService.hasPermission('clients.outages.view') && (
-          <ListItem button component={Link} to="/service-outages" onClick={handleDrawerToggle} selected={location.pathname === '/service-outages'}>
-            <ListItemIcon><WarningIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Caidas de Servicio" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
-
-        <ListItem button component={Link} to="/service-transfers" onClick={handleDrawerToggle} selected={location.pathname === '/service-transfers'}>
-          <ListItemIcon><TransferIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Traslados" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-        </ListItem>
-
-        <ListItem button component={Link} to="/solicitud" target="_blank" onClick={handleDrawerToggle}>
-          <ListItemIcon><AssignmentIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Formulario Web Solicitud" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-        </ListItem>
-
-        {AuthService.hasPermission('billing.view') && (
-          <ListItem button component={Link} to="/billing" onClick={handleDrawerToggle} selected={location.pathname === '/billing'}>
-            <ListItemIcon><ReceiptIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Facturación" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
-
-        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
-          INFRAESTRUCTURA
-        </ListSubheader>
-
-        <ListItem button component={Link} to="/network/mikrotik" onClick={handleDrawerToggle} selected={location.pathname === '/network/mikrotik'}>
-          <ListItemIcon><NetworkIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Monitor Mikrotik" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-        </ListItem>
-
-        <ListItem button component={Link} to="/network/devices" onClick={handleDrawerToggle} selected={location.pathname === '/network/devices'}>
-          <ListItemIcon><RouterIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Dispositivos de Red" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-        </ListItem>
-
-        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
-
-        <ListItem button component={Link} to="/consultas" onClick={handleDrawerToggle} selected={location.pathname === '/consultas'}>
-          <ListItemIcon><SearchIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="CONSULTAS" primaryTypographyProps={{ sx: { fontSize: '0.85rem', fontWeight: 700 } }} />
-        </ListItem>
-
-        <ListSubheader sx={{ bgcolor: 'transparent', color: 'rgba(255,255,255,0.3)', fontWeight: 800, fontSize: '0.65rem', mt: 2, mb: 1 }}>
-          ADMINISTRACIÓN
-        </ListSubheader>
-        
-        {AuthService.hasPermission('admin.users.view') && (
-          <ListItem button component={Link} to="/admin/users" onClick={handleDrawerToggle} selected={location.pathname === '/admin/users'}>
-            <ListItemIcon><UsersIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Usuarios" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          </ListItem>
-        )}
-
-
-        {/* Submenú Configuración */}
-        <ListItem button onClick={() => setConfigOpen(!configOpen)}>
-          <ListItemIcon><SettingsIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Configuración" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-          {configOpen ? <ExpandLess sx={{ fontSize: 14 }} /> : <ExpandMore sx={{ fontSize: 14 }} />}
-        </ListItem>
-        <Collapse in={configOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
-            {AuthService.hasPermission('admin.permissions.manage') && (
-              <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/roles" onClick={handleDrawerToggle} selected={location.pathname === '/admin/roles'}>
-                <ListItemIcon><AssignmentIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                <ListItemText primary="Roles y Permisos" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
-              </ListItem>
-            )}
-            <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/api-access" onClick={handleDrawerToggle} selected={location.pathname === '/admin/api-access'}>
-              <ListItemIcon><ApiIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-              <ListItemText primary="Accesos API" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
-            </ListItem>
-            <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/settings" onClick={handleDrawerToggle} selected={location.pathname === '/admin/settings'}>
-              <ListItemIcon><SystemIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-              <ListItemText primary="Ajustes Generales" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
-            </ListItem>
-          </List>
-        </Collapse>
-
-        <ListItem button component={Link} to="/admin/promotions" onClick={handleDrawerToggle} selected={location.pathname === '/admin/promotions'}>
-          <ListItemIcon><ImageIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Imágenes Promocionales" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-        </ListItem>
-
-        <ListItem button component={Link} to="/admin/avisos" onClick={handleDrawerToggle} selected={location.pathname === '/admin/avisos'}>
-          <ListItemIcon><CampaignIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Avisos Masivos" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-        </ListItem>
-
-        {(AuthService.hasPermission('admin.plans.view') || AuthService.hasPermission('admin.technicians.view')) && (
-          <>
-            <ListItem button onClick={() => setParamsOpen(!paramsOpen)}>
-              <ListItemIcon><ParameterIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-              <ListItemText primary="Parametrización" primaryTypographyProps={{ sx: { fontSize: '0.8rem' } }} />
-              {paramsOpen ? <ExpandLess sx={{ fontSize: 14 }} /> : <ExpandMore sx={{ fontSize: 14 }} />}
-            </ListItem>
-            <Collapse in={paramsOpen} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
-                {AuthService.hasPermission('admin.plans.view') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/service-plans" onClick={handleDrawerToggle} selected={location.pathname === '/admin/service-plans'}>
-                    <ListItemIcon><EnvironmentIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                    <ListItemText primary="Planes de servicio" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
-                  </ListItem>
-                )}
-                {AuthService.hasPermission('admin.technicians.view') && (
-                  <ListItem button sx={{ pl: 4 }} component={Link} to="/admin/technicians" onClick={handleDrawerToggle} selected={location.pathname === '/admin/technicians'}>
-                    <ListItemIcon><TechnicianIcon sx={{ fontSize: 16 }} /></ListItemIcon>
-                    <ListItemText primary="Técnicos" primaryTypographyProps={{ sx: { fontSize: '0.75rem' } }} />
-                  </ListItem>
-                )}
-              </List>
-            </Collapse>
-          </>
-        )}
-      </List>
-      
-      <Box sx={{ position: 'absolute', bottom: 10, left: 10, opacity: 0.3 }}>
-        <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>ArgusBlack v3.1.5 (Nexum)</Typography>
-      </Box>
-    </Box>
+    <Sidebar onNavigate={handleDrawerToggle} />
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8f9fc' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        bgcolor: tokens.canvas,
+        backgroundImage:
+          'radial-gradient(1000px 420px at 15% 0%, rgba(45,91,255,0.08), transparent 58%), radial-gradient(900px 360px at 100% 0%, rgba(0,212,166,0.06), transparent 55%)',
+      }}
+    >
       <SessionTimeoutHandler />
       
       {/* Sidebar - Desktop Permanent, Mobile Drawer */}
@@ -484,6 +233,7 @@ function App() {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
             }),
+            backgroundColor: tokens.nightCanvas,
           },
           display: isMobile ? 'block' : (drawerCollapsed ? 'none' : 'flex')
         }}
@@ -503,12 +253,12 @@ function App() {
       }}>
         {/* Top Header */}
         <AppBar position="static" elevation={0} sx={{ 
-          bgcolor: '#fff', 
-          color: '#5a5c69', 
-          borderBottom: '1px solid #e3e6f0',
+          bgcolor: tokens.nightSurface, 
+          color: tokens.nightInk, 
+          borderBottom: `1px solid rgba(255,255,255,0.06)`,
           height: 70, 
           justifyContent: 'center',
-          boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)'
+          boxShadow: '0 12px 28px -24px rgba(14,19,48,0.36)',
         }}>
           <Toolbar sx={{ px: 3 }}>
             <IconButton 
@@ -521,7 +271,7 @@ function App() {
             </IconButton>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: '#5a5c69', fontSize: '1rem', display: { xs: 'none', md: 'block' } }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: tokens.nightInk, fontSize: '1rem', display: { xs: 'none', md: 'block' } }}>
                 {getPageTitle(location.pathname)}
               </Typography>
             </Box>
@@ -534,14 +284,14 @@ function App() {
                   mr: 1, 
                   fontWeight: 800, 
                   fontSize: '0.6rem', 
-                  bgcolor: currentEnv.id === 'prod' ? '#e74a3b20' : '#4e73df20',
-                  color: currentEnv.id === 'prod' ? '#e74a3b' : '#4e73df',
-                  border: `1px solid ${currentEnv.id === 'prod' ? '#e74a3b' : '#4e73df'}`,
+                  bgcolor: currentEnv.id === 'prod' ? 'rgba(229,72,77,0.14)' : 'rgba(45,91,255,0.12)',
+                  color: currentEnv.id === 'prod' ? tokens.danger : tokens.brand,
+                  border: `1px solid ${currentEnv.id === 'prod' ? 'rgba(229,72,77,0.25)' : 'rgba(45,91,255,0.22)'}`,
                   textTransform: 'uppercase'
                 }}
               />
               
-              <IconButton size="small" sx={{ color: '#d1d3e2' }} onClick={handleNotificationClick}>
+              <IconButton size="small" sx={{ color: tokens.nightInk }} onClick={handleNotificationClick}>
                 <Badge badgeContent={unreadCount} color="error">
                     <NotificationsIcon fontSize="small" />
                 </Badge>
@@ -565,14 +315,14 @@ function App() {
                           <MenuItem 
                             key={notification.id} 
                             onClick={() => handleNotificationItemClick(notification)}
-                            sx={{ whiteSpace: 'normal', fontSize: '0.8rem', borderBottom: '1px solid #eee' }}
+                            sx={{ whiteSpace: 'normal', fontSize: '0.8rem', borderBottom: `1px solid ${tokens.border}` }}
                           >
                           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', gap: 1 }}>
                             <Box>
                               <Typography variant="body2" sx={{ fontWeight: notification.isRead ? 'normal' : 'bold' }}>
                                 {notification.message}
                               </Typography>
-                              <Typography variant="caption" color="textSecondary">
+                              <Typography variant="caption" color="text.secondary">
                                 {new Date(notification.createdAt).toLocaleString()}
                               </Typography>
                             </Box>
@@ -591,13 +341,13 @@ function App() {
                   )}
               </Menu>
               
-              <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 32, alignSelf: 'center', borderColor: '#e3e6f0' }} />
+              <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 32, alignSelf: 'center', borderColor: tokens.border }} />
               
               <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleUserMenuOpen}>
                 <Box sx={{ textAlign: 'right', mr: 1, display: { xs: 'none', sm: 'block' } }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1, fontSize: '0.8rem', color: '#5a5c69' }}>{user?.firstName || 'Usuario'}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1, fontSize: '0.8rem', color: tokens.nightInk }}>{user?.firstName || 'Usuario'}</Typography>
                 </Box>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: '#4e73df', fontSize: '0.8rem', fontWeight: 700 }}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: tokens.brand, fontSize: '0.8rem', fontWeight: 700 }}>
                   {user?.firstName?.charAt(0) || 'U'}
                 </Avatar>
               </Box>

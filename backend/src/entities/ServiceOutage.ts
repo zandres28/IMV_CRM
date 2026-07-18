@@ -46,10 +46,10 @@ export class ServiceOutage {
 
   @Column({
     type: "enum",
-    enum: ["pending", "applied", "cancelled"],
-    default: "pending",
+    enum: ["pendiente", "aplicado", "anulado"],
+    default: "pendiente",
   })
-  status: "pending" | "applied" | "cancelled";
+  status: "pendiente" | "aplicado" | "anulado";
 
   @Column({ nullable: true })
   appliedToPaymentId: number;

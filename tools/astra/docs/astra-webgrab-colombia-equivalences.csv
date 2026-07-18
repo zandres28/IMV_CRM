@@ -1,0 +1,104 @@
+﻿astra_name,epg_name,provider_reference,sample_xmltv_id,notes
+Adult Swim,AdultSwim,manual-user,AdultSwim,renombre manual confirmado por usuario
+America TV,Canal América Televisión,manual-user,Canal América Televisión,renombre manual confirmado por usuario
+ATV,ATV +,manual-user,ATV +,renombre manual confirmado por usuario
+Baby TV,BABY TV,manual-user,BABY TV,renombre manual confirmado por usuario
+BETHEL TV,BETHEL TV,manual-user,BETHEL TV,nombre confirmado por usuario
+BLU Radio,BLU Radio,manual-user,BLU Radio,nombre confirmado por usuario
+Caracol TV,Caracol TV,directv.com.co,"Caracol TV (COL)(CARA)(132)",match fuerte
+CARACOL HD 2,CARACOL INTERNACIONAL,manual-user,CARACOL INTERNACIONAL,renombre manual confirmado por usuario
+De Pelicula Clasico,DE PELICULA,manual-user,DE PELICULA,renombre manual confirmado por usuario
+CARACOL TV HD,Caracol TV HD,directv.com.co,"Caracol TV HD (COL)(CARAHD)(132)",match fuerte
+RCN,RCN,directv.com.co,"RCN (COL)(RCN)(130)",match fuerte
+RCN HD,RCN HD,directv.com.co,"RCN HD (COL)(RCNHD)(130)",match fuerte
+City TV,City TV,directv.com.co,"City TV (COL)(CITY)(133)",match fuerte
+Canal Uno,Canal Uno,directv.com.co,"Canal Uno (COL)(CAN1)(136)",si usas DIRECTV
+El Tiempo,El Tiempo,directv.com.co,"El Tiempo (COL)(TMPO)(146)",preferido sobre Canal El Tiempo
+Señal Colombia,Señal Colombia,directv.com.co,"Señal Colombia (COL)(SCOL)(137)",acento requerido
+Teleantioquia,Teleantioquia,directv.com.co,"Teleantioquia (COL)(TANT)(140)",match fuerte
+Telecafé,Telecafé,directv.com.co,"Telecafé (COL)(TCAFE)(144)",acento requerido
+Telecaribe,Telecaribe,directv.com.co,"Telecaribe (COL)(TLCR)(142)",match fuerte
+Telepacífico,Telepacífico,directv.com.co,"Telepacífico (COL)(TPAC)(141)",acento requerido
+Win Sports,Win Sports,winsportsonline.com,Win Sports,match fuerte
+Win Sports +,Win Sports +,winsportsonline.com,Win Sports +,match fuerte
+Universal TV,Universal TV,movistar.co,Universal TV,mejor para feed Movistar
+Universal TV HD,Universal TV HD,directv.com.co,"Universal TV HD (Norte)(UNIHD)(218)",match fuerte
+Universal Channel,Universal Channel,claro.com.co,UNIVERSAL CHANNEL,alternativa si usas Claro
+Universal Cinema SD,Universal Cinema,directv.com.co,Universal Cinema(UNCI)(572),equivalencia razonable; el proveedor suele omitir SD
+Universal Comedy SD,Universal Comedy,directv.com.co,Universal Comedy(UNCY)(573),equivalencia razonable; el proveedor suele omitir SD
+Studio Universal,Studio Universal,directv.com.co,Studio Universal(STUN)(508),match fuerte
+Studio Universal HD,Studio Universal HD,directv.com.co,Studio Universal HD(STUNHD)(508),solo si existe HD real
+TNT,TNT,movistar.co,TNT,match fuerte
+TNT Series HD,TNT Series HD,directv.com.co,TNT Series HD(TNTSHD)(213),match fuerte
+TNT Novelas,TNT Novelas,movistar.co,TNT Novelas,preferido sobre TNT Novelas HD
+Cinecanal HD,Cinecanal HD,directv.com.co,Cinecanal HD(CCHD)(1507),match fuerte
+Cinemax,Cinemax,movistar.co,Cinemax,match fuerte
+HBO HD,HBO HD,directv.com.co,HBO HD(HBOHD)(524),match fuerte
+HBO 2,HBO 2,movistar.co,HBO 2,match fuerte
+HBO Family HD,HBO Family HD,directv.com.co,HBO Family HD(HBOFHD)(534),match fuerte
+HBO Signature,HBO Signature,directv.com.co,HBO Signature(HBOS)(528),match fuerte
+HBO Pop,HBO Pop,directv.com.co,HBO Pop(HBOPOP)(541),preferido sobre HBO POP HD
+HBO Xtreme,HBO Xtreme,directv.com.co,HBO Xtreme(HBOXTM)(542),preferido sobre HBO XTREME HD
+Discovery Channel,Discovery Channel,movistar.co,Discovery Channel,mejor para match general
+Discovery Turbo,DISCOVERY TURBO,manual-user,DISCOVERY TURBO,renombre manual confirmado por usuario
+Discovery World HD,DISCOVERY WORLD HD,manual-user,DISCOVERY WORLD HD,renombre manual confirmado por usuario
+Discovery Kids HD,Discovery Kids HD,directv.com.co,Discovery Kids HD(KIDSHD)(1330),match fuerte
+Discovery Home & Health,Discovery Home & Health,directv.com.co,Discovery Home & Health Latino(DH&H)(229),preferido sobre Home & Health HD
+Animal Planet HD,Animal Planet HD,directv.com.co,Animal Planet HD(ANMLHD)(1734),match fuerte
+Cartoon Network HD,Cartoon Network HD,directv.com.co,Cartoon Network HD(TOONHD)(1304),match fuerte
+History Channel HD,History Channel HD,claro.com.co,HISTORY CHANNEL HD,si usas Claro
+Lifetime,Lifetime,directv.com.co,Lifetime(LIFE)(228),match fuerte
+MTV HD,MTV HD,directv.com.co,MTV HD(MTVHD)(264),match fuerte
+National Geographic HD,National Geographic HD,directv.com.co,National Geographic HD(NGEOHD)(1730),preferido sobre Nat Geo HD
+Disney Junior,Disney Junior,claro.com.co,DISNEY JUNIOR,preferido sobre Disney Jr
+Nick Jr,Nick Jr,movistar.co,Nick Jr,match fuerte
+Nickelodeon HD,Nickelodeon HD,directv.com.co,Nickelodeon HD(NICKHD)(308),match fuerte
+Hola TV HD,Hola TV HD,directv.com.co,Hola TV HD(HOLAHD)(221),match fuerte
+Investigation Discovery,Investigation Discovery,directv.com.co,Investigation Discovery(ID)(223),preferido sobre ID
+A&E HD,A&E HD,directv.com.co,A&E HD(A&EHD)(207),match fuerte
+AMC HD,AMC HD,directv.com.co,AMC HD(AMCHD)(210),match fuerte
+AXN,AXN,movistar.co,AXN,match fuerte
+CNN Español,CNN EN ESPANOL,claro.com.co,CNN EN ESPANOL,si usas Claro; en otros puede variar el acento
+Comedy Central HD,COMEDY CENTRAL,claro.com.co,COMEDY CENTRAL,si usas Claro; revisar HD según proveedor
+Disney Channel HD,Disney HD,directv.com.co,Disney HD(DISNHD)(1312),preferido si tu feed usa variante HD
+E! Entertainment TV,E! Entertainment TV,movistar.co,E! Entertainment TV,match fuerte en Movistar
+Ecuavisa,Ecuavisa Internacional (ECUA),manual-user,Ecuavisa Internacional (ECUA),renombre manual confirmado por usuario
+El Gourmet,El Gourmet HD(GOURHD),manual-user,El Gourmet HD(GOURHD),renombre manual confirmado por usuario
+Enlace,ENLACE,manual-user,ENLACE,renombre manual confirmado por usuario
+ESPN HD,ESPN HD,claro.com.co,ESPN HD,match fuerte en Claro
+ESPN 2 HD,ESPN 2 Colombia,directv.com.co,ESPN 2 Colombia (ESP2HD)(1622),si usas DIRECTV
+ESPN 3 HD,ESPN 3 Andina HD,directv.com.co,ESPN 3 Andina HD(ESP3HD)(1623),si usas DIRECTV
+ESPN 4 HD,ESPN4 HD,directv.com.co,ESPN4 HD (ESP4HD)(1624),si usas DIRECTV
+ESPN 5,ESPN 5,movistar.co,ESPN 5,match fuerte en Movistar
+ESPN 6,ESPN 6 HD,movistar.co,ESPN 6 HD,preferido en Movistar
+ESPN 7 HD,ESPN 7 HD,movistar.co,ESPN 7 HD,match fuerte en Movistar
+ESPN Premium HD,ESPN Premium (HD)(ESPHD),manual-user,ESPN Premium (HD)(ESPHD),renombre manual confirmado por usuario
+EWTN,Network(EWTN),manual-user,Network(EWTN),renombre manual confirmado por usuario
+Food Network,Food Network,movistar.co,Food Network,match fuerte
+FX,FX,movistar.co,FX,match fuerte
+HBO Mundi,HBO Mundi,directv.com.co,HBO Mundi(HBOMUN)(540),match fuerte
+HBO Plus,HBO Plus,directv.com.co,HBO Plus (Este)(HBOP)(526),match razonable; puede variar entre Este/HD
+HGTV,HGTV,movistar.co,HGTV,match fuerte
+Kanal D Drama,Kanal D Drama,manual-user,Kanal D Drama,nombre confirmado por usuario
+LA KALLE,LA KALLE,manual-user,LA KALLE,nombre confirmado por usuario
+Las Estrellas HD,CANAL DE LAS ESTRELLAS,manual-user,CANAL DE LAS ESTRELLAS,renombre manual confirmado por usuario
+Latina,Latina,manual-user,Latina,nombre confirmado por usuario
+Love Nature,Love Nature,manual-user,Love Nature,nombre confirmado por usuario
+Radio Uno,Radio Uno,manual-user,Radio Uno,nombre confirmado por usuario
+Pasiones HD,Pasiones HD,directv.com.co,Pasiones HD(PASHD)(225),match fuerte
+RCN Novelas,RCN Novelas,movistar.co,RCN Novelas,match fuerte
+RCN HD 2,RCN HD 2,manual-user,RCN HD 2,nombre confirmado por usuario
+Sony,Sony,movistar.co,Sony,match fuerte en Movistar y Claro
+Sony Movies,Sony Movies,directv.com.co,Sony Movies(SOMV)(506),match fuerte
+Space,Space,movistar.co,Space,match fuerte
+Telefe,Telefe,manual-user,Telefe,nombre confirmado por usuario
+Telemundo,Telemundo,movistar.co,Telemundo,match fuerte
+TLC,TLC,movistar.co,TLC,match fuerte
+TLNovelas,TLNovelas,directv.com.co,TLNovelas(NVLA)(227),match fuerte
+Tooncast,Tooncast,manual-user,Tooncast,nombre confirmado por usuario
+TVE,TVE,claro.com.co,TVE,match fuerte
+Universal Premiere SD,Universal Premiere SD,manual-user,Universal Premiere SD,nombre confirmado por usuario
+USA Network,USA Network,manual-user,USA Network,nombre confirmado por usuario
+STAR Channel,STAR Channel,directv.com.co,STAR Channel (COL)(STAR)(202),match fuerte
+Warner Channel,Warner Channel,directv.com.co,Warner Channel(WTV)(206),match fuerte
+Zoom,ZOOM TV,claro.com.co,ZOOM TV,equivalencia razonable si usas Claro

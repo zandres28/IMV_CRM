@@ -63,7 +63,7 @@ export class ProductController {
                     installmentNumber: index + 1,
                     amount: installmentAmount,
                     dueDate: dueDate,
-                    status: 'pending'
+                    status: 'pendiente'
                 });
             });
 
@@ -99,8 +99,8 @@ export class ProductController {
             if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
 
             const existing = product.installmentPayments || [];
-            const pending = existing.filter(i => i.status === 'pending');
-            const completed = existing.filter(i => i.status === 'completed');
+            const pending = existing.filter(i => i.status === 'pendiente');
+            const completed = existing.filter(i => i.status === 'completado');
 
             // Si faltan crear cuotas (por número) o alguna cuota quedó sin generar
             const need = product.installments - existing.length;
@@ -120,7 +120,7 @@ export class ProductController {
                     installmentNumber: existing.length + i + 1,
                     amount: product.installmentAmount,
                     dueDate: new Date(current),
-                    status: 'pending'
+                    status: 'pendiente'
                 });
                 await this.installmentRepository.save(inst);
                 created.push(inst);
@@ -166,7 +166,7 @@ export class ProductController {
                         installmentNumber: existing.length + i + 1,
                         amount: product.installmentAmount,
                         dueDate: new Date(current),
-                        status: 'pending'
+                        status: 'pendiente'
                     });
                     await this.installmentRepository.save(inst);
                 }
@@ -238,7 +238,7 @@ export class ProductController {
                     // Eliminar cuotas pendientes existentes
                     await this.installmentRepository.delete({
                         product: { id: product.id },
-                        status: 'pending'
+                        status: 'pendiente'
                     });
 
                     // Crear nuevas cuotas
@@ -248,7 +248,7 @@ export class ProductController {
                             ip => ip.installmentNumber === index + 1
                         );
 
-                        if (existingInstallment && existingInstallment.status === 'completed') {
+                        if (existingInstallment && existingInstallment.status === 'completado') {
                             return existingInstallment;
                         }
 
@@ -258,7 +258,7 @@ export class ProductController {
                             installmentNumber: index + 1,
                             amount: installmentAmount,
                             dueDate: new Date(currentDate),
-                            status: 'pending'
+                            status: 'pendiente'
                         });
                     });
 
@@ -324,16 +324,16 @@ export class ProductController {
             await this.installmentRepository.save(installment);
 
             // Actualizar estado del producto si todas las cuotas están pagadas
-            if (status === 'completed') {
+            if (status === 'completado') {
                 const allInstallments = await this.installmentRepository.find({
                     where: { product: { id: installment.product.id } }
                 });
 
-                const allPaid = allInstallments.every(inst => inst.status === 'completed');
+                const allPaid = allInstallments.every(inst => inst.status === 'completado');
                 if (allPaid) {
                     await this.productRepository.update(
                         installment.product.id,
-                        { status: 'completed' }
+                        { status: 'completado' }
                     );
                 }
             }

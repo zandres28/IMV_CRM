@@ -24,7 +24,6 @@ import { InteractionTypeService, InteractionType } from '../../services/Interact
 
 export const InteractionTypesManager: React.FC = () => {
     const [types, setTypes] = useState<InteractionType[]>([]);
-    const [loading, setLoading] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
@@ -37,14 +36,11 @@ export const InteractionTypesManager: React.FC = () => {
     }, []);
 
     const loadTypes = async () => {
-        setLoading(true);
         try {
             const data = await InteractionTypeService.getAll();
             setTypes(data);
         } catch (error) {
             console.error('Error loading types', error);
-        } finally {
-            setLoading(false);
         }
     };
 

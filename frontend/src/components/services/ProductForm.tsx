@@ -12,7 +12,6 @@ import {
     Select,
     MenuItem
 } from '@mui/material';
-import { ProductSold } from '../../types/AdditionalServices';
 import { ProductService } from '../../services/ProductService';
 
 interface ProductFormProps {

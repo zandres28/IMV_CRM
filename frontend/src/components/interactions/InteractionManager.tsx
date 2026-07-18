@@ -39,7 +39,7 @@ import { InteractionService, Interaction, InteractionStatus, InteractionPriority
 import { InteractionTypeService, InteractionType } from '../../services/InteractionTypeService';
 import { ClientService } from '../../services/ClientService';
 import { TechnicianService } from '../../services/TechnicianService';
-import { formatLocalDate, toInputDateString } from '../../utils/dateUtils';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 const STATUS_OPTIONS: { value: InteractionStatus; label: string }[] = [
     { value: 'pendiente', label: 'Pendiente' },
@@ -56,7 +56,6 @@ const STATUS_LABELS = STATUS_OPTIONS.reduce<Record<InteractionStatus, string>>((
 }, {} as Record<InteractionStatus, string>);
 
 export const InteractionManager: React.FC = () => {
-    const [interactions, setInteractions] = useState<Interaction[]>([]);
     const [filteredInteractions, setFilteredInteractions] = useState<Interaction[]>([]);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(0);
@@ -92,7 +91,6 @@ export const InteractionManager: React.FC = () => {
         setLoading(true);
         try {
             const data = await InteractionService.getAll(filters);
-            setInteractions(data);
             setFilteredInteractions(data);
         } catch (error) {
             console.error('Error cargando interacciones:', error);

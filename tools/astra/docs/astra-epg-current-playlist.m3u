@@ -1,0 +1,189 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="A&E HD(A&EHD)(207)" tvg-name="A&E HD" group-title="Astra",A&E HD
+http://172.19.104.106:8000/play/a001
+#EXTINF:-1 tvg-id="AdultSwim" tvg-name="AdultSwim" group-title="Astra",AdultSwim
+http://172.19.104.106:8000/play/a009
+#EXTINF:-1 tvg-id="AMC HD(AMCHD)(210)" tvg-name="AMC HD" group-title="Astra",AMC HD
+http://172.19.104.106:8000/play/a002
+#EXTINF:-1 tvg-id="Animal Planet HD(ANMLHD)(1734)" tvg-name="Animal Planet HD" group-title="Astra",Animal Planet HD
+http://172.19.104.106:8000/play/a00b
+#EXTINF:-1 tvg-id="ATV +" tvg-name="ATV +" group-title="Astra",ATV +
+http://172.19.104.106:8000/play/a003
+#EXTINF:-1 tvg-id="AXN" tvg-name="AXN" group-title="Astra",AXN
+http://172.19.104.106:8000/play/a008
+#EXTINF:-1 tvg-id="BABY TV" tvg-name="BABY TV" group-title="Astra",BABY TV
+http://172.19.104.106:8000/play/a00e
+#EXTINF:-1 tvg-id="BLU Radio" tvg-name="BLU Radio" group-title="Astra",BLU Radio
+http://172.19.104.106:8000/play/a00d
+#EXTINF:-1 tvg-id="Canal América Televisión" tvg-name="Canal América Televisión" group-title="Astra",Canal América Televisión
+http://172.19.104.106:8000/play/a00a
+#EXTINF:-1 tvg-id="CANAL DE LAS ESTRELLAS" tvg-name="CANAL DE LAS ESTRELLAS" group-title="Astra",CANAL DE LAS ESTRELLAS
+http://172.19.104.106:8000/play/a01s
+#EXTINF:-1 tvg-id="Canal Uno (COL)(CAN1)(136)" tvg-name="Canal Uno" group-title="Astra",Canal Uno
+http://172.19.104.106:8000/play/a00k
+#EXTINF:-1 tvg-id="CARACOL INTERNACIONAL" tvg-name="CARACOL INTERNACIONAL" group-title="Astra",CARACOL INTERNACIONAL
+http://172.19.104.106:8000/play/a00f
+#EXTINF:-1 tvg-id="Caracol TV (COL)(CARA)(132)" tvg-name="Caracol TV" group-title="Astra",Caracol TV
+http://172.19.104.106:8000/play/a00i
+#EXTINF:-1 tvg-id="Caracol TV HD (COL)(CARAHD)(132)" tvg-name="Caracol TV HD" group-title="Astra",CARACOL TV HD
+http://172.19.104.106:8000/play/a00g
+#EXTINF:-1 tvg-id="Cartoon Network HD(TOONHD)(1304)" tvg-name="Cartoon Network HD" group-title="Astra",Cartoon Network HD
+http://172.19.104.106:8000/play/a00l
+#EXTINF:-1 tvg-id="Cinecanal HD(CCHD)(1507)" tvg-name="Cinecanal HD" group-title="Astra",Cinecanal HD
+http://172.19.104.106:8000/play/a00m
+#EXTINF:-1 tvg-id="Cinemax" tvg-name="Cinemax" group-title="Astra",Cinemax
+http://172.19.104.106:8000/play/a00n
+#EXTINF:-1 tvg-id="City TV (COL)(CITY)(133)" tvg-name="City TV" group-title="Astra",City TV
+http://172.19.104.106:8000/play/a00o
+#EXTINF:-1 tvg-id="CNN EN ESPANOL" tvg-name="CNN EN ESPANOL" group-title="Astra",CNN Español
+http://172.19.104.106:8000/play/a00h
+#EXTINF:-1 tvg-id="COMEDY CENTRAL" tvg-name="COMEDY CENTRAL" group-title="Astra",Comedy Central HD
+http://172.19.104.106:8000/play/a00p
+#EXTINF:-1 tvg-id="DE PELICULA" tvg-name="DE PELICULA" group-title="Astra",DE PELICULA
+http://172.19.104.106:8000/play/a00q
+#EXTINF:-1 tvg-id="Discovery Channel" tvg-name="Discovery Channel" group-title="Astra",Discovery Channel
+http://172.19.104.106:8000/play/a00r
+#EXTINF:-1 tvg-id="Discovery Home & Health Latino(DH&H)(229)" tvg-name="Discovery Home & Health" group-title="Astra",Discovery Home & Health
+http://172.19.104.106:8000/play/a01o
+#EXTINF:-1 tvg-id="Discovery Kids HD(KIDSHD)(1330)" tvg-name="Discovery Kids HD" group-title="Astra",Discovery Kids HD
+http://172.19.104.106:8000/play/a00s
+#EXTINF:-1 tvg-id="DISCOVERY TURBO" tvg-name="DISCOVERY TURBO" group-title="Astra",DISCOVERY TURBO
+http://172.19.104.106:8000/play/a00t
+#EXTINF:-1 tvg-id="DISCOVERY WORLD HD" tvg-name="DISCOVERY WORLD HD" group-title="Astra",DISCOVERY WORLD HD
+http://172.19.104.106:8000/play/a00u
+#EXTINF:-1 tvg-id="Disney HD(DISNHD)(1312)" tvg-name="Disney HD" group-title="Astra",Disney Channel HD
+http://172.19.104.106:8000/play/a00v
+#EXTINF:-1 tvg-id="DISNEY JUNIOR" tvg-name="Disney Junior" group-title="Astra",Disney Junior
+http://172.19.104.106:8000/play/a00w
+#EXTINF:-1 tvg-id="E! Entertainment TV" tvg-name="E! Entertainment TV" group-title="Astra",E! Entertainment TV
+http://172.19.104.106:8000/play/a00x
+#EXTINF:-1 tvg-id="Ecuavisa Internacional (ECUA)" tvg-name="Ecuavisa Internacional (ECUA)" group-title="Astra",Ecuavisa Internacional (ECUA)
+http://172.19.104.106:8000/play/a018
+#EXTINF:-1 tvg-id="El Gourmet HD(GOURHD)" tvg-name="El Gourmet HD(GOURHD)" group-title="Astra",El Gourmet HD(GOURHD)
+http://172.19.104.106:8000/play/a019
+#EXTINF:-1 tvg-id="ENLACE" tvg-name="ENLACE" group-title="Astra",ENLACE
+http://172.19.104.106:8000/play/a01a
+#EXTINF:-1 tvg-id="ESPN 2 Colombia (ESP2HD)(1622)" tvg-name="ESPN 2 Colombia" group-title="Astra",ESPN 2 HD
+http://172.19.104.106:8000/play/a00y
+#EXTINF:-1 tvg-id="ESPN 3 Andina HD(ESP3HD)(1623)" tvg-name="ESPN 3 Andina HD" group-title="Astra",ESPN 3 HD
+http://172.19.104.106:8000/play/a00z
+#EXTINF:-1 tvg-id="ESPN4 HD (ESP4HD)(1624)" tvg-name="ESPN4 HD" group-title="Astra",ESPN 4 HD
+http://172.19.104.106:8000/play/a010
+#EXTINF:-1 tvg-id="ESPN 5" tvg-name="ESPN 5" group-title="Astra",ESPN 5
+http://172.19.104.106:8000/play/a011
+#EXTINF:-1 tvg-id="ESPN 6 HD" tvg-name="ESPN 6 HD" group-title="Astra",ESPN 6
+http://172.19.104.106:8000/play/a012
+#EXTINF:-1 tvg-id="ESPN 7 HD" tvg-name="ESPN 7 HD" group-title="Astra",ESPN 7 HD
+http://172.19.104.106:8000/play/a013
+#EXTINF:-1 tvg-id="ESPN HD" tvg-name="ESPN HD" group-title="Astra",ESPN HD
+http://172.19.104.106:8000/play/a014
+#EXTINF:-1 tvg-id="ESPN Premium (HD)(ESPHD)" tvg-name="ESPN Premium (HD)(ESPHD)" group-title="Astra",ESPN Premium (HD)(ESPHD)
+http://172.19.104.106:8000/play/a015
+#EXTINF:-1 tvg-id="Food Network" tvg-name="Food Network" group-title="Astra",Food Network
+http://172.19.104.106:8000/play/a01c
+#EXTINF:-1 tvg-id="FX" tvg-name="FX" group-title="Astra",FX
+http://172.19.104.106:8000/play/a01b
+#EXTINF:-1 tvg-id="HBO 2" tvg-name="HBO 2" group-title="Astra",HBO 2
+http://172.19.104.106:8000/play/a01d
+#EXTINF:-1 tvg-id="HBO Family HD(HBOFHD)(534)" tvg-name="HBO Family HD" group-title="Astra",HBO Family HD
+http://172.19.104.106:8000/play/a01e
+#EXTINF:-1 tvg-id="HBO HD(HBOHD)(524)" tvg-name="HBO HD" group-title="Astra",HBO HD
+http://172.19.104.106:8000/play/a01f
+#EXTINF:-1 tvg-id="HBO Mundi(HBOMUN)(540)" tvg-name="HBO Mundi" group-title="Astra",HBO Mundi
+http://172.19.104.106:8000/play/a01g
+#EXTINF:-1 tvg-id="HBO Plus (Este)(HBOP)(526)" tvg-name="HBO Plus" group-title="Astra",HBO Plus
+http://172.19.104.106:8000/play/a01i
+#EXTINF:-1 tvg-id="HBO Pop(HBOPOP)(541)" tvg-name="HBO Pop" group-title="Astra",HBO Pop
+http://172.19.104.106:8000/play/a01h
+#EXTINF:-1 tvg-id="HBO Signature(HBOS)(528)" tvg-name="HBO Signature" group-title="Astra",HBO Signature
+http://172.19.104.106:8000/play/a01j
+#EXTINF:-1 tvg-id="HBO Xtreme(HBOXTM)(542)" tvg-name="HBO Xtreme" group-title="Astra",HBO Xtreme
+http://172.19.104.106:8000/play/a01k
+#EXTINF:-1 tvg-id="HGTV" tvg-name="HGTV" group-title="Astra",HGTV
+http://172.19.104.106:8000/play/a01l
+#EXTINF:-1 tvg-id="HISTORY CHANNEL HD" tvg-name="History Channel HD" group-title="Astra",History Channel HD
+http://172.19.104.106:8000/play/a01n
+#EXTINF:-1 tvg-id="Hola TV HD(HOLAHD)(221)" tvg-name="Hola TV HD" group-title="Astra",HOLA TV HD
+http://172.19.104.106:8000/play/a01m
+#EXTINF:-1 tvg-id="LA KALLE" tvg-name="LA KALLE" group-title="Astra",LA KALLE
+http://172.19.104.106:8000/play/a01r
+#EXTINF:-1 tvg-id="Latina" tvg-name="Latina" group-title="Astra",Latina
+http://172.19.104.106:8000/play/a01t
+#EXTINF:-1 tvg-id="Lifetime(LIFE)(228)" tvg-name="Lifetime" group-title="Astra",Lifetime
+http://172.19.104.106:8000/play/a01u
+#EXTINF:-1 tvg-id="Love Nature" tvg-name="Love Nature" group-title="Astra",Love Nature
+http://172.19.104.106:8000/play/a01v
+#EXTINF:-1 tvg-id="MTV HD(MTVHD)(264)" tvg-name="MTV HD" group-title="Astra",MTV HD
+http://172.19.104.106:8000/play/a01w
+#EXTINF:-1 tvg-id="National Geographic HD(NGEOHD)(1730)" tvg-name="National Geographic HD" group-title="Astra",National Geographic HD
+http://172.19.104.106:8000/play/a01x
+#EXTINF:-1 tvg-id="Network(EWTN)" tvg-name="Network(EWTN)" group-title="Astra",Network(EWTN)
+http://172.19.104.106:8000/play/a017
+#EXTINF:-1 tvg-id="Nickelodeon HD(NICKHD)(308)" tvg-name="Nickelodeon HD" group-title="Astra",Nickelodeon HD
+http://172.19.104.106:8000/play/a01z
+#EXTINF:-1 tvg-id="Pasiones HD(PASHD)(225)" tvg-name="Pasiones HD" group-title="Astra",Pasiones HD
+http://172.19.104.106:8000/play/a020
+#EXTINF:-1 tvg-id="Radio Uno" tvg-name="Radio Uno" group-title="Astra",Radio Uno
+http://172.19.104.106:8000/play/a024
+#EXTINF:-1 tvg-id="RCN (COL)(RCN)(130)" tvg-name="RCN" group-title="Astra",RCN
+http://172.19.104.106:8000/play/a00j
+#EXTINF:-1 tvg-id="RCN HD (COL)(RCNHD)(130)" tvg-name="RCN HD" group-title="Astra",RCN HD
+http://172.19.104.106:8000/play/a021
+#EXTINF:-1 tvg-id="RCN HD 2" tvg-name="RCN HD 2" group-title="Astra",RCN HD 2
+http://172.19.104.106:8000/play/a022
+#EXTINF:-1 tvg-id="RCN Novelas" tvg-name="RCN Novelas" group-title="Astra",RCN Novelas
+http://172.19.104.106:8000/play/a023
+#EXTINF:-1 tvg-id="Señal Colombia (COL)(SCOL)(137)" tvg-name="Señal Colombia" group-title="Astra",Señal Colombia
+http://172.19.104.106:8000/play/a026
+#EXTINF:-1 tvg-id="Sony" tvg-name="Sony" group-title="Astra",Sony
+http://172.19.104.106:8000/play/a027
+#EXTINF:-1 tvg-id="Sony Movies(SOMV)(506)" tvg-name="Sony Movies" group-title="Astra",Sony Movies
+http://172.19.104.106:8000/play/a028
+#EXTINF:-1 tvg-id="Space" tvg-name="Space" group-title="Astra",Space
+http://172.19.104.106:8000/play/a029
+#EXTINF:-1 tvg-id="STAR Channel (COL)(STAR)(202)" tvg-name="STAR Channel" group-title="Astra",STAR Channel
+http://172.19.104.106:8000/play/a025
+#EXTINF:-1 tvg-id="Studio Universal(STUN)(508)" tvg-name="Studio Universal" group-title="Astra",Studio Universal
+http://172.19.104.106:8000/play/a02a
+#EXTINF:-1 tvg-id="Teleantioquia (COL)(TANT)(140)" tvg-name="Teleantioquia" group-title="Astra",Teleantioquia
+http://172.19.104.106:8000/play/a02g
+#EXTINF:-1 tvg-id="Telecafé (COL)(TCAFE)(144)" tvg-name="Telecafé" group-title="Astra",Telecafé
+http://172.19.104.106:8000/play/a02h
+#EXTINF:-1 tvg-id="Telecaribe (COL)(TLCR)(142)" tvg-name="Telecaribe" group-title="Astra",Telecaribe
+http://172.19.104.106:8000/play/a02i
+#EXTINF:-1 tvg-id="Telefe" tvg-name="Telefe" group-title="Astra",Telefe
+http://172.19.104.106:8000/play/a02j
+#EXTINF:-1 tvg-id="Telemundo" tvg-name="Telemundo" group-title="Astra",Telemundo
+http://172.19.104.106:8000/play/a02k
+#EXTINF:-1 tvg-id="Telepacífico (COL)(TPAC)(141)" tvg-name="Telepacífico" group-title="Astra",Telepacífico
+http://172.19.104.106:8000/play/a02l
+#EXTINF:-1 tvg-id="TLC" tvg-name="TLC" group-title="Astra",TLC
+http://172.19.104.106:8000/play/a02b
+#EXTINF:-1 tvg-id="TLNovelas(NVLA)(227)" tvg-name="TLNovelas" group-title="Astra",TLNovelas
+http://172.19.104.106:8000/play/a02m
+#EXTINF:-1 tvg-id="TNT" tvg-name="TNT" group-title="Astra",TNT
+http://172.19.104.106:8000/play/a02c
+#EXTINF:-1 tvg-id="TNT Novelas" tvg-name="TNT Novelas" group-title="Astra",TNT Novelas
+http://172.19.104.106:8000/play/a02d
+#EXTINF:-1 tvg-id="TNT Series HD(TNTSHD)(213)" tvg-name="TNT Series HD" group-title="Astra",TNT Series HD
+http://172.19.104.106:8000/play/a02e
+#EXTINF:-1 tvg-id="Tooncast" tvg-name="Tooncast" group-title="Astra",Tooncast
+http://172.19.104.106:8000/play/a02n
+#EXTINF:-1 tvg-id="Universal Cinema(UNCI)(572)" tvg-name="Universal Cinema" group-title="Astra",Universal Cinema SD
+http://172.19.104.106:8000/play/a02r
+#EXTINF:-1 tvg-id="Universal Comedy(UNCY)(573)" tvg-name="Universal Comedy" group-title="Astra",Universal Comedy SD
+http://172.19.104.106:8000/play/a02s
+#EXTINF:-1 tvg-id="Universal Premiere SD" tvg-name="Universal Premiere SD" group-title="Astra",Universal Premiere SD
+http://172.19.104.106:8000/play/a02t
+#EXTINF:-1 tvg-id="Universal TV" tvg-name="Universal TV" group-title="Astra",Universal TV
+http://172.19.104.106:8000/play/a02q
+#EXTINF:-1 tvg-id="Universal TV HD (Norte)(UNIHD)(218)" tvg-name="Universal TV HD" group-title="Astra",Universal TV HD
+http://172.19.104.106:8000/play/a02o
+#EXTINF:-1 tvg-id="Warner Channel(WTV)(206)" tvg-name="Warner Channel" group-title="Astra",Warner Channel
+http://172.19.104.106:8000/play/a02u
+#EXTINF:-1 tvg-id="Win Sports" tvg-name="Win Sports" group-title="Astra",Win Sports
+http://172.19.104.106:8000/play/a02v
+#EXTINF:-1 tvg-id="Win Sports +" tvg-name="Win Sports +" group-title="Astra",Win Sports +
+http://172.19.104.106:8000/play/a02x
+#EXTINF:-1 tvg-id="ZOOM TV" tvg-name="ZOOM TV" group-title="Astra",Zoom
+http://172.19.104.106:8000/play/a02w

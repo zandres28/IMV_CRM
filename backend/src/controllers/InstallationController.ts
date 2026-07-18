@@ -90,7 +90,7 @@ export class InstallationController {
                 const existing = await this.installationRepository.findOne({ 
                     where: { 
                         onuSerialNumber,
-                        serviceStatus: In(['active', 'suspended']), // Only consider active services
+                        serviceStatus: In(['activo', 'suspendido']),
                         isDeleted: false
                     } 
                 });
@@ -235,7 +235,7 @@ export class InstallationController {
                     paymentMonth: monthNames[instDate.getMonth()],
                     paymentYear: instDate.getFullYear(),
                     dueDate: instDate, // Vence el mismo día de la instalación
-                    status: 'paid', // Se marca inmediatamente como pagado
+                    status: 'pagado',
                     paymentDate: instDate,
                     paymentType: 'installation',
                     servicePlanAmount: 0,
@@ -357,7 +357,7 @@ export class InstallationController {
                 const existing = await this.installationRepository.findOne({ 
                     where: { 
                         onuSerialNumber,
-                        serviceStatus: In(['active', 'suspended']), // Only consider active services
+                        serviceStatus: In(['activo', 'suspendido']),
                         isDeleted: false
                     } 
                 });
@@ -415,7 +415,7 @@ export class InstallationController {
 
             // Sincronizar isActive con serviceStatus
             if (serviceStatus) {
-                installation.isActive = serviceStatus === 'active';
+                installation.isActive = serviceStatus === 'activo';
             }
 
             await this.installationRepository.save(installation);
@@ -476,7 +476,7 @@ export class InstallationController {
             }
 
             installation.serviceStatus = serviceStatus;
-            installation.isActive = serviceStatus === 'active';
+            installation.isActive = serviceStatus === 'activo';
 
             await this.installationRepository.save(installation);
             return res.json(installation);

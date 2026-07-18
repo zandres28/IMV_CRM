@@ -8,6 +8,5 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get("/graph", MikrotikController.getGraph);
-router.get("/onu-diagnostics/:ip", MikrotikController.getOnuDiagnostics);
 
 export default router;

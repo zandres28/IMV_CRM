@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -72,11 +72,7 @@ const InstallationBillingList: React.FC = () => {
     paymentDate: new Date().toISOString().split('T')[0],
   });
 
-  useEffect(() => {
-    loadPayments();
-  }, [filters]);
-
-  const loadPayments = async () => {
+  const loadPayments = useCallback(async () => {
     try {
       setLoading(true);
       const response = await InstallationBillingService.getPayments(filters);
@@ -87,7 +83,11 @@ const InstallationBillingList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    loadPayments();
+  }, [loadPayments]);
 
   const handleViewDetail = async (payment: InstallationPayment) => {
     try {
@@ -144,13 +144,13 @@ const InstallationBillingList: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid':
+      case 'pagado':
         return 'success';
-      case 'pending':
+      case 'pendiente':
         return 'warning';
-      case 'overdue':
+      case 'vencido':
         return 'error';
-      case 'cancelled':
+      case 'anulado':
         return 'default';
       default:
         return 'default';
@@ -159,14 +159,14 @@ const InstallationBillingList: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'paid':
+      case 'pagado':
         return 'Pagado';
-      case 'pending':
+      case 'pendiente':
         return 'Pendiente';
-      case 'overdue':
+      case 'vencido':
         return 'Vencido';
-      case 'cancelled':
-        return 'Cancelado';
+      case 'anulado':
+        return 'Anulado';
       default:
         return status;
     }
@@ -291,9 +291,9 @@ const InstallationBillingList: React.FC = () => {
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
               <MenuItem value="">Todos</MenuItem>
-              <MenuItem value="paid">Pagado</MenuItem>
-              <MenuItem value="pending">Pendiente</MenuItem>
-              <MenuItem value="overdue">Vencido</MenuItem>
+              <MenuItem value="pagado">Pagado</MenuItem>
+              <MenuItem value="pendiente">Pendiente</MenuItem>
+              <MenuItem value="vencido">Vencido</MenuItem>
             </TextField>
           </Grid>
           <Grid item xs={12} sm={3}>
@@ -363,7 +363,7 @@ const InstallationBillingList: React.FC = () => {
                   >
                     <EditIcon />
                   </IconButton>
-                  {payment.status === 'pending' && (
+                  {payment.status === 'pendiente' && (
                     <IconButton
                       size="small"
                       color="success"

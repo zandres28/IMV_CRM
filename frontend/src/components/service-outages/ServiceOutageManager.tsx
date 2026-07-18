@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -54,7 +54,7 @@ const ServiceOutageManager: React.FC = () => {
   const [installations, setInstallations] = useState<Installation[]>([]);
   
   const [openDialog, setOpenDialog] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'applied' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pendiente' | 'aplicado' | 'anulado'>('all');
   const [ponIdFilter, setPonIdFilter] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -89,9 +89,28 @@ const ServiceOutageManager: React.FC = () => {
   } | null>(null);
   const [loadingPonPreview, setLoadingPonPreview] = useState(false);
 
+  const loadOutages = useCallback(async () => {
+    try {
+      const filters: any = {};
+
+      if (statusFilter !== 'all') {
+        filters.status = statusFilter;
+      }
+
+      if (ponIdFilter.trim()) {
+        filters.ponId = ponIdFilter.trim();
+      }
+
+      const data = await ServiceOutageService.list(filters);
+      setOutages(data);
+    } catch (err) {
+      setError('Error al cargar caídas de servicio');
+    }
+  }, [statusFilter, ponIdFilter]);
+
   useEffect(() => {
     loadOutages();
-  }, [statusFilter, ponIdFilter]);
+  }, [loadOutages]);
 
   useEffect(() => {
     loadClients();
@@ -131,25 +150,6 @@ const ServiceOutageManager: React.FC = () => {
       setPreviewDiscount(0);
     }
   }, [formData.startDate, formData.endDate, formData.installationId, installations]);
-
-  const loadOutages = async () => {
-    try {
-      const filters: any = {};
-
-      if (statusFilter !== 'all') {
-        filters.status = statusFilter;
-      }
-
-      if (ponIdFilter.trim()) {
-        filters.ponId = ponIdFilter.trim();
-      }
-
-      const data = await ServiceOutageService.list(filters);
-      setOutages(data);
-    } catch (err) {
-      setError('Error al cargar caídas de servicio');
-    }
-  };
 
   const loadClients = async () => {
     try {
@@ -327,7 +327,7 @@ const ServiceOutageManager: React.FC = () => {
   const handleSelectAllPending = (checked: boolean) => {
     if (checked) {
       const pendingIds = outages
-        .filter((outage) => outage.status === 'pending')
+        .filter((outage) => outage.status === 'pendiente')
         .map((outage) => outage.id);
       setSelectedOutageIds(pendingIds);
       return;
@@ -364,11 +364,11 @@ const ServiceOutageManager: React.FC = () => {
 
   const getStatusColor = (status: string): 'default' | 'warning' | 'success' | 'error' => {
     switch (status) {
-      case 'pending':
+      case 'pendiente':
         return 'warning';
-      case 'applied':
+      case 'aplicado':
         return 'success';
-      case 'cancelled':
+      case 'anulado':
         return 'error';
       default:
         return 'default';
@@ -377,18 +377,18 @@ const ServiceOutageManager: React.FC = () => {
 
   const getStatusLabel = (status: string): string => {
     switch (status) {
-      case 'pending':
+      case 'pendiente':
         return 'Pendiente';
-      case 'applied':
+      case 'aplicado':
         return 'Aplicado';
-      case 'cancelled':
-        return 'Cancelado';
+      case 'anulado':
+        return 'Anulado';
       default:
         return status;
     }
   };
 
-  const pendingOutages = outages.filter((outage) => outage.status === 'pending');
+  const pendingOutages = outages.filter((outage) => outage.status === 'pendiente');
   const allPendingSelected = pendingOutages.length > 0 && pendingOutages.every((outage) => selectedOutageIds.includes(outage.id));
   const somePendingSelected = pendingOutages.some((outage) => selectedOutageIds.includes(outage.id));
 
@@ -424,9 +424,9 @@ const ServiceOutageManager: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value as any)}
             >
               <MenuItem value="all">Todos</MenuItem>
-              <MenuItem value="pending">Pendientes</MenuItem>
-              <MenuItem value="applied">Aplicados</MenuItem>
-              <MenuItem value="cancelled">Cancelados</MenuItem>
+              <MenuItem value="pendiente">Pendientes</MenuItem>
+              <MenuItem value="aplicado">Aplicados</MenuItem>
+              <MenuItem value="anulado">Anulados</MenuItem>
             </TextField>
           </Grid>
           <Grid item xs={12} sm={4}>
@@ -490,7 +490,7 @@ const ServiceOutageManager: React.FC = () => {
                     <Checkbox
                       checked={selectedOutageIds.includes(outage.id)}
                       onChange={() => toggleOutageSelection(outage.id)}
-                      disabled={outage.status !== 'pending'}
+                      disabled={outage.status !== 'pendiente'}
                       inputProps={{ 'aria-label': `Seleccionar caída ${outage.id}` }}
                     />
                   </TableCell>
@@ -516,7 +516,7 @@ const ServiceOutageManager: React.FC = () => {
                     )}
                   </TableCell>
                   <TableCell align="center">
-                    {outage.status === 'pending' && (
+                    {outage.status === 'pendiente' && (
                       <IconButton size="small" color="error" onClick={() => handleDelete(outage.id)}>
                         <DeleteIcon />
                       </IconButton>

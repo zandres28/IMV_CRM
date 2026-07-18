@@ -56,10 +56,10 @@ export const N8nIntegrationController = {
             if (statusParam === 'all') {
                 // No aplicar filtro de estado
             } else if (statusParam === 'inactive') {
-                clientQuery.where('client.status <> :status', { status: 'active' });
+                clientQuery.where('client.status <> :status', { status: 'activo' });
             } else {
                 // Por defecto o si es explícitamente 'active'
-                clientQuery.where('client.status = :status', { status: 'active' });
+                clientQuery.where('client.status = :status', { status: 'activo' });
             }
             
             const clients = await clientQuery.getMany();
@@ -116,7 +116,7 @@ export const N8nIntegrationController = {
             const allAdditionalServices = await additionalServiceRepository.find({
                 where: { 
                     client: { id: In(clientIds) },
-                    status: 'active' as any
+                    status: 'activo' as any
                 },
                 relations: ['client']
             });
@@ -125,7 +125,7 @@ export const N8nIntegrationController = {
             const allFetchedProductInstallments = await productInstallmentRepository.find({
                 where: {
                     product: { client: { id: In(clientIds) } },
-                    status: 'pending'
+                    status: 'pendiente'
                 },
                 relations: ['product', 'product.client']
             });
@@ -239,8 +239,8 @@ export const N8nIntegrationController = {
                 }
 
                 // Si existe algún pago pagado del mes (no installation), priorizarlo para estado final.
-                if (!payment || payment.status !== 'paid') {
-                    const paidPayment = payments.find(p => p.status === 'paid' && p.paymentType !== 'installation');
+                if (!payment || payment.status !== 'pagado') {
+                    const paidPayment = payments.find(p => p.status === 'pagado' && p.paymentType !== 'installation');
                     if (paidPayment) {
                         payment = paidPayment;
                     }
@@ -249,7 +249,7 @@ export const N8nIntegrationController = {
                 let dias = 0;
                 let tipo = 'RECORDATORIO';
 
-                if (payment && payment.status === 'paid') {
+                if (payment && payment.status === 'pagado') {
                     tipo = 'PAGADO';
                     dias = 0;
                 } else if (payment && payment.dueDate) {
@@ -296,7 +296,7 @@ export const N8nIntegrationController = {
                     'CUOTA': cuota,
                     'TIPO': tipo,
                     'ENVIADO': sentClientIds.has(client.id) ? 'YES' : 'NO',
-                    'estado_pago': payment?.status || 'pending',
+                    'estado_pago': payment?.status || 'pendiente',
                     'installation_id': primaryInstallation?.id || null,
                     'installation_ids': activeInstallations.map(inst => inst.id)
                 };
@@ -323,25 +323,15 @@ export const N8nIntegrationController = {
             // Apply paymentStatus filter (if passed query param matches our logic)
             if (paymentStatus) {
                 const pFilter = String(paymentStatus).toLowerCase();
-                if (pFilter === 'pending') {
-                    // Mostrar pendientes, incluyendo los que técnicamente están vencidos si así lo desea la gestión simple,
-                    // O ser estricto. Para coincidir con el panel de facturación que suele mostrar "Pendiente" como categoría general,
-                    // a veces se incluye todo.
-                    // Pero si el usuario pidió explícitamente "overdue" en otra query, aquí 'pending' debería ser solo lo vigente.
-                    // Sin embargo, en N8n a menudo 'pending' se usa para "no pagado".
-                    // Revisando MonthlyBillingController: "pending" include ['pending', 'overdue'].
-                    
-                    // Lógica alineada con MonthlyBillingController: "Pendiente" trae todo lo no pagado.
-                    filteredReminders = filteredReminders.filter(r => r.estado_pago === 'pending' || r.estado_pago === 'overdue');
-                } else if (pFilter === 'overdue') {
-                    // Vencidos explícitos (status='overdue') O Pendientes que segun cálculo de días ya vencieron (TIPO='VENCIDO' o 'ULTIMO')
-                    // recordatorio.TIPO se calcula arriba basado en fecha.
+                if (pFilter === 'pending' || pFilter === 'pendiente') {
+                    filteredReminders = filteredReminders.filter(r => r.estado_pago === 'pendiente' || r.estado_pago === 'vencido');
+                } else if (pFilter === 'overdue' || pFilter === 'vencido') {
                     filteredReminders = filteredReminders.filter(r => 
-                        r.estado_pago === 'overdue' || 
-                        (r.estado_pago === 'pending' && (r.TIPO === 'VENCIDO' || r.TIPO === 'ULTIMO'))
+                        r.estado_pago === 'vencido' || 
+                        (r.estado_pago === 'pendiente' && (r.TIPO === 'VENCIDO' || r.TIPO === 'ULTIMO'))
                     );
-                } else if (pFilter === 'paid' || pFilter === 'approved') {
-                    filteredReminders = filteredReminders.filter(r => r.estado_pago === 'approved' || r.estado_pago === 'paid');
+                } else if (pFilter === 'paid' || pFilter === 'approved' || pFilter === 'pagado') {
+                    filteredReminders = filteredReminders.filter(r => r.estado_pago === 'approved' || r.estado_pago === 'pagado');
                 }
             }
 
@@ -498,7 +488,7 @@ export const N8nIntegrationController = {
                     'installation.isDeleted = :isDeleted AND installation.isActive = :isActive',
                     { isDeleted: false, isActive: true }
                 )
-                .where('client.status = :status', { status: 'active' })
+                .where('client.status = :status', { status: 'activo' })
                 .getMany();
 
             // Filtrar clientes con teléfono y formatearlos para Evolution API
@@ -661,7 +651,7 @@ export const N8nIntegrationController = {
             const pendingPayments = await paymentRepository.find({
                 where: {
                     client: { id: client.id },
-                    status: In(['pending', 'overdue'])
+                    status: In(['pendiente', 'vencido'])
                 },
                 order: {
                     paymentYear: 'ASC',
@@ -715,7 +705,7 @@ export const N8nIntegrationController = {
             const pendingPayments = await paymentRepository.find({
                 where: {
                     client: { id: client.id },
-                    status: In(['pending', 'overdue'])
+                    status: In(['pendiente', 'vencido'])
                 },
                 order: {
                     paymentDate: 'ASC' // Usamos paymentDate o dueDate como proxy de antigüedad
@@ -737,7 +727,7 @@ export const N8nIntegrationController = {
             const targetPayment = pendingPayments[0];
 
             // 3. Procesar el pago
-            targetPayment.status = 'paid';
+            targetPayment.status = 'pagado';
             targetPayment.paymentDate = date ? new Date(date) : new Date();
             targetPayment.paymentMethod = paymentMethod || 'whatsapp_integration';
             targetPayment.externalId = reference || `WHATSAPP-${Date.now()}`;
@@ -811,9 +801,9 @@ export const N8nIntegrationController = {
                 if (!type) {
                     type = await interactionTypeRepository.findOne({ where: { id: 1 } });
                 }
-
                 if (!type) {
-                     return res.status(500).json({ message: "No se encontró un tipo de interacción válido (Whatsapp/ID:1)" });
+                    type = interactionTypeRepository.create({ name: 'WhatsApp Automático', description: 'Envío automático de recordatorios', isSystem: true });
+                    await interactionTypeRepository.save(type);
                 }
 
                 let createdCount = 0;
@@ -932,7 +922,7 @@ export const N8nIntegrationController = {
              const clients = await clientRepository
                 .createQueryBuilder('client')
                 .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted AND installation.isActive = :isActive', { isDeleted: false, isActive: true })
-                .where('client.status = :status', { status: 'active' })
+                .where('client.status = :status', { status: 'activo' })
                 .getMany();
 
             const candidates = [];
@@ -952,8 +942,8 @@ export const N8nIntegrationController = {
 
             const allPayments = await paymentRepository.find({
                 where: [
-                    { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear, status: 'paid' },
-                    { client: { id: In(clientIds) }, paymentMonth: queryMonth.toLowerCase(), paymentYear: queryYear, status: 'paid' }
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear, status: 'pagado' },
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth.toLowerCase(), paymentYear: queryYear, status: 'pagado' }
                 ],
                 relations: ['client'] 
             });

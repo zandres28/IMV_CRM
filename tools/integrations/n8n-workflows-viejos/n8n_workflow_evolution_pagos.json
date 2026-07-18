@@ -1,0 +1,239 @@
+{
+  "name": "Evolution API (WhatsApp Label) -> Chatwoot & CRM Payment",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "evolution-webhook-labels",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook Evolution",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.event }}",
+              "operation": "equal",
+              "value2": "LABELS_ASSOCIATION"
+            },
+            {
+              "value1": "={{ $json.data.label.name }}",
+              "operation": "equal",
+              "value2": "Pagado"
+            },
+            {
+                "value1": "={{ $json.data.type }}",
+                "operation": "equal",
+                "value2": "add"
+            }
+          ]
+        }
+      },
+      "name": "Filter: Label 'Pagado'",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [
+        300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://imv_crm_backend:3000/api/n8n/client-debt",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "options": {},
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "phone",
+              "value": "={{ $json.data.association.chatId.split('@')[0] }}"
+            }
+          ]
+        }
+      },
+      "name": "Get CRM Debt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.totalDebt }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "name": "If Has Debt",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://imv_crm_backend:3000/api/n8n/register-payment",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "phone",
+              "value": "={{ $node[\"Get CRM Debt\"].json.pendingInvoices[0].amount ? $node[\"Filter: Label 'Pagado'\"].json.data.association.chatId.split('@')[0] : 0 }}"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $node[\"Get CRM Debt\"].json.pendingInvoices[0].amount }}"
+            },
+            {
+              "name": "paymentMethod",
+              "value": "whatsapp_label"
+            },
+             {
+              "name": "reference",
+              "value": "LABEL-{{ $today }}"
+            }
+          ]
+        }
+      },
+      "name": "Pay Oldest Bill",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        950,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://chatwoot_app:3000/api/v1/accounts/1/contacts/search",
+        "jsonParameters": true,
+        "options": {},
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "q",
+              "value": "={{ $node[\"Filter: Label 'Pagado'\"].json.data.association.chatId.split('@')[0] }}"
+            }
+          ]
+        },
+        "headerParametersUi": {
+            "parameter": [
+                {
+                    "name": "api_access_token",
+                    "value": "kVFWDgHMUHTwH8pMR1ixbyBZ"
+                }
+            ]
+        }
+      },
+      "name": "Search Chatwoot Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        500,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ 'http://chatwoot_app:3000/api/v1/accounts/1/conversations/' + $json.payload[0].contact_inboxes[0].source_id + '/labels' }}",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "labels",
+              "value": "[\"Pagado\"]"
+            }
+          ]
+        },
+         "headerParametersUi": {
+            "parameter": [
+                {
+                    "name": "api_access_token",
+                    "value": "kVFWDgHMUHTwH8pMR1ixbyBZ"
+                }
+            ]
+        }
+      },
+      "name": "Tag Chatwoot Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        700,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Evolution": {
+      "main": [
+        [
+          {
+            "node": "Filter: Label 'Pagado'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Label 'Pagado'": {
+      "main": [
+        [
+          {
+            "node": "Get CRM Debt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Chatwoot Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CRM Debt": {
+      "main": [
+        [
+          {
+            "node": "If Has Debt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Has Debt": {
+      "main": [
+        [
+          {
+            "node": "Pay Oldest Bill",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
