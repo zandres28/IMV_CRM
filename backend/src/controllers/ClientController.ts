@@ -562,6 +562,18 @@ export const ClientController = {
             // Sanitizar body para evitar actualizar cosas que no se deben o manejar conversiones
             const { suspension_extension_date, ...rest } = req.body;
             
+            if (rest.status) {
+                const STATUS_MAP: Record<string, string> = {
+                    'active': 'activo',
+                    'inactive': 'inactivo',
+                    'suspended': 'suspendido',
+                    'cancelled': 'retirado',
+                    'retired': 'retirado',
+                    'pending_install': 'pendiente_instalacion',
+                };
+                rest.status = STATUS_MAP[rest.status] || rest.status;
+            }
+            
             clientRepository.merge(client, rest);
 
             if (suspension_extension_date !== undefined) {
