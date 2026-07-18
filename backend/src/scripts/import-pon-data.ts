@@ -22,7 +22,7 @@ async function importPonData() {
         console.log('✓ Conexión establecida');
 
         // Leer CSV
-        const csvPath = path.resolve(__dirname, '../../../tmp/pon-clientes.csv');
+        const csvPath = path.resolve(__dirname, '../../../tools/scratch/pon-clientes.csv');
         console.log(`Leyendo archivo: ${csvPath}`);
         
         if (!fs.existsSync(csvPath)) {

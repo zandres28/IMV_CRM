@@ -1,0 +1,54 @@
+Imagen;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;
+ID SERVICIO;ID Cliente + Nombre ;ID Cliente;Estado del Servicio;Fecha Instalación;Tipo de Servicio;Velocidad (Mbps);Router Asignado;IP Asignada;Técnico Instalador;ESTADO;Notas Especiales;pagos;TIPO PAGO;FECHA DE PAGO
+IN-0001;CL-0001 - JAIRO GIRALDO SANCHEZ;CL-0001;Activo;miércoles, 18 de junio de 2025;Internet - 200 Mbps;200;WK-3802AWC-B;192.168.10.300;YAMID ARTURO MOLINA;Realizada;Verduras;OK;;#CALC!
+IN-0002;CL-0002 - LIZBETH DEL CARMEN MONTOYA;CL-0002;Activo;martes, 24 de junio de 2025;Internet - 200 Mbps;200;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;Venezolana;OK;;#CALC!
+IN-0003;CL-0003 - JOSE DAVID MOSQUERA MARTÍNEZ;CL-0003;Activo;martes, 24 de junio de 2025;Internet - 200 Mbps;200;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;;OK;;#CALC!
+IN-0004;CL-0004 - JUAN ALBERTO  - ZUDOTEX;CL-0004;Activo;miércoles, 25 de junio de 2025;Internet - 600 Mbps;600;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;2 puntos adiononales;OK;;#CALC!
+IN-0005;CL-0005 - CAROLINA TORIJANO;CL-0005;Activo;viernes, 27 de junio de 2025;Internet - 200 Mbps;200;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;;OK;;#CALC!
+IN-0006;CL-0006 - MARÍA NELA REBOLLEDO ESTUPIÑÁN ;CL-0006;Activo;martes, 1 de julio de 2025;Internet - 200 Mbps;200;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;-;OK;;#CALC!
+IN-0007;CL-0007 - DIDIER SANTIAGO CHACÓN URBANO;CL-0007;Activo;viernes, 4 de julio de 2025;Internet - 400 Mbps;400;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;8AM;OK;;#CALC!
+IN-0008;CL-0008 - SIGIFREDO NIÑO;CL-0008;Activo;viernes, 4 de julio de 2025;Internet - 200 Mbps+TVBOX;200;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;TVBOX;OK;;#CALC!
+IN-0009;CL-0009 - EDWIN ALEXANDER GONZÁLEZ;CL-0009;Activo;sábado, 5 de julio de 2025;Internet - 400 Mbps;400;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;;OK;;#CALC!
+IN-0010;CL-0010 - DEIBY IVÁN FLÓREZ MARTÍNEZ;CL-0010;Activo;viernes, 4 de julio de 2025;Internet - 400 Mbps;400;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;;OK;;#CALC!
+IN-0011;CL-0011 - JUAN JOSÉ BURITICA;CL-0011;Activo;lunes, 7 de julio de 2025;Internet - 400 Mbps;400;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;;OK;;#CALC!
+IN-0012;CL-0012 - JULIO CESAR VALENCIA CORTÉZ;CL-0012;Activo;jueves, 17 de julio de 2025;Internet - 200 Mbps + TELE;200;WK-3802AWC-B;;YAMID ARTURO MOLINA;Realizada;TVBOX  yytsjc/Vsj5m34;OK;;#CALC!
+IN-0013;CL-0013 - VALENTINA HERNÁNDEZ;CL-0013;Activo;sábado, 26 de julio de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0015;CL-0014 - JOSE WILMER DÍAZ MARROQUÍN;CL-0014;Activo;sábado, 26 de julio de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0016;CL-0015 - MAURICIO SILVA ORTÍZ;CL-0015;Activo;lunes, 28 de julio de 2025;Internet - 200 Mbps;200;;;;Realizada;;;;#CALC!
+IN-0020;CL-0016 - VALENTINA LOURIDO OREJUELA;CL-0016;Activo;martes, 29 de julio de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0014;CL-0017 - ALBA LUCÍA CAMPAZ CUERO;CL-0017;Activo;sábado, 2 de agosto de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0017;CL-0018 - LUIS FERNANDO BRAVO GUERRERO;CL-0018;Activo;viernes, 1 de agosto de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0018;CL-0019 - STEVEN DE JESÚS ORTEGA HERMOSILLA;CL-0019;Activo;lunes, 4 de agosto de 2025;Internet - 600 Mbps;600;;;;Realizada;;OK;;#CALC!
+IN-0019;CL-0020 - MARIA CAMILA ASPRILLA IBARGUEN;CL-0020;Activo;lunes, 4 de agosto de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0020;CL-0021 - EL PUNTO DISTRIBUIDOR TORNILLOS Y ELECTRÓNICA;CL-0021;Activo;viernes, 25 de julio de 2025;Internet - 600 Mbps;600;;;;Realizada;;;;#CALC!
+IN-0021;CL-0022 - OSCAR GIRALDO OSORIO;CL-0022;Activo;miércoles, 6 de agosto de 2025;Internet - 400 Mbps + TELE;400;;;;Realizada;TV BOX 1/5  yytsjc/Vsj5m34;OK;;#CALC!
+IN-0022;CL-0023 - GUSTAVO ADOLFO ZAPATA;CL-0023;Activo;lunes, 11 de agosto de 2025;Internet - 600 Mbps;600;;;;Realizada;;;;#CALC!
+IN-0023;CL-0024 - CONSUELO LENIS VALENCIA;CL-0024;Activo;martes, 12 de agosto de 2025;Internet - 200 Mbps;200;;;;Realizada;;ok;;#CALC!
+IN-0024;CL-0025 - CARLOS FRANCISCO MORA;CL-0025;Activo;miércoles, 20 de agosto de 2025;Internet - 600 Mbps;600;;;;Realizada;;;;#CALC!
+IN-0025;CL-0026 - JULIÁN ANDRÉS ANGEL JIMENEZ;CL-0026;Activo;jueves, 14 de agosto de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0026;CL-0027 - JORGE ENRIQUE HERNÁNDEZ MAGAÑA;CL-0027;Activo;lunes, 25 de agosto de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0027;CL-0028 - AMPARO CECILIA MESÍAS;CL-0028;Activo;lunes, 25 de agosto de 2025;Internet - 200 Mbps;200;;;;Realizada;;ok;;#CALC!
+IN-0028;CL-0029 - JOHN JAIRO RUIZ INGA;CL-0029;Activo;martes, 26 de agosto de 2025;Internet - 200 Mbps;200;;;;Realizada;TVBOX;ok;;#CALC!
+IN-0029;CL-0030 - JUAN MANUEL VICTORIA;CL-0030;Activo;miércoles, 3 de septiembre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0030;CL-0031 - JOSE EDWARD ALDANA;CL-0031;Activo;miércoles, 3 de septiembre de 2025;Internet - 200 Mbps;200;;;;Realizada;;ok;;#CALC!
+IN-0031;CL-0032 - IVÁN ANDRÉS DÍAZ;CL-0032;Activo;viernes, 5 de septiembre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0032;CL-0033 - CARLOTA CÓRDOBA LAVERDE;CL-0033;Activo;lunes, 8 de septiembre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0033;CL-0034 - SANDRA PATRICIA GUILLEN RODRÍGUEZ;CL-0034;Activo;martes, 16 de septiembre de 2025;Internet - 400 Mbps;400;;;;Realizada;2 TV BOX;OK;;#CALC!
+IN-0034;CL-0035 - NIRZON QUEVEDO ;CL-0035;Activo;lunes, 22 de septiembre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0035;CL-0036 - KAROL BRIGTH VIAFARA;CL-0036;Activo;miércoles, 24 de septiembre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0036;CL-0037 - JOSÉ EDDIEL MORALES;CL-0037;Activo;jueves, 25 de septiembre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0037;CL-0038 - CRISTIAN ARLEY LÓPEZ;CL-0038;Activo;lunes, 29 de septiembre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0038;CL-0039 - DANNY MELISSA AGUIRRE;CL-0039;Activo;jueves, 2 de octubre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0039;CL-0040 - ALEJANDRO BURBANO VALENCIA;CL-0040;Activo;miércoles, 1 de octubre de 2025;Internet - 600 Mbps;600;;;;Realizada;;OK;;#CALC!
+IN-0040;CL-0041 - CAROLINA LONDOÑO SANDOVAL;CL-0041;Activo;lunes, 6 de octubre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0041;CL-0042 - ANYELA PATRICIA CABRERA LEON;CL-0042;Activo;miércoles, 8 de octubre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0042;CL-0043 - LUZ AYDEE ÁGUILAS;CL-0043;Activo;lunes, 6 de octubre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0043;CL-0044 - FUENTES DE CAMINO REAL 4;CL-0044;Activo;viernes, 3 de octubre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0044;CL-0045 - FERNANDO PUENTE GAMBOA;CL-0045;Activo;sábado, 11 de octubre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0045;CL-0046 - KETTY RAMIREZ;CL-0046;Activo;martes, 21 de octubre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0046;CL-0047 - JOHN JAIRO OROZCO;CL-0047;Activo;miércoles, 22 de octubre de 2025;Internet - 600 Mbps;600;;;;Realizada;;OK;;#CALC!
+IN-0047;CL-0048 - CESAR AUGUSTO BELALCAZAR;CL-0048;Activo;jueves, 23 de octubre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0048;CL-0049 - SADY ALBERTO CARDONA BALLESTEROS;CL-0049;Activo;miércoles, 29 de octubre de 2025;Internet - 200 Mbps;200;;;;Realizada;;OK;;#CALC!
+IN-0049;CL-0050 - MARTHA CECILIA JIMENEZ ZULUAGA;CL-0050;Activo;viernes, 31 de octubre de 2025;Internet - 400 Mbps;400;;;;Realizada;;OK;;#CALC!
+IN-0050;CL-0051 - CARLOS ALBERTO RAMÍREZ;CL-0051;Activo;jueves, 30 de octubre de 2025;Internet - 600 Mbps;600;;;;Realizada;;OK;;#CALC!

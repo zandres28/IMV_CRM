@@ -79,7 +79,7 @@ export class MonthlyBillingController {
                         {
                             client: { id: client.id },
                             isActive: true,
-                            serviceStatus: 'active',
+                            serviceStatus: 'activo',
                             isDeleted: false
                         },
                         {
@@ -96,7 +96,7 @@ export class MonthlyBillingController {
                 // Filtrar en memoria para manejar lógica compleja de fechas
                 const activeInstallations = allInstallations.filter(inst => {
                     // Si está activa, incluirla (a menos que tenga retirementDate anterior al mes, lo cual sería inconsistente pero posible)
-                    if (inst.serviceStatus === 'active') {
+                    if (inst.serviceStatus === 'activo') {
                         if (inst.retirementDate) {
                             const rDate = parseLocalDate(inst.retirementDate as unknown as string) || new Date(inst.retirementDate);
                             // Si se retiró antes de empezar el mes, no facturar
@@ -131,7 +131,7 @@ export class MonthlyBillingController {
                             paymentMonth: monthName,
                             paymentYear: yearNum,
                             paymentType: 'monthly',
-                            status: 'pending'
+                            status: 'pendiente'
                         }
                     });
                     
@@ -193,7 +193,7 @@ export class MonthlyBillingController {
 
                 // Servicios adicionales activos
                 const additionalServices = await additionalServiceRepository.find({
-                    where: { client: { id: client.id }, status: 'active' }
+                    where: { client: { id: client.id }, status: 'activo' }
                 });
                 let additionalServicesAmount = 0;
                 const clientRetirementDate = client.retirementDate
@@ -240,7 +240,7 @@ export class MonthlyBillingController {
 
                 // Cuotas de productos: del mes (hasta día 5 del siguiente) y futuras provisionadas
                 const productsSold = await productSoldRepository.find({
-                    where: { client: { id: client.id }, status: 'pending' },
+                    where: { client: { id: client.id }, status: 'pendiente' },
                     relations: ['installmentPayments']
                 });
                 let productInstallmentsAmount = 0; // del período de facturación
@@ -254,7 +254,7 @@ export class MonthlyBillingController {
                     const pendingFromThisMonthOn = await installmentRepository.find({
                         where: {
                             product: { id: product.id },
-                            status: 'pending',
+                            status: 'pendiente',
                             dueDate: Between(firstDayOfMonth, new Date(9999, 11, 31))
                         }
                     });
@@ -291,7 +291,7 @@ export class MonthlyBillingController {
                 const outageQuery = outageRepository.createQueryBuilder('outage')
                     .where('outage.clientId = :clientId', { clientId: client.id })
                     .andWhere(new Brackets(qb => {
-                        qb.where('outage.status = :pending', { pending: 'pending' });
+                        qb.where('outage.status = :pending', { pending: 'pendiente' });
                         if (payment) {
                             qb.orWhere('outage.appliedToPaymentId = :paymentId', { paymentId: payment.id });
                         }
@@ -314,7 +314,7 @@ export class MonthlyBillingController {
                 // Si el total es 0 o negativo (ej. todas las instalaciones son futuras), 
                 // y existe un pago pendiente previo, eliminarlo para limpiar basura
                 if (totalAmount <= 0) {
-                    if (payment && payment.status === 'pending') {
+                    if (payment && payment.status === 'pendiente') {
                         await paymentRepository.remove(payment);
                     }
                     continue;
@@ -330,10 +330,10 @@ export class MonthlyBillingController {
                 payment.paymentYear = yearNum;
                 payment.dueDate = new Date(yearNum, monthIndex + 1, 5);
                 // Si ya estaba pagado, no modificar estado ni amount; de lo contrario, marcar/actualizar
-                if (payment.status !== 'paid') {
+                if (payment.status !== 'pagado') {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    payment.status = today > payment.dueDate ? 'overdue' : 'pending';
+                    payment.status = today > payment.dueDate ? 'vencido' : 'pendiente';
                 }
                 payment.servicePlanAmount = Number(servicePlanAmount.toFixed(2));
                 payment.additionalServicesAmount = Number(additionalServicesAmount.toFixed(2));
@@ -360,7 +360,7 @@ export class MonthlyBillingController {
                 // Marcar las caídas como aplicadas a este pago
                 if (pendingOutages.length > 0) {
                     for (const outage of pendingOutages) {
-                        outage.status = 'applied';
+                        outage.status = 'aplicado';
                         outage.appliedToPaymentId = payment.id;
                         await outageRepository.save(outage);
                     }
@@ -422,12 +422,12 @@ export class MonthlyBillingController {
                     continue;
                 }
 
-                if (payment.status === 'paid') {
+                if (payment.status === 'pagado') {
                     results.push({ clientId, status: 'already-paid', paymentId: payment.id });
                     continue;
                 }
 
-                payment.status = 'paid';
+                payment.status = 'pagado';
                 payment.paymentMethod = method as any;
                 payment.paymentDate = paymentDate ? parseLocalDate(paymentDate)! : new Date();
                 await paymentRepository.save(payment);
@@ -509,8 +509,8 @@ export class MonthlyBillingController {
                 query.andWhere(
                     new Brackets(qb => {
                         qb.where('(payment.paymentMonth = :month AND payment.paymentYear = :year)', { month, year: yearNum })
-                          .orWhere('(payment.status IN (:...statuses) AND payment.dueDate < :dueDate)', { 
-                              statuses: ['pending', 'overdue'],
+                           .orWhere('(payment.status IN (:...statuses) AND payment.dueDate < :dueDate)', { 
+                               statuses: ['pendiente', 'vencido'],
                               dueDate: currentMonthDueDate 
                           });
                     })
@@ -522,20 +522,16 @@ export class MonthlyBillingController {
             }
 
             if (status) {
-                if (status === 'pending') {
-                    // Si el filtro es "pendientes", incluir "vencidos" también, ya que técnicamente están pendientes de pago
-                    query.andWhere('payment.status IN (:...statuses)', { statuses: ['pending', 'overdue'] });
-                } else if (status === 'overdue') {
-                    // Si el filtro es "vencidos", incluir:
-                    // 1. Los que explícitamente tienen status = 'overdue'
-                    // 2. Los que están 'pending' pero su fecha de vencimiento ya pasó (dinámico)
+                if (status === 'pendiente') {
+                    query.andWhere('payment.status IN (:...statuses)', { statuses: ['pendiente', 'vencido'] });
+                } else if (status === 'vencido') {
                     const today = new Date();
                     today.setHours(0,0,0,0);
                     
                     query.andWhere(new Brackets(qb => {
-                        qb.where('payment.status = :overdueStatus', { overdueStatus: 'overdue' })
+                        qb.where('payment.status = :overdueStatus', { overdueStatus: 'vencido' })
                           .orWhere('(payment.status = :pendingStatus AND payment.dueDate < :today)', { 
-                              pendingStatus: 'pending',
+                              pendingStatus: 'pendiente',
                               today
                           });
                     }));
@@ -595,19 +591,19 @@ export class MonthlyBillingController {
             // Calcular estadísticas de pagos mensuales
             const stats = {
                 total: paymentsWithReminder.length,
-                pending: paymentsWithReminder.filter(p => p.status === 'pending').length,
-                paid: paymentsWithReminder.filter(p => p.status === 'paid').length,
-                overdue: paymentsWithReminder.filter(p => p.status === 'overdue').length,
+                pending: paymentsWithReminder.filter(p => p.status === 'pendiente').length,
+                paid: paymentsWithReminder.filter(p => p.status === 'pagado').length,
+                overdue: paymentsWithReminder.filter(p => p.status === 'vencido').length,
                 totalAmount: paymentsWithReminder.reduce((sum, p) => sum + Number(p.amount), 0),
-                paidAmount: paymentsWithReminder.filter(p => p.status === 'paid')
+                paidAmount: paymentsWithReminder.filter(p => p.status === 'pagado')
                     .reduce((sum, p) => sum + Number(p.amount), 0),
-                paidServicePlanAmount: paymentsWithReminder.filter(p => p.status === 'paid')
+                paidServicePlanAmount: paymentsWithReminder.filter(p => p.status === 'pagado')
                     .reduce((sum, p) => sum + Number(p.servicePlanAmount || 0), 0),
-                paidAdditionalServicesAmount: paymentsWithReminder.filter(p => p.status === 'paid')
+                paidAdditionalServicesAmount: paymentsWithReminder.filter(p => p.status === 'pagado')
                     .reduce((sum, p) => sum + Number(p.additionalServicesAmount || 0), 0),
-                paidProductsAmount: paymentsWithReminder.filter(p => p.status === 'paid')
+                paidProductsAmount: paymentsWithReminder.filter(p => p.status === 'pagado')
                     .reduce((sum, p) => sum + Number(p.productInstallmentsAmount || 0), 0),
-                pendingAmount: paymentsWithReminder.filter(p => p.status === 'pending' || p.status === 'overdue')
+                pendingAmount: paymentsWithReminder.filter(p => p.status === 'pendiente' || p.status === 'vencido')
                     .reduce((sum, p) => sum + Number(p.amount), 0),
                 // Desglose por tipo de concepto
                 totalServicePlan: paymentsWithReminder.reduce((sum, p) => sum + Number(p.servicePlanAmount || 0), 0),
@@ -732,7 +728,7 @@ export class MonthlyBillingController {
                 return res.status(404).json({ message: "Pago no encontrado" });
             }
 
-            payment.status = 'paid';
+            payment.status = 'pagado';
             payment.paymentDate = paymentDate ? parseLocalDate(paymentDate)! : new Date();
             payment.paymentMethod = paymentMethod;
             
@@ -750,14 +746,14 @@ export class MonthlyBillingController {
                     .innerJoin('inst.product', 'product')
                     .innerJoin('product.client', 'client')
                     .where('client.id = :clientId', { clientId: payment.client.id })
-                    .andWhere('inst.status IN (:...statuses)', { statuses: ['pending', 'overdue'] })
+                    .andWhere('inst.status = :status', { status: 'pendiente' })
                     .andWhere('inst.dueDate >= :start', { start: firstDayOfMonth })
                     .andWhere('inst.dueDate <= :end', { end: billingPeriodEnd })
                     .getMany();
 
                 let autoMarkedCount = 0;
                 for (const inst of includedInstallments) {
-                    inst.status = 'paid';
+                    inst.status = 'completado';
                     inst.paymentDate = payment.paymentDate;
                     inst.notes = (inst.notes ? inst.notes + ' | ' : '') +
                         `Incluida en mensualidad ${payment.paymentMonth} ${payment.paymentYear}`;
@@ -778,8 +774,8 @@ export class MonthlyBillingController {
                 });
 
                 for (const inst of installments) {
-                    if (inst.status !== 'paid') {
-                        inst.status = 'paid';
+                    if (inst.status !== 'completado') {
+                        inst.status = 'completado';
                         inst.paymentDate = payment.paymentDate;
                         inst.notes = (inst.notes ? inst.notes + ' | ' : '') + `Pagado con mensualidad ${payment.paymentMonth} ${payment.paymentYear}`;
                         await installmentRepository.save(inst);
@@ -877,12 +873,12 @@ export class MonthlyBillingController {
 
             const overduePayments = await paymentRepository
                 .createQueryBuilder('payment')
-                .where('payment.status = :status', { status: 'pending' })
+                .where('payment.status = :status', { status: 'pendiente' })
                 .andWhere('payment.dueDate < :today', { today })
                 .getMany();
 
             for (const payment of overduePayments) {
-                payment.status = 'overdue';
+                payment.status = 'vencido';
                 await paymentRepository.save(payment);
             }
 
@@ -929,7 +925,7 @@ export class MonthlyBillingController {
             const payments = await paymentRepository.find({
                 where: {
                     client: { id: client.id },
-                    status: 'pending',
+                    status: 'pendiente',
                     paymentType: 'monthly'
                 },
                 relations: ['installation', 'installation.servicePlan'],
@@ -980,8 +976,8 @@ export class MonthlyBillingController {
             // Buscar pagos pendientes o vencidos
             const pendingPayments = await paymentRepository.find({
                 where: [
-                    { client: { id: client.id }, status: 'pending' },
-                    { client: { id: client.id }, status: 'overdue' }
+                    { client: { id: client.id }, status: 'pendiente' },
+                    { client: { id: client.id }, status: 'vencido' }
                 ],
                 order: { dueDate: 'ASC' }
             });

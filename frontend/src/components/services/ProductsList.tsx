@@ -64,7 +64,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
     const handleInstallmentPayment = async (installment: ProductInstallment) => {
         try {
             await ProductService.updateInstallment(installment.id, {
-                status: 'completed',
+                status: 'completado',
                 paymentDate: new Date().toISOString()
             });
             loadProducts();
@@ -133,7 +133,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
                             sx={{ 
                                 mb: 2, 
                                 borderRadius: 2,
-                                borderLeft: `4px solid ${product.status === 'completed' ? '#1cc88a' : '#f6c23e'}`,
+                                borderLeft: `4px solid ${product.status === 'completado' ? '#1cc88a' : '#f6c23e'}`,
                                 boxShadow: '0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1)'
                             }}
                         >
@@ -143,8 +143,8 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
                                         {product.productName}
                                     </Typography>
                                     <Chip
-                                        label={product.status === 'completed' ? 'PAGADO' : 'PENDIENTE'}
-                                        color={product.status === 'completed' ? 'success' : 'warning'}
+                                        label={product.status === 'completado' ? 'PAGADO' : 'PENDIENTE'}
+                                        color={product.status === 'completado' ? 'success' : 'warning'}
                                         size="small"
                                         sx={{ height: 20, fontSize: '0.6rem', fontWeight: 800 }}
                                     />
@@ -192,7 +192,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
                                                 </Box>
                                                 <Box display="flex" justifyContent="space-between" alignItems="center" mt={0.5}>
                                                     <Typography variant="caption" color="textSecondary">Vence: {formatDate(installment.dueDate)}</Typography>
-                                                    {installment.status === 'completed' ? (
+                                                    {installment.status === 'completado' ? (
                                                         <Chip label="Pagado" color="success" size="small" sx={{ height: 16, fontSize: '0.55rem' }} />
                                                     ) : (
                                                         <IconButton 
@@ -261,12 +261,12 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
                                         <TableCell>
                                             <Chip
                                                 label={
-                                                    product.status === 'completed'
+                                                    product.status === 'completado'
                                                         ? 'Completado'
                                                         : 'Pendiente'
                                                 }
                                                 color={
-                                                    product.status === 'completed'
+                                                    product.status === 'completado'
                                                         ? 'success'
                                                         : 'warning'
                                                 }
@@ -336,7 +336,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({ clientId }) => {
                                                                     <Typography>
                                                                         Vencimiento: {formatDate(installment.dueDate)}
                                                                     </Typography>
-                                                                    {installment.status === 'completed' ? (
+                                                                    {installment.status === 'completado' ? (
                                                                         <Chip
                                                                             label="Pagado"
                                                                             color="success"

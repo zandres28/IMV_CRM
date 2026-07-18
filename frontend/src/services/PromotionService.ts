@@ -1,8 +1,6 @@
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-// Base URL for static files (remove /api suffix)
-const BASE_URL = API_URL.replace('/api', '');
 
 export interface PromotionImage {
     id: number;

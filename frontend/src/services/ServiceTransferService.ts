@@ -13,7 +13,7 @@ export interface ServiceTransfer {
     requestDate: string;
     scheduledDate?: string;
     completionDate?: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    status: 'pendiente' | 'en_progreso' | 'completado' | 'anulado';
     cost: number;
     technicianId?: number;
     technician?: Technician;

@@ -59,7 +59,7 @@ export class Client {
     @Column({ type: 'varchar', length: 100, nullable: true, default: 'CALI' })
     sucursal?: string | null;
 
-    @Column({ default: 'active' })
+    @Column({ type: 'enum', enum: ['activo', 'suspendido', 'retirado', 'inactivo', 'pendiente_instalacion'], default: 'activo' })
     status: string;
 
     @Column({ type: 'date', nullable: true, transformer: dateOnlyTransformer })

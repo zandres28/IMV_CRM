@@ -1,0 +1,21 @@
+name: ubuntu-test
+
+services:
+  ubuntu-test:
+    build:
+      context: .
+      dockerfile: ./docker/ubuntu-test/Dockerfile
+    container_name: ubuntu-test
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    networks:
+      - unified-services
+
+networks:
+  unified-services:
+    external: true
+    name: imv_crm_unified-services

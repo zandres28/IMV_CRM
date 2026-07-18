@@ -22,7 +22,7 @@ export class ProductInstallment {
     @Column({ type: 'date', nullable: true, transformer: dateOnlyTransformer })
     paymentDate!: Date;
 
-    @Column({ default: 'pending' })
+    @Column({ type: 'enum', enum: ['pendiente', 'completado'], default: 'pendiente' })
     status!: string;
 
     @Column({ type: 'text', nullable: true })

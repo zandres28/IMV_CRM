@@ -12,7 +12,7 @@ export default function QueryDashboard() {
   const [tab, setTab] = useState(0);
   const [reportType, setReportType] = useState<ReportType>('account_status');
   const [clientStatus, setClientStatus] = useState<'active' | 'inactive' | 'all'>('active');
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'all'>('all');
+  const [paymentStatus, setPaymentStatus] = useState<'pendiente' | 'pagado' | 'all'>('all');
   const [reminderType, setReminderType] = useState<'PROXIMO' | 'VENCIMIENTO' | 'RECORDATORIO' | 'ULTIMO' | 'all'>('all');
   const [search, setSearch] = useState('');
   const [planId, setPlanId] = useState<number | 'all'>('all');
@@ -49,7 +49,7 @@ export default function QueryDashboard() {
     }
 
     const paymentParam = searchParams.get('paymentStatus');
-    if (paymentParam && paymentParam !== paymentStatus && ['pending', 'completed', 'all'].includes(paymentParam)) {
+    if (paymentParam && paymentParam !== paymentStatus && ['pendiente', 'pagado', 'all'].includes(paymentParam)) {
       setPaymentStatus(paymentParam as any);
     }
 
@@ -412,8 +412,8 @@ export default function QueryDashboard() {
               <Grid item xs={12} md={3}>
                 <TextField select fullWidth label="Estado pago" value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as any)}>
                   <MenuItem value="all">Todos</MenuItem>
-                  <MenuItem value="pending">Pendiente</MenuItem>
-                  <MenuItem value="completed">Pagado</MenuItem>
+                  <MenuItem value="pendiente">Pendiente</MenuItem>
+                  <MenuItem value="pagado">Pagado</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} md={3}>

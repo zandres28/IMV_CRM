@@ -1,34 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Box,
-    Card,
-    CardContent,
-    Typography,
-    TextField,
-    Button,
-    Alert,
-    CircularProgress,
-    Container,
-    MenuItem,
-    Grid,
-    FormControl,
-    InputLabel,
-    Select,
-    SelectChangeEvent,
-    FormHelperText,
-    FormControlLabel,
-    Checkbox,
-    Link as MuiLink
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Alert,
+  CircularProgress,
+  Container,
+  MenuItem,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  FormControlLabel,
+  Checkbox,
+  Link as MuiLink,
+  Stack,
 } from '@mui/material';
-import { Send as SendIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
+import {
+  Send as SendIcon,
+  CheckCircle as CheckCircleIcon,
+  WhatsApp as WhatsAppIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import axios from 'axios';
 
 interface ServicePlan {
-    id: number;
-    name: string;
-    speedMbps: number;
-    monthlyFee: string; // The API might return string or number
-    installationFee: string;
+  id: number;
+  name: string;
+  speedMbps: number;
+  monthlyFee: string;
+  installationFee: string;
 }
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -45,7 +49,6 @@ const ServiceRequestForm: React.FC = () => {
     });
     const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
     const [cities, setCities] = useState<string[]>(['Cali']);
-
     const [plans, setPlans] = useState<ServicePlan[]>([]);
     const [loadingPlans, setLoadingPlans] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -78,7 +81,6 @@ const ServiceRequestForm: React.FC = () => {
                 setLoadingPlans(false);
             }
         };
-
         fetchPlans();
     }, []);
 
@@ -87,22 +89,16 @@ const ServiceRequestForm: React.FC = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSelectChange = (e: SelectChangeEvent) => {
-        setFormData(prev => ({ ...prev, planId: e.target.value as string }));
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!acceptDataPolicy) {
             setError('Debes autorizar el tratamiento de datos personales para continuar.');
             return;
         }
-
         if (!formData.fullName.trim() || !formData.identificationNumber.trim() || !formData.primaryPhone.trim()) {
             setError('Completa los datos personales obligatorios antes de enviar la solicitud.');
             return;
         }
-
         const parsedPlanId = Number(formData.planId);
         if (!Number.isInteger(parsedPlanId) || parsedPlanId <= 0) {
             setError('Selecciona un plan válido antes de enviar la solicitud.');
@@ -138,263 +134,200 @@ const ServiceRequestForm: React.FC = () => {
     const formatCurrency = (val: string | number) => {
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
-            currency: 'COP'
+            currency: 'COP',
+            maximumFractionDigits: 0,
         }).format(Number(val));
     };
 
+    const selectedPlan = plans.find(p => p.id === Number(formData.planId));
+
     if (success) {
         return (
-            <Box 
-                sx={{ 
-                    minHeight: '100vh', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    backgroundColor: '#f5f5f5',
-                    p: 2
-                }}
-            >
-                <Card sx={{ maxWidth: 600, width: '100%', textAlign: 'center', p: 4, boxShadow: 3 }}>
-                    <CheckCircleIcon color="success" sx={{ fontSize: 80, mb: 2 }} />
-                    <Typography variant="h4" gutterBottom color="primary" fontWeight="bold">
+            <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50', p: 2 }}>
+                <Card sx={{ maxWidth: 480, width: '100%', textAlign: 'center', p: { xs: 3, sm: 5 }, borderRadius: 3 }}>
+                    <Box sx={{ width: 72, height: 72, borderRadius: '50%', bgcolor: 'success.main', color: 'white', display: 'grid', placeItems: 'center', mx: 'auto', mb: 2 }}>
+                        <CheckCircleIcon sx={{ fontSize: 40 }} />
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
                         ¡Solicitud Recibida!
                     </Typography>
-                    <Typography variant="body1" paragraph>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
                         Gracias por registrar tus datos. Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo prontamente para coordinar la instalación.
                     </Typography>
                     {whatsappUrl && (
-                        <Button
-                            variant="outlined"
-                            color="success"
-                            onClick={() => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')}
-                            sx={{ mt: 1, mr: 1 }}
-                        >
+                        <Button variant="contained" color="success" startIcon={<WhatsAppIcon />} onClick={() => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')} sx={{ mb: 1.5, px: 3 }}>
                             Abrir WhatsApp
                         </Button>
                     )}
-                    <Button 
-                        variant="contained" 
-                        onClick={() => window.location.reload()}
-                        sx={{ mt: 2 }}
-                    >
-                        Volver al formulario
-                    </Button>
+                    <Box>
+                        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => window.location.reload()}>
+                            Enviar otra solicitud
+                        </Button>
+                    </Box>
                 </Card>
             </Box>
         );
     }
 
     return (
-        <Box 
-            sx={{ 
-                minHeight: '100vh', 
-                backgroundColor: '#f5f5f5', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                py: 4
-            }}
-        >
-            <Container maxWidth="md">
-                <Card sx={{ boxShadow: 3 }}>
-                    <Box sx={{ bgcolor: 'primary.main', p: 3, color: 'white', textAlign: 'center' }}>
-                        <Typography variant="h4" component="h1" fontWeight="bold">
-                            Solicitud de Servicio
-                        </Typography>
-                        <Typography variant="subtitle1">
-                            Completa el formulario para unirte a nuestra red
-                        </Typography>
-                    </Box>
-                    <CardContent sx={{ p: 4 }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
+            <Box sx={{ bgcolor: 'primary.dark', color: 'white', py: 3 }}>
+                <Container maxWidth="sm">
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Box component="img" src="/nexum_logo.png" alt="IMV" sx={{ height: 32, width: 'auto' }} />
+                        <Typography variant="caption" sx={{ opacity: 0.7, letterSpacing: '0.15em' }}>IMV NETWORKS</Typography>
+                    </Stack>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mt: 2 }}>
+                        Solicita tu conexión a internet
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                        Un asesor te contactará por WhatsApp en menos de 24 horas para coordinar la instalación.
+                    </Typography>
+                </Container>
+            </Box>
+
+            <Container maxWidth="sm" sx={{ py: 3 }}>
+                <Card sx={{ borderRadius: 2, '&:hover': { transform: 'none', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)', borderColor: 'divider' } }}>
+                    <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
                         {error && (
-                            <Alert severity="error" sx={{ mb: 3 }}>
+                            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError(null)}>
                                 {error}
                             </Alert>
                         )}
 
                         <form onSubmit={handleSubmit}>
-                            <Grid container spacing={3}>
-                                <Grid item xs={12}>
-                                    <Typography variant="h6" color="text.secondary" gutterBottom>
-                                        Datos Personales
+                            <Stack spacing={3}>
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Datos personales
                                     </Typography>
-                                </Grid>
-                                
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Nombres y Apellidos Completos"
-                                        name="fullName"
-                                        value={formData.fullName}
-                                        onChange={handleChange}
-                                        required
-                                        variant="outlined"
-                                        placeholder="Ej: Juan Pérez"
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Número de Documento (C.C)"
-                                        name="identificationNumber"
-                                        value={formData.identificationNumber}
-                                        onChange={handleChange}
-                                        required
-                                        variant="outlined"
-                                        type="number"
-                                    />
-                                </Grid>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField fullWidth label="Nombres y apellidos" name="fullName" value={formData.fullName} onChange={handleChange} required size="small" />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField fullWidth label="Número de documento" name="identificationNumber" value={formData.identificationNumber} onChange={handleChange} required type="number" size="small" inputProps={{ inputMode: 'numeric' }} />
+                                        </Grid>
+                                    </Grid>
+                                </Box>
 
-                                <Grid item xs={12}>
-                                    <Typography variant="h6" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
-                                        Ubicación e Instalación
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Ubicación
                                     </Typography>
-                                </Grid>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={7}>
+                                            <TextField fullWidth label="Dirección de instalación" name="installationAddress" value={formData.installationAddress} onChange={handleChange} required size="small" helperText="Calle, carrera, número, barrio" />
+                                        </Grid>
+                                        <Grid item xs={12} sm={5}>
+                                            <FormControl fullWidth required size="small">
+                                                <InputLabel>Ciudad / Municipio</InputLabel>
+                                                <Select name="city" value={formData.city} label="Ciudad / Municipio" onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value as string }))}>
+                                                    {cities.map(city => <MenuItem key={city} value={city}>{city}</MenuItem>)}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    </Grid>
+                                </Box>
 
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Dirección de Instalación"
-                                        name="installationAddress"
-                                        value={formData.installationAddress}
-                                        onChange={handleChange}
-                                        required
-                                        variant="outlined"
-                                        helperText="dirección, piso, casa/apto, barrio"
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <FormControl fullWidth required variant="outlined">
-                                        <InputLabel>Ciudad / Municipio</InputLabel>
-                                        <Select
-                                            name="city"
-                                            value={formData.city}
-                                            label="Ciudad / Municipio"
-                                            onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value as string }))}
-                                        >
-                                            {cities.map(city => (
-                                                <MenuItem key={city} value={city}>{city}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                <Grid item xs={12}>
-                                    <Typography variant="h6" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         Contacto
                                     </Typography>
-                                </Grid>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField fullWidth label="Celular principal" name="primaryPhone" value={formData.primaryPhone} onChange={handleChange} required type="tel" size="small" inputProps={{ inputMode: 'tel' }} helperText="Te contactaremos por WhatsApp" />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField fullWidth label="Celular secundario" name="secondaryPhone" value={formData.secondaryPhone} onChange={handleChange} type="tel" size="small" inputProps={{ inputMode: 'tel' }} helperText="Opcional" />
+                                        </Grid>
+                                    </Grid>
+                                </Box>
 
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Celular Principal"
-                                        name="primaryPhone"
-                                        value={formData.primaryPhone}
-                                        onChange={handleChange}
-                                        required
-                                        variant="outlined"
-                                        type="tel"
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Celular Secundario"
-                                        name="secondaryPhone"
-                                        value={formData.secondaryPhone}
-                                        onChange={handleChange}
-                                        required
-                                        variant="outlined"
-                                        type="tel"
-                                    />
-                                </Grid>
-
-                                <Grid item xs={12}>
-                                    <Typography variant="h6" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
-                                        Plan de Internet
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Plan de internet
                                     </Typography>
-                                </Grid>
+                                    {loadingPlans ? (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2, color: 'text.secondary' }}>
+                                            <CircularProgress size={18} />
+                                            <Typography variant="body2">Cargando planes disponibles…</Typography>
+                                        </Box>
+                                    ) : plans.length === 0 ? (
+                                        <Alert severity="warning">No hay planes disponibles en este momento.</Alert>
+                                    ) : (
+                                        <Grid container spacing={1.5}>
+                                            {plans.map((plan) => {
+                                                const isSelected = Number(formData.planId) === plan.id;
+                                                return (
+                                                    <Grid item xs={12} sm={6} key={plan.id}>
+                                                        <Box
+                                                            onClick={() => setFormData(prev => ({ ...prev, planId: String(plan.id) }))}
+                                                            sx={{
+                                                                p: 2,
+                                                                border: '2px solid',
+                                                                borderColor: isSelected ? 'primary.main' : 'divider',
+                                                                borderRadius: 2,
+                                                                cursor: 'pointer',
+                                                                bgcolor: isSelected ? 'rgba(45,91,255,0.04)' : 'transparent',
+                                                                transition: 'border-color 160ms ease',
+                                                                '&:hover': { borderColor: isSelected ? 'primary.main' : 'rgba(45,91,255,0.35)' },
+                                                            }}
+                                                        >
+                                                            <Typography variant="overline" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>
+                                                                {plan.speedMbps} Mbps
+                                                            </Typography>
+                                                            <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2, mb: 1 }}>
+                                                                {plan.name}
+                                                            </Typography>
+                                                            <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', lineHeight: 1.2 }}>
+                                                                {formatCurrency(plan.monthlyFee)}
+                                                                <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 400 }}>/mes</Typography>
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                                Instalación: {formatCurrency(plan.installationFee)}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Grid>
+                                                );
+                                            })}
+                                        </Grid>
+                                    )}
+                                </Box>
 
-                                <Grid item xs={12}>
-                                    <FormControl fullWidth required error={loadingPlans && !plans.length}>
-                                        <InputLabel>Selecciona tu Plan</InputLabel>
-                                        <Select
-                                            name="planId"
-                                            value={formData.planId}
-                                            label="Selecciona tu Plan"
-                                            onChange={handleSelectChange}
-                                            disabled={loadingPlans}
-                                        >
-                                            {plans.map((plan) => (
-                                                <MenuItem key={plan.id} value={plan.id}>
-                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                                        <Typography variant="body1" fontWeight="bold">
-                                                            {plan.name} ({plan.speedMbps} Mbps)
-                                                        </Typography>
-                                                        <Typography variant="body2" color="primary.main" fontWeight="bold">
-                                                            {formatCurrency(plan.monthlyFee)}/mes
-                                                        </Typography>
-                                                    </Box>
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                        {loadingPlans ? (
-                                            <FormHelperText>Cargando planes disponibles...</FormHelperText>
-                                        ) : (
-                                            <FormHelperText>
-                                                Instalación: {plans.find(p => p.id === Number(formData.planId)) ? formatCurrency(plans.find(p => p.id === Number(formData.planId))!.installationFee) : 'Consultar'}
-                                            </FormHelperText>
-                                        )}
-                                    </FormControl>
-                                </Grid>
-
-                                <Grid item xs={12} sx={{ mt: 2, textAlign: 'center' }}>
-                                    <Box sx={{ textAlign: 'left', mb: 2 }}>
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    checked={acceptDataPolicy}
-                                                    onChange={(e) => setAcceptDataPolicy(e.target.checked)}
-                                                    required
-                                                />
-                                            }
-                                            label={
-                                                <Typography variant="body2" color="text.secondary">
-                                                    Autorizo de manera libre, previa, expresa e informada a IMV Internet para el tratamiento de mis datos personales conforme a la{' '}
-                                                    <MuiLink
-                                                        href="/Politica_Tratamiento_Datos_IMV.pdf"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        Política de Tratamiento de Datos Personales
-                                                    </MuiLink>
-                                                    , incluyendo el contacto por WhatsApp y otros medios electrónicos para fines contractuales y comerciales.
-                                                </Typography>
-                                            }
-                                        />
-                                    </Box>
+                                <Box>
+                                    <FormControlLabel
+                                        control={<Checkbox checked={acceptDataPolicy} onChange={(e) => setAcceptDataPolicy(e.target.checked)} required size="small" />}
+                                        label={
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                                                Autorizo el tratamiento de mis datos personales conforme a la{' '}
+                                                <MuiLink href="/Politica_Tratamiento_Datos_IMV.pdf" target="_blank" rel="noopener noreferrer" sx={{ fontWeight: 600 }}>
+                                                    Política de Tratamiento de Datos
+                                                </MuiLink>
+                                                , incluyendo contacto por WhatsApp.
+                                            </Typography>
+                                        }
+                                    />
                                     <Button
                                         type="submit"
                                         variant="contained"
                                         size="large"
-                                        endIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+                                        fullWidth
+                                        endIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
                                         disabled={submitting}
-                                        sx={{ minWidth: 200, py: 1.5, fontSize: '1.1rem' }}
+                                        sx={{ mt: 2, py: 1.5, fontWeight: 700 }}
                                     >
-                                        {submitting ? 'Enviando...' : 'Enviar Solicitud'}
+                                        {submitting ? 'Enviando solicitud…' : 'Enviar solicitud'}
                                     </Button>
-                                </Grid>
-                            </Grid>
+                                </Box>
+                            </Stack>
                         </form>
                     </CardContent>
                 </Card>
-                <Box textAlign="center" mt={4}>
-                    <Typography variant="body2" color="text.secondary">
-                        &copy; {new Date().getFullYear()} IMV Networks CRM
-                    </Typography>
-                </Box>
+
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', textAlign: 'center', mt: 3 }}>
+                    © {new Date().getFullYear()} IMV Networks · Hecho con cariño en Colombia
+                </Typography>
             </Container>
         </Box>
     );

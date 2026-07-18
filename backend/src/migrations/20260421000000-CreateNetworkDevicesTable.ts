@@ -76,7 +76,7 @@ export class CreateNetworkDevicesTable20260421000000 implements MigrationInterfa
         // Insertar el MikroTik por defecto con la IP ya configurada
         await queryRunner.query(`
             INSERT INTO network_devices (name, type, host, port, username, description, enabled)
-            VALUES ('MikroTik Principal', 'mikrotik', '192.168.40.10', 80, 'admin', 'Router MikroTik principal - acceso via WireGuard VPN', 1)
+            VALUES ('MikroTik Principal', 'mikrotik', '192.168.1.94', 80, 'admin', 'Router MikroTik principal - acceso via WireGuard VPN', 1)
         `);
     }
 

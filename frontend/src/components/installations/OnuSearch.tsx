@@ -29,9 +29,9 @@ import { Installation, InstallationService } from '../../services/InstallationSe
 import { formatLocalDate } from '../../utils/dateUtils';
 
 const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'error'; icon: React.ReactElement }> = {
-    active: { label: 'Activo', color: 'success', icon: <WifiIcon sx={{ fontSize: 14 }} /> },
-    suspended: { label: 'Suspendido', color: 'warning', icon: <PauseIcon sx={{ fontSize: 14 }} /> },
-    cancelled: { label: 'Cancelado', color: 'error', icon: <WifiOffIcon sx={{ fontSize: 14 }} /> },
+    activo: { label: 'Activo', color: 'success', icon: <WifiIcon sx={{ fontSize: 14 }} /> },
+    suspendido: { label: 'Suspendido', color: 'warning', icon: <PauseIcon sx={{ fontSize: 14 }} /> },
+    retirado: { label: 'Retirado', color: 'error', icon: <WifiOffIcon sx={{ fontSize: 14 }} /> },
 };
 
 interface InfoRowProps {

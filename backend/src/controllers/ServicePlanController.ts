@@ -12,10 +12,10 @@ export class ServicePlanController {
             if (!hasPermission(req.user, PERMISSIONS.ADMIN.PLANS.CREATE)) {
                 return res.status(403).json({ message: 'No tienes permiso para crear planes' });
             }
-            const { name, speedMbps, monthlyFee, installationFee, sucursal } = req.body;
+            const { name, speedMbps, monthlyFee, installationFee, sucursal, showInRequestForm, showInApp } = req.body;
             // Heredar sucursal del usuario creador si no se especifica
             const planSucursal = sucursal || req.user?.sucursal || 'CALI';
-            const plan = this.planRepository.create({ name, speedMbps, monthlyFee, installationFee, isActive: true, sucursal: planSucursal });
+            const plan = this.planRepository.create({ name, speedMbps, monthlyFee, installationFee, isActive: true, sucursal: planSucursal, showInRequestForm: showInRequestForm ?? true, showInApp: showInApp ?? true });
             await this.planRepository.save(plan);
             return res.status(201).json(plan);
         } catch (error) {
@@ -56,11 +56,27 @@ export class ServicePlanController {
         }
     }
 
+    async getAppVisible(req: AuthRequest, res: Response) {
+        try {
+            if (!hasPermission(req.user, PERMISSIONS.PLANS.VIEW)) {
+                return res.status(403).json({ message: 'No tienes permiso para ver planes' });
+            }
+            const userSucursal = req.user?.sucursal;
+            const where: any = { isActive: true, showInApp: true };
+            if (userSucursal) where.sucursal = userSucursal;
+            const plans = await this.planRepository.find({ where, order: { speedMbps: 'ASC' } });
+            return res.json(plans);
+        } catch (error) {
+            console.error('Error getting app-visible plans', error);
+            return res.status(500).json({ message: 'Error getting app-visible plans', error: error instanceof Error ? error.message : error });
+        }
+    }
+
     async getPublicList(req: any, res: Response) {
         try {
             // Permite filtrar por sucursal via query param: /api/plans/public?sucursal=PASTO
             const sucursal = req.query?.sucursal as string | undefined;
-            const where: any = { isActive: true };
+            const where: any = { isActive: true, showInRequestForm: true };
             if (sucursal) where.sucursal = sucursal.toUpperCase();
             const plans = await this.planRepository.find({ 
                 where,
@@ -95,10 +111,10 @@ export class ServicePlanController {
                 return res.status(403).json({ message: 'No tienes permiso para editar planes' });
             }
             const { id } = req.params;
-            const { name, speedMbps, monthlyFee, installationFee, isActive } = req.body;
+            const { name, speedMbps, monthlyFee, installationFee, isActive, showInRequestForm, showInApp } = req.body;
             const plan = await this.planRepository.findOne({ where: { id: parseInt(id) } });
             if (!plan) return res.status(404).json({ message: 'Plan not found' });
-            Object.assign(plan, { name, speedMbps, monthlyFee, installationFee, isActive });
+            Object.assign(plan, { name, speedMbps, monthlyFee, installationFee, isActive, showInRequestForm, showInApp });
             await this.planRepository.save(plan);
             return res.json(plan);
         } catch (error) {

@@ -25,6 +25,7 @@ import {
 import { Search as SearchIcon, ReceiptLong as ReceiptIcon, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import axios from 'axios';
 import { formatLocalDate } from '../../utils/dateUtils';
+import { tokens } from '../../theme';
 
 interface PaymentDetails {
     servicePlan: number;
@@ -67,10 +68,12 @@ const PaymentRow = ({ payment }: { payment: PublicPayment }) => {
 
     const getStatusChip = (status: string) => {
         switch (status) {
-            case 'pending':
+            case 'pendiente':
                 return <Chip label="Pendiente" color="warning" size="small" />;
-            case 'overdue':
+            case 'vencido':
                 return <Chip label="Vencido" color="error" size="small" />;
+            case 'pagado':
+                return <Chip label="Pagado" color="success" size="small" />;
             default:
                 return <Chip label={status} size="small" />;
         }
@@ -107,8 +110,8 @@ const PaymentRow = ({ payment }: { payment: PublicPayment }) => {
             <TableRow>
                 <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
-                        <Box sx={{ margin: 1, p: 2, bgcolor: '#fafafa', borderRadius: 1 }}>
-                            <Typography variant="subtitle2" gutterBottom component="div" color="primary">
+                        <Box sx={{ m: 1, p: 2, bgcolor: 'rgba(45,91,255,0.04)', borderRadius: 2, border: `1px solid ${tokens.border}` }}>
+                            <Typography variant="subtitle2" gutterBottom component="div" sx={{ color: tokens.brand, fontWeight: 700 }}>
                                 Detalle del Cobro
                             </Typography>
                             <Table size="small" aria-label="purchases">
@@ -247,21 +250,27 @@ const PublicBillingCheck: React.FC = () => {
                 minHeight: '100vh',
                 display: 'flex',
                 flexDirection: 'column',
-                bgcolor: '#f5f5f5',
-                py: 4
+                bgcolor: tokens.canvas,
+                backgroundImage:
+                    'radial-gradient(900px 420px at 10% 0%, rgba(45,91,255,0.08), transparent 60%), radial-gradient(700px 320px at 100% 100%, rgba(0,212,166,0.06), transparent 55%)',
+                py: { xs: 2, md: 4 }
             }}
         >
             <Container maxWidth="md">
                 <Box sx={{ textAlign: 'center', mb: 4 }}>
-                    <Typography variant="h4" component="h1" color="primary" gutterBottom fontWeight="bold">
+                    <Box component="img" src="/nexum_logo.png" alt="IMV" sx={{ height: 54, mb: 2 }} />
+                    <Typography variant="overline" sx={{ color: tokens.muted }}>
+                        Consulta pública
+                    </Typography>
+                    <Typography variant="h4" component="h1" sx={{ fontWeight: 800, color: tokens.ink, mt: 0.5 }}>
                         Consulta de Pagos
                     </Typography>
-                    <Typography variant="subtitle1" color="textSecondary">
+                    <Typography variant="subtitle1" color="text.secondary">
                         Ingrese su número de cédula para consultar sus pagos pendientes
                     </Typography>
                 </Box>
 
-                <Card elevation={3} sx={{ mb: 4 }}>
+                <Card sx={{ mb: 4, border: `1px solid ${tokens.border}`, boxShadow: '0 24px 60px -40px rgba(14,19,48,0.3)' }}>
                     <CardContent sx={{ p: 4 }}>
                         <form onSubmit={handleSearch}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -330,13 +339,13 @@ const PublicBillingCheck: React.FC = () => {
                 )}
 
                 {result && (
-                    <Card elevation={3}>
+                    <Card sx={{ border: `1px solid ${tokens.border}`, boxShadow: '0 24px 60px -40px rgba(14,19,48,0.3)' }}>
                         <CardContent sx={{ p: 0 }}>
-                            <Box sx={{ p: 3, bgcolor: '#e3f2fd', borderBottom: '1px solid #bbdefb' }}>
+                            <Box sx={{ p: 3, bgcolor: 'rgba(45,91,255,0.06)', borderBottom: `1px solid ${tokens.border}` }}>
                                 <Typography variant="h6" gutterBottom>
                                     Resultados para: <strong>{result.clientName}</strong>
                                 </Typography>
-                                <Typography variant="body2" color="textSecondary">
+                                <Typography variant="body2" color="text.secondary">
                                     Cédula: {result.identificationNumber}
                                 </Typography>
                             </Box>
@@ -348,8 +357,8 @@ const PublicBillingCheck: React.FC = () => {
                                             <Typography variant="h6">
                                                 Pagos Pendientes
                                             </Typography>
-                                            <Paper sx={{ p: 2, bgcolor: '#fff3e0', border: '1px solid #ffe0b2' }}>
-                                                <Typography variant="subtitle2" color="textSecondary">
+                                            <Paper sx={{ p: 2, bgcolor: 'rgba(240,162,58,0.10)', border: '1px solid rgba(240,162,58,0.22)' }}>
+                                                <Typography variant="subtitle2" color="text.secondary">
                                                     Total a Pagar
                                                 </Typography>
                                                 <Typography variant="h4" color="error" fontWeight="bold">
@@ -361,7 +370,7 @@ const PublicBillingCheck: React.FC = () => {
                                         <TableContainer component={Paper} variant="outlined">
                                             <Table>
                                                 <TableHead>
-                                                    <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                                                    <TableRow sx={{ bgcolor: 'rgba(45,91,255,0.04)' }}>
                                                         <TableCell width={140} />
                                                         <TableCell>Concepto</TableCell>
                                                         <TableCell>Vencimiento</TableCell>
@@ -388,7 +397,7 @@ const PublicBillingCheck: React.FC = () => {
                                         <Typography variant="h6" color="success.main" gutterBottom>
                                             ¡Estás al día!
                                         </Typography>
-                                        <Typography color="textSecondary">
+                                        <Typography color="text.secondary">
                                             No tienes pagos pendientes registrados en este momento.
                                         </Typography>
                                     </Box>

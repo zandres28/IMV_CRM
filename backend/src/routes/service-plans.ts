@@ -8,6 +8,7 @@ const planController = new ServicePlanController();
 
 router.get('/', requirePermission(PERMISSIONS.PLANS.VIEW), (req, res) => planController.getAll(req, res));
 router.get('/active', requirePermission(PERMISSIONS.PLANS.VIEW), (req, res) => planController.getActive(req, res));
+router.get('/app-visible', requirePermission(PERMISSIONS.PLANS.VIEW), (req, res) => planController.getAppVisible(req, res));
 router.get('/:id', requirePermission(PERMISSIONS.PLANS.VIEW), (req, res) => planController.getById(req, res));
 router.post('/', requirePermission(PERMISSIONS.ADMIN.PLANS.CREATE), (req, res) => planController.create(req, res));
 router.put('/:id', requirePermission(PERMISSIONS.ADMIN.PLANS.EDIT), (req, res) => planController.update(req, res));

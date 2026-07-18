@@ -86,7 +86,7 @@ async function importData() {
         const servicePlanRepository = AppDataSource.getRepository(ServicePlan);
 
         // Leer CSV de clientes
-        const clientsPath = path.join(__dirname, '../../../tmp/CLIENTES.csv');
+        const clientsPath = path.join(__dirname, '../../../tools/scratch/CLIENTES.csv');
         const clientsContent = fs.readFileSync(clientsPath, 'latin1');
         
         const clientRecords = parse(clientsContent, {
@@ -99,7 +99,7 @@ async function importData() {
         console.log(`\n📋 Encontrados ${clientRecords.length} clientes en CSV`);
 
         // Leer CSV de instalaciones
-        const installationsPath = path.join(__dirname, '../../../tmp/INSTALACIONES.csv');
+        const installationsPath = path.join(__dirname, '../../../tools/scratch/INSTALACIONES.csv');
         const installationsContent = fs.readFileSync(installationsPath, 'latin1');
         
         const installationRecords = parse(installationsContent, {
@@ -148,7 +148,7 @@ async function importData() {
                 client.primaryPhone = row['Celular 1']?.trim() || 'Sin teléfono';
                 client.secondaryPhone = row['Celular 2']?.trim() || '';
                 client.email = cleanEmail(row['Correo Electrónico']);
-                client.status = 'active';
+                client.status = 'activo';
                 client.sucursal = SUCURSAL_ARG;
 
                 await clientRepository.save(client);
@@ -183,7 +183,7 @@ async function importData() {
                     installation.notes = instRow['Notas Especiales']?.trim() || '';
                     installation.monthlyFee = monthlyFee;
                     installation.installationDate = parseSpanishDate(instRow['Fecha Instalación'] || '');
-                    installation.serviceStatus = instRow['Estado del Servicio']?.toLowerCase().includes('activo') ? 'active' : 'suspended';
+                    installation.serviceStatus = instRow['Estado del Servicio']?.toLowerCase().includes('activo') ? 'activo' : 'suspendido';
                     installation.isActive = instRow['Estado del Servicio']?.toLowerCase().includes('activo') || false;
 
                     await installationRepository.save(installation);

@@ -27,7 +27,7 @@ export interface Installation {
     notes?: string;
     monthlyFee: number;
     installationFee?: number;
-    serviceStatus: 'active' | 'suspended' | 'cancelled';
+    serviceStatus: 'activo' | 'suspendido' | 'retirado';
     installationDate: string;
     retirementDate?: string;
     scheduledTimeSlot?: string;
@@ -75,7 +75,7 @@ export const InstallationService = {
         return response.data;
     },
 
-    changeStatus: async (id: number, serviceStatus: 'active' | 'suspended' | 'cancelled') => {
+    changeStatus: async (id: number, serviceStatus: 'activo' | 'suspendido' | 'retirado') => {
         const response = await axios.patch(`${API_URL}/installations/${id}/status`, { serviceStatus });
         return response.data;
     },

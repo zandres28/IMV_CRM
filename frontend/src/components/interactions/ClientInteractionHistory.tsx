@@ -44,15 +44,6 @@ interface ClientInteractionHistoryProps {
     focusInteractionId?: number;
 }
 
-const STATUS_OPTIONS: { value: InteractionStatus; label: string }[] = [
-    { value: 'pendiente', label: 'Pendiente' },
-    { value: 'en_progreso', label: 'En Progreso' },
-    { value: 'completado', label: 'Completado' },
-    { value: 'cancelado', label: 'Cancelado' },
-    { value: 'pospuesto', label: 'Pospuesto' },
-    { value: 'rechazado', label: 'Rechazado' }
-];
-
 export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> = ({ clientId, focusInteractionId }) => {
     const [interactions, setInteractions] = useState<Interaction[]>([]);
     const [loading, setLoading] = useState(false);
@@ -113,9 +104,6 @@ export const ClientInteractionHistory: React.FC<ClientInteractionHistoryProps> =
 
         return Boolean(userFirstName && (techName === userFirstName || techName.includes(userFirstName) || userFirstName.includes(techName)));
     }, [user]);
-
-    const canManageOwn = AuthService.hasPermission('clients.crm.edit') || 
-                         (user && interactions.some(i => isAssignedTechnician(i)));
 
     const loadInteractions = useCallback(async () => {
         setLoading(true);

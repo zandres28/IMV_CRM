@@ -340,7 +340,7 @@ export function NetworkDevicesManager() {
                                 value={form.host}
                                 onChange={e => setForm(p => ({ ...p, host: e.target.value }))}
                                 fullWidth
-                                placeholder="192.168.40.10"
+                                placeholder="192.168.1.9"
                                 inputProps={{ style: { fontFamily: "monospace" } }}
                             />
                             <TextField

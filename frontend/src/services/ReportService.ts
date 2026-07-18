@@ -6,7 +6,7 @@ export type ReportType = 'account_status' | 'retired' | 'services';
 
 export interface ReportSearchParams {
   clientStatus?: 'active' | 'inactive' | 'all';
-  paymentStatus?: 'pending' | 'completed' | 'all';
+  paymentStatus?: 'pendiente' | 'pagado' | 'all';
   reminderType?: 'PROXIMO' | 'VENCIMIENTO' | 'RECORDATORIO' | 'ULTIMO' | 'all';
   search?: string;
   page?: number;
@@ -89,7 +89,6 @@ export const ReportService = {
 
   exportCSV: (rows: ReportRow[], type: ReportType = 'account_status'): void => {
     let headers: string[] = [];
-    let fields: (keyof ReportRow)[] = [];
 
     if (type === 'retired') {
       headers = ['ID', 'Nombre', 'Teléfono', 'Ciudad', 'Fecha Retiro', 'Motivo', 'Fecha Instalación'];

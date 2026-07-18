@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, Up
 import { Client } from "./Client";
 import { Technician } from "./Technician";
 
-export type ServiceTransferStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type ServiceTransferStatus = 'pendiente' | 'en_progreso' | 'completado' | 'anulado';
 
 @Entity("service_transfers")
 export class ServiceTransfer {
@@ -32,9 +32,9 @@ export class ServiceTransfer {
     completionDate?: Date;
 
     @Column({
-        type: 'varchar',
-        length: 20,
-        default: 'pending'
+        type: 'enum',
+        enum: ['pendiente', 'en_progreso', 'completado', 'anulado'],
+        default: 'pendiente'
     })
     status: ServiceTransferStatus;
 

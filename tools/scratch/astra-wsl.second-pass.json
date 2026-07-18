@@ -1,0 +1,1039 @@
+{
+    "settings":  {
+                     "http_play_hls":  true,
+                     "http_play_disable_tls":  true,
+                     "http_play_stream":  true,
+                     "http_output_buffer_size":  "12000"
+                 },
+    "gid":  466665,
+    "hls":  {
+                "quantity":  "4"
+            },
+    "users":  {
+                  "imv-cali":  {
+                                   "enable":  true,
+                                   "created":  1779402110,
+                                   "type":  3,
+                                   "cipher":  "5c4c2fc7cd742dfcbcdf1bc728507490"
+                               },
+                  "admin":  {
+                                "type":  1,
+                                "enable":  true,
+                                "cipher":  "85790f3b97f7811f60fb5f4ec139bfdc",
+                                "interface":  {
+                                                  "theme":  "dark",
+                                                  "arrange":  "$type",
+                                                  "order":  "status",
+                                                  "title":  "IMV INTERNET + TV"
+                                              },
+                                "created":  1779289790
+                            }
+              },
+    "make_stream":  [
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16b?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a002",
+                            "name":  "AMC HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15r?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a003",
+                            "name":  "ATV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15i?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a008",
+                            "name":  "AXN"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18d?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00a",
+                            "name":  "America TV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17w?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00b",
+                            "name":  "Animal Planet HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17u?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  false,
+                            "id":  "a00c",
+                            "name":  "BETHEL TV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a181?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00e",
+                            "name":  "Baby TV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18k?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00h",
+                            "name":  "CNN EspaÃ±ol"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a14y?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00j",
+                            "name":  "RCN"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a14w?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00k",
+                            "name":  "Canal Uno"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19q?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00l",
+                            "name":  "Cartoon Network HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18t?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00m",
+                            "name":  "Cinecanal HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18m?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00n",
+                            "name":  "Cinemax"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a151?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00o",
+                            "name":  "City TV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a168?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00p",
+                            "name":  "Comedy Central HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a14d?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00q",
+                            "name":  "De Pelicula Clasico"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18v?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00r",
+                            "name":  "Discovery Channel"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19n?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00s",
+                            "name":  "Discovery Kids HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19x?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00t",
+                            "name":  "Discovery Turbo"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19l?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00u",
+                            "name":  "Discovery World HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18u?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00v",
+                            "name":  "Disney Channel HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a1a1?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00w",
+                            "name":  "Disney Jr"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a182?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00x",
+                            "name":  "E! Entertainment TV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17n?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00y",
+                            "name":  "ESPN 2 HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16u?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00z",
+                            "name":  "ESPN 3 HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18g?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a010",
+                            "name":  "ESPN 4 HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a177?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a011",
+                            "name":  "ESPN 5"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16t?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a012",
+                            "name":  "ESPN 6"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18q?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a013",
+                            "name":  "ESPN 7 HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17o?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a014",
+                            "name":  "ESPN HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17p?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a015",
+                            "name":  "ESPN Premium HD"
+                        },
+                        {
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a198?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  false,
+                            "id":  "a016",
+                            "name":  "El Tiempo"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19f?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a017",
+                            "name":  "EWTN"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19w?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a018",
+                            "name":  "Ecuavisa"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18e?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a019",
+                            "name":  "El Gourmet"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16y?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01a",
+                            "name":  "Enlace"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15j?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01b",
+                            "name":  "FX"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19p?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01c",
+                            "name":  "Food Network"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a187?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01d",
+                            "name":  "HBO 2"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a12a?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01e",
+                            "name":  "HBO Family HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16d?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01f",
+                            "name":  "HBO HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17t?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01g",
+                            "name":  "HBO Mundi"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a160?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01h",
+                            "name":  "HBO POP HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18l?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01i",
+                            "name":  "HBO Plus"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17l?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01j",
+                            "name":  "HBO Signature"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a12b?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01k",
+                            "name":  "HBO XTREME HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19e?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01l",
+                            "name":  "HGTV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17z?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01m",
+                            "name":  "HOLA TV HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17x?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01n",
+                            "name":  "History Channel HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19r?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01o",
+                            "name":  "Home \u0026 Health HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a172?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  false,
+                            "id":  "a01p",
+                            "name":  "Investigation Discovery"
+                        },
+                        {
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19h?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  false,
+                            "id":  "a01q",
+                            "name":  "Kanal D Drama"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a0tr?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01r",
+                            "name":  "LA KALLE"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a164?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01s",
+                            "name":  "Las Estrellas HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a175?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01t",
+                            "name":  "Latina"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a13z?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01u",
+                            "name":  "Lifetime"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19d?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01v",
+                            "name":  "Love Nature"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18j?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01w",
+                            "name":  "MTV HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17y?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01x",
+                            "name":  "Nat Geo HD"
+                        },
+                        {
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18o?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  false,
+                            "id":  "a01y",
+                            "name":  "Nick Jr"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a161?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a01z",
+                            "name":  "Nickelodeon HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18s?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a020",
+                            "name":  "Pasiones HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a171?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a023",
+                            "name":  "RCN Novelas"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15m?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a025",
+                            "name":  "STAR CHANNEL"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15k?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a027",
+                            "name":  "Sony"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19y?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a028",
+                            "name":  "Sony Movies"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15l?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a029",
+                            "name":  "Space"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a188?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02a",
+                            "name":  "Studio Universal"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a13y?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02b",
+                            "name":  "TLC"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a17j?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02c",
+                            "name":  "TNT"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16e?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02d",
+                            "name":  "TNT Novelas HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16c?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02e",
+                            "name":  "TNT Series HD"
+                        },
+                        {
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a149?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  false,
+                            "id":  "a02f",
+                            "name":  "TVE"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a190?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02g",
+                            "name":  "Teleantioquia"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a193?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02h",
+                            "name":  "TelecafÃ©"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19s?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02i",
+                            "name":  "Telecaribe"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a19g?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02j",
+                            "name":  "Telefe"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a16x?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02k",
+                            "name":  "Telemundo"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a192?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02l",
+                            "name":  "TelepacÃ­fico"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a162?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02m",
+                            "name":  "Tlnovelas"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18p?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02n",
+                            "name":  "Tooncast"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18i?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02o",
+                            "name":  "Universal TV HD"
+                        },
+                        {
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a199?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  false,
+                            "id":  "a02p",
+                            "name":  "USA Network"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15q?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02q",
+                            "name":  "Universal TV"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18a?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02r",
+                            "name":  "Universal Cinema SD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a18b?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02s",
+                            "name":  "Universal Comedy SD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a189?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02t",
+                            "name":  "Universal Premiere SD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a15o?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02u",
+                            "name":  "Warner Channel"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a191?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02v",
+                            "name":  "Win Sports"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a150?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02w",
+                            "name":  "Zoom"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a1a5?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a02x",
+                            "name":  "Win Sports +"
+                        },
+                        {
+                            "http_keep_active":  "1",
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a14x?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00i",
+                            "name":  "Caracol TV"
+                        },
+                        {
+                            "http_keep_active":  "1",
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a0x8?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00f",
+                            "name":  "CARACOL HD 2"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a0x7?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00g",
+                            "name":  "CARACOL TV HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a140?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a009",
+                            "name":  "Adult Swim"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a167?auth=imv-cali:Cali2026Activo"
+                                      ],
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a001",
+                            "name":  "A\u0026E HD"
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "name":  "BLU Radio",
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a00d",
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a0tq?auth=imv-cali:Cali2026Activo"
+                                      ]
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "name":  "RCN HD",
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a021",
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a0ts?auth=imv-cali:Cali2026Activo"
+                                      ]
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "name":  "RCN HD 2",
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a022",
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a0tt?auth=imv-cali:Cali2026Activo"
+                                      ]
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "name":  "Radio Uno",
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a024",
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a0tw?auth=imv-cali:Cali2026Activo"
+                                      ]
+                        },
+                        {
+                            "http_keep_active":  1,
+                            "name":  "SeÃ±al Colombia",
+                            "type":  "spts",
+                            "enable":  true,
+                            "id":  "a026",
+                            "input":  [
+                                          "http://imv-iptvppal.ddns.net:8001/play/a14z?auth=imv-cali:Cali2026Activo"
+                                      ]
+                        }
+                    ]
+}

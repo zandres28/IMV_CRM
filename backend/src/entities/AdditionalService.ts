@@ -21,7 +21,7 @@ export class AdditionalService {
     @Column({ type: 'date', nullable: true })
     endDate!: Date;
 
-    @Column({ default: 'active' })
+    @Column({ type: 'enum', enum: ['activo', 'inactivo'], default: 'activo' })
     status!: string;
 
     @Column({ type: 'text', nullable: true })

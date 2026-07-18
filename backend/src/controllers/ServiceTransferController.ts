@@ -61,7 +61,7 @@ export const ServiceTransferController = {
                 const count = await transferRepository.count({
                     where: { 
                         clientId: parseInt(clientId.toString()),
-                        status: Not('cancelled')
+                        status: Not('anulado')
                     }
                 });
                 finalCost = count === 0 ? 0 : 50000;
@@ -73,7 +73,7 @@ export const ServiceTransferController = {
                 newAddress,
                 requestDate: requestDate ? new Date(requestDate) : new Date(),
                 scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
-                status: status || 'pending',
+                status: status || 'pendiente',
                 cost: finalCost,
                 notes,
                 technicianId: technicianId ? parseInt(technicianId) : null
@@ -103,7 +103,7 @@ export const ServiceTransferController = {
             const count = await transferRepository.count({
                 where: { 
                     clientId: parseInt(clientId),
-                    status: Not('cancelled')
+                    status: Not('anulado')
                 }
             });
             const cost = count === 0 ? 0 : 50000;
@@ -128,7 +128,7 @@ export const ServiceTransferController = {
             }
 
             // Si se marca como completado y antes no lo estaba
-            if (status === 'completed' && transfer.status !== 'completed') {
+            if (status === 'completado' && transfer.status !== 'completado') {
                 // Actualizar la dirección del cliente
                 if (transfer.client) {
                     transfer.client.installationAddress = transfer.newAddress;

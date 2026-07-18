@@ -9,7 +9,7 @@ export interface InstallationPayment {
   paymentMonth: string;
   paymentYear: number;
   dueDate: string;
-  status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+  status: 'pendiente' | 'pagado' | 'vencido' | 'anulado';
   paymentType: 'monthly' | 'installation' | 'other';
   externalId?: string;
   paymentMethod?: string;
@@ -99,4 +99,6 @@ class InstallationBillingService {
   }
 }
 
-export default new InstallationBillingService();
+const installationBillingService = new InstallationBillingService();
+
+export default installationBillingService;

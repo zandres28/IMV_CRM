@@ -64,7 +64,7 @@ export const ReportController = {
                     .createQueryBuilder('client')
                     .leftJoinAndSelect('client.installations', 'installation')
                     .where('client.retirementDate IS NOT NULL')
-                    .andWhere('client.status != :status', { status: 'active' });
+                    .andWhere('client.status != :status', { status: 'activo' });
 
                 if (search) {
                     queryBuilder.andWhere(
@@ -116,10 +116,10 @@ export const ReportController = {
 
                 let queryBuilder = clientRepository
                     .createQueryBuilder('client')
-                    .leftJoinAndSelect('client.additionalServices', 'service', 'service.status = :svcStatus', { svcStatus: 'active' })
-                    .leftJoinAndSelect('client.productsSold', 'product', 'product.status != :prodCancelled', { prodCancelled: 'cancelled' })
+                    .leftJoinAndSelect('client.additionalServices', 'service', 'service.status = :svcStatus', { svcStatus: 'activo' })
+                    .leftJoinAndSelect('client.productsSold', 'product')
                     .leftJoinAndSelect('product.installmentPayments', 'installment')
-                    .where('client.status = :status', { status: 'active' });
+                    .where('client.status = :status', { status: 'activo' });
 
                 if (search) {
                     queryBuilder.andWhere(
@@ -166,8 +166,8 @@ export const ReportController = {
                     }
                     if (serviceType !== 'service') {
                         for (const product of client.productsSold || []) {
-                            const paidCount = product.installmentPayments?.filter((i: any) => i.status === 'completed').length ?? 0;
-                            const pendingCount = product.installmentPayments?.filter((i: any) => i.status !== 'completed').length ?? 0;
+                            const paidCount = product.installmentPayments?.filter((i: any) => i.status === 'completado').length ?? 0;
+                            const pendingCount = product.installmentPayments?.filter((i: any) => i.status !== 'completado').length ?? 0;
                             allRows.push({
                                 id: `PRD-${product.id}`,
                                 clientId: client.id,
@@ -245,9 +245,9 @@ export const ReportController = {
 
             // Filtrar por estado de cliente
             if (clientStatus === 'active') {
-                queryBuilder.where('client.status = :status', { status: 'active' });
+                queryBuilder.where('client.status = :status', { status: 'activo' });
             } else if (clientStatus === 'inactive') {
-                queryBuilder.where('client.status <> :status', { status: 'active' });
+                queryBuilder.where('client.status <> :status', { status: 'activo' });
             }
 
             // Búsqueda por texto
@@ -303,7 +303,7 @@ export const ReportController = {
                 const additionalServices = await additionalServiceRepository.find({
                     where: {
                         client: { id: client.id },
-                        status: 'active' as any
+                        status: 'activo' as any
                     }
                 });
 
@@ -345,13 +345,17 @@ export const ReportController = {
                         }
                     }
 
-                    const currentPaymentStatus = payment?.status || 'pending';
+                    const currentPaymentStatus = payment?.status || 'pendiente';
                     const totalMensual = installation.monthlyFee + additionalAmount;
 
                     // Aplicar filtros
                     let includeRow = true;
 
-                    if (paymentStatus !== 'all' && paymentStatus !== currentPaymentStatus) {
+                    // Mapear valores legacy del filtro a los nuevos valores en español
+                    const normalizedFilter = String(paymentStatus)
+                        .replace(/^pending$/, 'pendiente')
+                        .replace(/^(paid|completed)$/, 'pagado');
+                    if (normalizedFilter !== 'all' && normalizedFilter !== currentPaymentStatus) {
                         includeRow = false;
                     }
 
@@ -379,13 +383,13 @@ export const ReportController = {
                         });
 
                         totalExpectedRevenue += totalMensual;
-                        if (currentPaymentStatus === 'completed') {
+                        if (currentPaymentStatus === 'pagado') {
                             totalCollectedRevenue += totalMensual;
                         }
                         if (dias > 0) {
                             countMorosos++;
                             totalDaysDue += dias;
-                            if (currentPaymentStatus !== 'completed') {
+                            if (currentPaymentStatus !== 'pagado') {
                                 arrearsAmount += totalMensual;
                             }
                         }

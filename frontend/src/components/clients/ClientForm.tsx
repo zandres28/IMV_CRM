@@ -11,7 +11,6 @@ import {
     MenuItem,
     SelectChangeEvent,
     Box,
-    IconButton,
 } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import { Client } from '../../types/Client';
@@ -37,7 +36,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         primaryPhone: '',
         secondaryPhone: '',
         email: '',
-        status: 'active',
+        status: 'activo',
         suspension_extension_date: '',
         sucursal: currentUser?.sucursal || 'CALI'
     });
@@ -53,7 +52,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 primaryPhone: formatPhoneForDisplay(client.primaryPhone),
                 secondaryPhone: formatPhoneForDisplay(client.secondaryPhone),
                 email: client.email || '',
-                status: client.status || 'active',
+                status: client.status || 'activo',
                 // Asegurar formato YYYY-MM-DD si viene fecha ISO completa
                 suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : '',
                 sucursal: client.sucursal || currentUser?.sucursal || 'CALI'
@@ -62,7 +61,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         } else {
             setIsEditable(true);
         }
-    }, [client]);
+    }, [client, currentUser?.sucursal]);
 
     const handleCancel = () => {
         if (client) {
@@ -74,7 +73,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 primaryPhone: formatPhoneForDisplay(client.primaryPhone),
                 secondaryPhone: formatPhoneForDisplay(client.secondaryPhone),
                 email: client.email || '',
-                status: client.status || 'active',
+                status: client.status || 'activo',
                 suspension_extension_date: client.suspension_extension_date ? client.suspension_extension_date.split('T')[0] : '',
                 sucursal: client.sucursal || currentUser?.sucursal || 'CALI'
             });
@@ -266,9 +265,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                                 onChange={handleSelectChange}
                                 label="Estado"
                             >
-                                <MenuItem value="active">Activo</MenuItem>
-                                <MenuItem value="suspended">Suspendido</MenuItem>
-                                <MenuItem value="cancelled">Cancelado</MenuItem>
+                                <MenuItem value="activo">Activo</MenuItem>
+                                <MenuItem value="suspendido">Suspendido</MenuItem>
+                                <MenuItem value="retirado">Retirado</MenuItem>
+                                <MenuItem value="inactivo">Inactivo</MenuItem>
+                                <MenuItem value="pendiente_instalacion">Pendiente Inst.</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>

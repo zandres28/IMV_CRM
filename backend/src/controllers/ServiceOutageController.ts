@@ -85,7 +85,7 @@ export class ServiceOutageController {
         days,
         reason,
         discountAmount,
-        status: "pending",
+          status: "pendiente",
         notes,
       });
 
@@ -170,7 +170,7 @@ export class ServiceOutageController {
         .where('LOWER(installation.ponId) = LOWER(:ponId)', { ponId: normalizedPonId })
         .andWhere('installation.isDeleted = :isDeleted', { isDeleted: false })
         .andWhere('installation.isActive = :isActive', { isActive: true })
-        .andWhere('installation.serviceStatus = :serviceStatus', { serviceStatus: 'active' })
+        .andWhere('installation.serviceStatus = :serviceStatus', { serviceStatus: 'activo' })
         .getMany();
 
       if (installations.length === 0) {
@@ -184,7 +184,7 @@ export class ServiceOutageController {
       const existingOutages = await outageRepo.find({
         where: {
           installationId: In(installationIds),
-          status: 'pending',
+          status: 'pendiente',
           startDate: new Date(startDate),
           endDate: new Date(endDate),
         },
@@ -211,7 +211,7 @@ export class ServiceOutageController {
           days,
           reason,
           discountAmount,
-          status: 'pending',
+          status: 'pendiente',
           notes,
         });
 
@@ -275,7 +275,7 @@ export class ServiceOutageController {
         .where('LOWER(installation.ponId) = LOWER(:ponId)', { ponId: normalizedPonId })
         .andWhere('installation.isDeleted = :isDeleted', { isDeleted: false })
         .andWhere('installation.isActive = :isActive', { isActive: true })
-        .andWhere('installation.serviceStatus = :serviceStatus', { serviceStatus: 'active' })
+        .andWhere('installation.serviceStatus = :serviceStatus', { serviceStatus: 'activo' })
         .getMany();
 
       const uniqueClientNames = Array.from(
@@ -476,7 +476,7 @@ export class ServiceOutageController {
         return res.status(404).json({ error: "Caída de servicio no encontrada" });
       }
 
-      if (outage.status === "applied") {
+      if (outage.status === "aplicado") {
         return res.status(400).json({
           error: "No se puede eliminar una caída ya aplicada a un pago",
         });
@@ -514,7 +514,7 @@ export class ServiceOutageController {
         return res.status(404).json({ error: "Caída de servicio no encontrada" });
       }
 
-      outage.status = "applied";
+      outage.status = "aplicado";
       outage.appliedToPaymentId = appliedToPaymentId;
 
       await outageRepo.save(outage);
@@ -579,7 +579,7 @@ export class ServiceOutageController {
         });
       }
 
-      const nonPending = outages.filter((outage) => outage.status !== "pending");
+      const nonPending = outages.filter((outage) => outage.status !== "pendiente");
       if (nonPending.length > 0) {
         return res.status(400).json({
           error: 'Solo se pueden actualizar en bloque caídas en estado pendiente',
@@ -670,7 +670,7 @@ export class ServiceOutageController {
         });
       }
 
-      const nonPending = outages.filter((outage) => outage.status !== 'pending');
+      const nonPending = outages.filter((outage) => outage.status !== 'pendiente');
       if (nonPending.length > 0) {
         return res.status(400).json({
           error: 'Solo se pueden eliminar en bloque caídas en estado pendiente',
@@ -708,7 +708,7 @@ export class ServiceOutageController {
       const pendingOutages = await outageRepo.find({
         where: {
           clientId: parseInt(clientId),
-          status: "pending",
+        status: "pendiente",
         },
         relations: ["installation"],
       });

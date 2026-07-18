@@ -49,7 +49,7 @@ async function updateInstallationPayments() {
     await AppDataSource.initialize();
     console.log('Conexión a base de datos establecida');
 
-    const csvPath = path.join(__dirname, '../../../tmp/PAGOS_INSTALACIONES.csv');
+    const csvPath = path.join(__dirname, '../../../tools/scratch/PAGOS_INSTALACIONES.csv');
     const csvContent = fs.readFileSync(csvPath, 'utf-8');
     const lines = csvContent.split('\n').filter(line => line.trim());
 

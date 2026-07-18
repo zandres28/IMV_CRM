@@ -3,8 +3,25 @@ import axios from "axios";
 import { AppDataSource } from "../config/database";
 import { DeviceType, NetworkDevice } from "../entities/NetworkDevice";
 
+const normalizeBaseUrl = (host: string, port?: number): string => {
+    const trimmed = host.trim();
+    const hasProtocol = trimmed.startsWith("http://") || trimmed.startsWith("https://");
+    const base = hasProtocol ? trimmed : `http://${trimmed}`;
+    const hasPortInHost = /:[0-9]+$/.test(trimmed);
+
+    if (hasPortInHost || !port) {
+        return base;
+    }
+
+    return `${base}:${port}`;
+};
+
 const getMikrotikBaseUrl = async (): Promise<string> => {
-    const fallback = process.env.MIKROTIK_HOST || "http://192.168.40.10";
+    const fallback = normalizeBaseUrl(process.env.MIKROTIK_HOST || "192.168.1.94");
+
+    if (process.env.MIKROTIK_HOST) {
+        return normalizeBaseUrl(process.env.MIKROTIK_HOST);
+    }
 
     try {
         const deviceRepository = AppDataSource.getRepository(NetworkDevice);
@@ -20,14 +37,7 @@ const getMikrotikBaseUrl = async (): Promise<string> => {
             return fallback;
         }
 
-        const host = device.host.trim();
-        const protocol = host.startsWith("http://") || host.startsWith("https://")
-            ? ""
-            : "http://";
-        const hasPortInHost = /:[0-9]+$/.test(host);
-        const portSuffix = hasPortInHost ? "" : `:${device.port || 80}`;
-
-        return `${protocol}${host}${portSuffix}`;
+        return normalizeBaseUrl(device.host, device.port || 80);
     } catch (error) {
         console.warn("Using fallback MIKROTIK_HOST due to DB lookup error:", error);
         return fallback;

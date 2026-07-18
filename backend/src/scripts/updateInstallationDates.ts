@@ -42,7 +42,7 @@ async function updateInstallationDates() {
         console.log('Base de datos conectada');
         
         // Leer el archivo CSV
-        const csvPath = path.join(__dirname, '../../../tmp/INSTALACIONES.csv');
+        const csvPath = path.join(__dirname, '../../../tools/scratch/INSTALACIONES.csv');
         const csvContent = fs.readFileSync(csvPath, 'utf-8');
         const lines = csvContent.split('\n');
         

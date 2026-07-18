@@ -26,7 +26,7 @@ export class ProductSold {
     @Column({ type: 'date', transformer: dateOnlyTransformer })
     saleDate!: Date;
 
-    @Column({ default: 'pending' })
+    @Column({ type: 'enum', enum: ['pendiente', 'completado'], default: 'pendiente' })
     status!: string;
 
     @OneToMany(() => ProductInstallment, installment => installment.product)

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box, Paper, Typography, TextField, Button, Alert, CircularProgress,
-    Chip, Divider, IconButton, Stack, Tooltip
+    Chip, Divider, Stack
 } from '@mui/material';
-import { Save as SaveIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Save as SaveIcon, Add as AddIcon } from '@mui/icons-material';
 import { SystemSettingService } from '../../services/SystemSettingService';
 
 interface ClientStatus {
@@ -13,11 +13,11 @@ interface ClientStatus {
 
 const DEFAULT_CITIES = ['Cali'];
 const DEFAULT_STATUSES: ClientStatus[] = [
-    { value: 'active', label: 'Activo' },
+    { value: 'activo', label: 'Activo' },
     { value: 'pendiente_instalacion', label: 'Instalación Pendiente' },
-    { value: 'suspended', label: 'Suspendido' },
-    { value: 'cancelled', label: 'Cancelado' },
-    { value: 'retired', label: 'Retirado' },
+    { value: 'suspendido', label: 'Suspendido' },
+    { value: 'retirado', label: 'Retirado' },
+    { value: 'inactivo', label: 'Inactivo' },
 ];
 
 export const SystemSettingsConfig: React.FC = () => {

@@ -120,7 +120,7 @@ export class AvisoController {
             .leftJoinAndSelect('inst.servicePlan', 'plan')
             .where('inst.isActive = :isActive', { isActive: true })
             .andWhere('inst.isDeleted = :isDeleted', { isDeleted: false })
-            .andWhere('client.status = :status', { status: 'active' });
+            .andWhere('client.status = :status', { status: 'activo' });
 
         if (filters.ponId && filters.ponId.trim() !== '') {
             qb = qb.andWhere('inst.ponId = :ponId', { ponId: filters.ponId.trim() });

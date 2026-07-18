@@ -617,7 +617,7 @@ export const ClientController = {
             const pendingOrOverdue = await paymentRepository.find({
                 where: {
                     client: { id: clientId },
-                    status: require('typeorm').In(['pending', 'overdue'])
+                    status: require('typeorm').In(['pendiente', 'vencido'])
                 }
             });
 
@@ -715,7 +715,7 @@ export const ClientController = {
             }
 
             // Actualizar datos de retiro del cliente
-            client.status = 'cancelled';
+            client.status = 'retirado';
             client.retirementDate = new Date(retirementDate);
             client.retirementReason = reason;
 
@@ -733,7 +733,7 @@ export const ClientController = {
                 for (const installation of client.installations) {
                     if (installation.isActive && !installation.isDeleted) {
                         installation.isActive = false;
-                        installation.serviceStatus = 'cancelled';
+                        installation.serviceStatus = 'retirado';
                         installation.retirementDate = new Date(retirementDate);
 
                         if (installation.ponId && installation.onuId) {

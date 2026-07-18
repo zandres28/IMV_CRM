@@ -31,14 +31,14 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
     const [formData, setFormData] = React.useState<{
         productName: string;
         notes: string;
-        status: 'pending' | 'completed';
+        status: 'pendiente' | 'completado';
         totalAmount: number;
         installments: number;
         saleDate: string;
     }>({
         productName: '',
         notes: '',
-        status: 'pending',
+        status: 'pendiente',
         totalAmount: 0,
         installments: 1,
         saleDate: toInputDateString(new Date())
@@ -83,7 +83,7 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
     };
 
     const handleStatusChange = (e: { target: { value: string } }) => {
-        const statusValue = e.target.value as 'pending' | 'completed';
+        const statusValue = e.target.value as 'pendiente' | 'completado';
         setFormData({
             ...formData,
             status: statusValue
@@ -152,8 +152,8 @@ export const EditProductDialog: React.FC<EditProductDialogProps> = ({
                                     onChange={handleStatusChange}
                                     label="Estado"
                                 >
-                                    <MenuItem value="pending">Pendiente</MenuItem>
-                                    <MenuItem value="completed">Completado</MenuItem>
+                                    <MenuItem value="pendiente">Pendiente</MenuItem>
+                                    <MenuItem value="completado">Completado</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>

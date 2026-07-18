@@ -111,8 +111,8 @@ const AgendaInstalaciones: React.FC = () => {
                 </Typography>
                 <Chip
                     size="small"
-                    label={inst.serviceStatus === 'active' ? 'Activo' : inst.serviceStatus === 'suspended' ? 'Suspendido' : 'Cancelado'}
-                    color={inst.serviceStatus === 'active' ? 'success' : inst.serviceStatus === 'suspended' ? 'warning' : 'error'}
+                    label={inst.serviceStatus === 'activo' ? 'Activo' : inst.serviceStatus === 'suspendido' ? 'Suspendido' : 'Retirado'}
+                    color={inst.serviceStatus === 'activo' ? 'success' : inst.serviceStatus === 'suspendido' ? 'warning' : 'error'}
                 />
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -243,8 +243,8 @@ const AgendaInstalaciones: React.FC = () => {
                             <TableCell>
                                 <Chip
                                     size="small"
-                                    label={inst.serviceStatus === 'active' ? 'Activo' : inst.serviceStatus === 'suspended' ? 'Suspendido' : 'Cancelado'}
-                                    color={inst.serviceStatus === 'active' ? 'success' : inst.serviceStatus === 'suspended' ? 'warning' : 'error'}
+                                    label={inst.serviceStatus === 'activo' ? 'Activo' : inst.serviceStatus === 'suspendido' ? 'Suspendido' : 'Retirado'}
+                                    color={inst.serviceStatus === 'activo' ? 'success' : inst.serviceStatus === 'suspendido' ? 'warning' : 'error'}
                                 />
                             </TableCell>
                             <TableCell>

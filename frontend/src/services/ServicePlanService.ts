@@ -8,6 +8,8 @@ export interface ServicePlan {
     monthlyFee: number;
     installationFee: number;
     isActive: boolean;
+    showInRequestForm: boolean;
+    showInApp: boolean;
 }
 
 export const ServicePlanService = {
@@ -17,6 +19,10 @@ export const ServicePlanService = {
     },
     getActive: async () => {
         const res = await axios.get(`${API_URL}/service-plans/active`);
+        return res.data;
+    },
+    getAppVisible: async () => {
+        const res = await axios.get(`${API_URL}/service-plans/app-visible`);
         return res.data;
     },
     getById: async (id: number) => {

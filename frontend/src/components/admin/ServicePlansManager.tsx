@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, IconButton, Box, TablePagination, FormControl, InputLabel, Select, MenuItem, Chip } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Search as SearchIcon, Visibility as VisibilityIcon, VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
 import { ServicePlanService, ServicePlan } from '../../services/ServicePlanService';
 import AuthService from '../../services/AuthService';
 
@@ -39,7 +39,7 @@ export const ServicePlansManager: React.FC = () => {
     useEffect(() => { filterPlans(); }, [filterPlans]);
 
     const handleOpenNew = () => { setEditing(null); setForm({ name: '', speedMbps: 0, monthlyFee: 0, installationFee: 0, sucursal: defaultSucursal }); setOpen(true); };
-    const handleEdit = (p: ServicePlan) => { setEditing(p); setForm({ ...p, sucursal: (p as any).sucursal || defaultSucursal }); setOpen(true); };
+    const handleEdit = (p: ServicePlan) => { setEditing(p); setForm({ ...p, sucursal: (p as any).sucursal || defaultSucursal, showInRequestForm: (p as any).showInRequestForm !== false, showInApp: (p as any).showInApp !== false }); setOpen(true); };
 
     const handleSave = async () => {
         try {
@@ -92,6 +92,8 @@ export const ServicePlansManager: React.FC = () => {
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Velocidad (Mbps)</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vr. del plan</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vr. de Instalación</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>En App</TableCell>
+                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Formulario</TableCell>
                             <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
@@ -113,6 +115,20 @@ export const ServicePlansManager: React.FC = () => {
                                 <TableCell>{p.speedMbps}</TableCell>
                                 <TableCell>{p.monthlyFee}</TableCell>
                                 <TableCell>{p.installationFee}</TableCell>
+                                <TableCell>
+                                    {(p as any).showInApp !== false ? (
+                                        <VisibilityIcon fontSize="small" sx={{ color: 'success.main', verticalAlign: 'middle' }} titleAccess="Visible en app" />
+                                    ) : (
+                                        <VisibilityOffIcon fontSize="small" sx={{ color: 'text.disabled', verticalAlign: 'middle' }} titleAccess="Oculto en app" />
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    {(p as any).showInRequestForm !== false ? (
+                                        <VisibilityIcon fontSize="small" sx={{ color: 'success.main', verticalAlign: 'middle' }} />
+                                    ) : (
+                                        <VisibilityOffIcon fontSize="small" sx={{ color: 'text.disabled', verticalAlign: 'middle' }} />
+                                    )}
+                                </TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleEdit(p)}><EditIcon/></IconButton>
                                     <IconButton onClick={() => handleDelete(p.id)}><DeleteIcon/></IconButton>
@@ -156,6 +172,28 @@ export const ServicePlansManager: React.FC = () => {
                     <TextField label="Velocidad (Mbps)" type="number" fullWidth value={form.speedMbps || 0} onChange={e => setForm(f => ({...f, speedMbps: Number(e.target.value)}))} sx={{ mt: 1 }} />
                     <TextField label="Vr. del plan" type="number" fullWidth value={form.monthlyFee || 0} onChange={e => setForm(f => ({...f, monthlyFee: Number(e.target.value)}))} sx={{ mt: 1 }} />
                     <TextField label="Vr. de Instalación" type="number" fullWidth value={form.installationFee || 0} onChange={e => setForm(f => ({...f, installationFee: Number(e.target.value)}))} sx={{ mt: 1 }} />
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>Visible en App CRM</InputLabel>
+                        <Select
+                            value={(form as any).showInApp !== false ? 'true' : 'false'}
+                            label="Visible en App CRM"
+                            onChange={e => setForm(f => ({...f, showInApp: e.target.value === 'true'}))}
+                        >
+                            <MenuItem value="true">Mostrar al crear instalaciones</MenuItem>
+                            <MenuItem value="false">Ocultar (plan anterior/legacy)</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>Formulario público</InputLabel>
+                        <Select
+                            value={(form as any).showInRequestForm !== false ? 'true' : 'false'}
+                            label="Formulario público"
+                            onChange={e => setForm(f => ({...f, showInRequestForm: e.target.value === 'true'}))}
+                        >
+                            <MenuItem value="true">Mostrar en solicitud web</MenuItem>
+                            <MenuItem value="false">Ocultar en solicitud web</MenuItem>
+                        </Select>
+                    </FormControl>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpen(false)}>Cancelar</Button>

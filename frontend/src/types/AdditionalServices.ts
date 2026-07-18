@@ -5,7 +5,7 @@ export interface AdditionalService {
     monthlyFee: number;
     startDate: string;
     endDate?: string;
-    status: 'active' | 'inactive';
+    status: 'activo' | 'inactivo';
     notes?: string;
     created_at: string;
     updated_at: string;
@@ -19,7 +19,7 @@ export interface ProductSold {
     installments: number;
     installmentAmount: number;
     saleDate: string;
-    status: 'pending' | 'completed';
+    status: 'pendiente' | 'completado';
     notes?: string;
     created_at: string;
     updated_at: string;
@@ -33,7 +33,7 @@ export interface ProductInstallment {
     amount: number;
     dueDate: string;
     paymentDate?: string;
-    status: 'pending' | 'completed';
+    status: 'pendiente' | 'completado';
     notes?: string;
     created_at: string;
 }

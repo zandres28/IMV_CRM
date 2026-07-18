@@ -11,7 +11,7 @@ export interface ServiceOutage {
   days: number;
   reason?: string;
   discountAmount: number;
-  status: 'pending' | 'applied' | 'cancelled';
+  status: 'pendiente' | 'aplicado' | 'anulado';
   appliedToPaymentId?: number;
   notes?: string;
   created_at: string;
@@ -31,7 +31,7 @@ export interface CreateServiceOutageData {
 
 export interface ServiceOutageFilters {
   clientId?: number;
-  status?: 'pending' | 'applied' | 'cancelled' | 'all';
+  status?: 'pendiente' | 'aplicado' | 'anulado' | 'all';
   startDate?: string;
   endDate?: string;
   ponId?: string;

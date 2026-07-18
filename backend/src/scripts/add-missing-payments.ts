@@ -91,7 +91,7 @@ async function addMissingPayments() {
           amount: paymentData.amount,
           installationFeeAmount: paymentData.amount,
           paymentMethod: paymentData.paymentMethod,
-          status: 'paid',
+          status: 'pagado',
           paymentType: 'installation',
           dueDate: paymentData.paymentDate,
           paymentMonth: paymentData.paymentDate.toLocaleDateString('es-ES', { month: 'long' }),

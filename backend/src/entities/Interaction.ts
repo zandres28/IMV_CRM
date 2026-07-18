@@ -32,8 +32,8 @@ export class Interaction {
     description: string;
 
     @Column({
-        type: 'varchar',
-        length: 20,
+        type: 'enum',
+        enum: ['pendiente', 'en_progreso', 'completado', 'cancelado', 'pospuesto', 'rechazado'],
         default: 'pendiente'
     })
     status: InteractionStatus;

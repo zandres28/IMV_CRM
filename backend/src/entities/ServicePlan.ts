@@ -23,6 +23,12 @@ export class ServicePlan {
     @Column({ type: 'varchar', length: 100, nullable: true, default: 'CALI' })
     sucursal?: string | null;
 
+    @Column({ default: true })
+    showInRequestForm!: boolean;
+
+    @Column({ default: true })
+    showInApp!: boolean;
+
     @CreateDateColumn()
     created_at!: Date;
 

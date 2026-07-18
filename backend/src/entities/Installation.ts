@@ -12,7 +12,7 @@ export class Installation {
     @ManyToOne(() => Client, client => client.installations)
     client!: Client;
 
-    @Column({ type: 'enum', enum: ['active', 'suspended', 'cancelled'], default: 'active' })
+    @Column({ type: 'enum', enum: ['activo', 'suspendido', 'retirado'], default: 'activo' })
     serviceStatus!: string;
 
     @Column({ type: 'date', transformer: dateOnlyTransformer })

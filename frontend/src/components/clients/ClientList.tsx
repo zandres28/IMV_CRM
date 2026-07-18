@@ -30,13 +30,11 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
-    SelectChangeEvent,
     useTheme,
     useMediaQuery,
     Card,
     CardContent,
     CardActions,
-    Grid,
     Divider,
     FormControlLabel,
     Switch
@@ -176,7 +174,7 @@ export const ClientList: React.FC = () => {
 
             // Check if any additional service name matches the search term
             const matchesServiceSearch = clientDetails?.additionalServices.some(s =>
-                s.serviceName?.toLowerCase().includes(searchLower) && s.status === 'active'
+                s.serviceName?.toLowerCase().includes(searchLower) && s.status === 'activo'
             );
 
             const matchesSearch = matchesBasicSearch || matchesServiceSearch;
@@ -194,7 +192,7 @@ export const ClientList: React.FC = () => {
                 // 2. Estado 'active' PERO sin instalaciones registradas
                 if (statusFilter === 'pendiente_instalacion') {
                     const hasActiveInstallations = clientDetails?.installations && clientDetails.installations.length > 0;
-                    return client.status === 'pendiente_instalacion' || (client.status === 'active' && !hasActiveInstallations);
+                    return client.status === 'pendiente_instalacion' || (client.status === 'activo' && !hasActiveInstallations);
                 }
                 
                 return statusFilter === 'all' || client.status === statusFilter;
@@ -369,10 +367,10 @@ export const ClientList: React.FC = () => {
 
     const getStatusChipProps = (status: string) => {
         const statusMap: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'default' | 'info' }> = {
-            active: { label: 'Activo', color: 'success' },
-            suspended: { label: 'Suspendido', color: 'warning' },
-            cancelled: { label: 'Retirado', color: 'error' },
-            inactive: { label: 'Inactivo', color: 'default' },
+            activo: { label: 'Activo', color: 'success' },
+            suspendido: { label: 'Suspendido', color: 'warning' },
+            retirado: { label: 'Retirado', color: 'error' },
+            inactivo: { label: 'Inactivo', color: 'default' },
             pendiente_instalacion: { label: 'Pendiente Inst.', color: 'info' }
         };
         return statusMap[status] || { label: status, color: 'default' };
@@ -405,10 +403,10 @@ export const ClientList: React.FC = () => {
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
                             <MenuItem value="all">Todos</MenuItem>
-                            <MenuItem value="active">Activo</MenuItem>
-                            <MenuItem value="suspended">Suspendido</MenuItem>
-                            <MenuItem value="cancelled">Retirado</MenuItem>
-                            <MenuItem value="inactive">Inactivo</MenuItem>
+                            <MenuItem value="activo">Activo</MenuItem>
+                            <MenuItem value="suspendido">Suspendido</MenuItem>
+                            <MenuItem value="retirado">Retirado</MenuItem>
+                            <MenuItem value="inactivo">Inactivo</MenuItem>
                             <MenuItem value="pendiente_instalacion">Pendiente Inst.</MenuItem>
                             <MenuItem value="deleted">Eliminados</MenuItem>
                         </Select>
@@ -584,7 +582,7 @@ export const ClientList: React.FC = () => {
                                         </Typography>
                                     </Box>
 
-                                    {client.status === 'cancelled' && (
+                                    {client.status === 'retirado' && (
                                         <Box mb={1}>
                                             <Typography variant="caption" color="text.secondary">Retiro: {client.retirementDate ? new Date(client.retirementDate).toLocaleDateString() : '-'}</Typography>
                                             {client.retirementReason && (
@@ -611,7 +609,7 @@ export const ClientList: React.FC = () => {
                                                 ))}
                                                 {/* Servicios adicionales activos */}
                                                 {(() => {
-                                                    const activeServices = services.additionalServices.filter(s => s.status === 'active');
+                                                    const activeServices = services.additionalServices.filter(s => s.status === 'activo');
                                                     const chips = [];
                                                     if (activeServices.some(s => /netflix/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-netflix" label="N" size="small" color="error" variant="filled" title="Netflix activo" sx={{ fontWeight: 'bold' }} />);
@@ -803,8 +801,7 @@ export const ClientList: React.FC = () => {
                                                 </Box>
                                                 {(() => {
                                                     // Si está retirado, mostrar Fecha de Retiro
-                                                    if (client.status === 'cancelled' && client.retirementDate) {
-                                                        const rDate = parseLocalDate(client.retirementDate);
+                                                    if (client.status === 'retirado' && client.retirementDate) {
                                                         return (
                                                             <Typography variant="caption" color="error" sx={{ display: 'block', fontWeight: 'bold' }}>
                                                                 Retirado: {formatLocalDate(client.retirementDate)}
@@ -839,7 +836,7 @@ export const ClientList: React.FC = () => {
                                         <TableCell>
                                             <Box display="flex" flexWrap="wrap" gap={0.5}>
                                                 {/* Chip de Retiro si aplica */}
-                                                {client.status === 'cancelled' && (
+                                                {client.status === 'retirado' && (
                                                     <Chip
                                                         label="RETIRADO"
                                                         size="small"
@@ -865,7 +862,7 @@ export const ClientList: React.FC = () => {
                                                 {/* Servicios adicionales activos */}
                                                 {(() => {
                                                     if (!services) return null;
-                                                    const activeServices = services.additionalServices.filter(s => s.status === 'active');
+                                                    const activeServices = services.additionalServices.filter(s => s.status === 'activo');
                                                     const chips = [];
                                                     if (activeServices.some(s => /netflix/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-netflix" label="N" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#e74a3b', color: 'white' }} title="Netflix activo" />);
@@ -931,14 +928,14 @@ export const ClientList: React.FC = () => {
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>{formatPhoneForDisplay(client.secondaryPhone)}</TableCell>
                                         <TableCell>
                                             <Chip
-                                                label={client.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
+                                                label={client.status === 'activo' ? 'ACTIVO' : client.status === 'pendiente_instalacion' ? 'PEND. INST.' : 'INACTIVO'}
                                                 sx={{ 
                                                     height: 18, 
                                                     fontSize: '0.6rem', 
                                                     fontWeight: 800,
-                                                    bgcolor: client.status === 'active' ? '#1cc88a20' : '#e74a3b20',
-                                                    color: client.status === 'active' ? '#1cc88a' : '#e74a3b',
-                                                    border: `1px solid ${client.status === 'active' ? '#1cc88a' : '#e74a3b'}`
+                                                    bgcolor: client.status === 'activo' ? '#1cc88a20' : client.status === 'pendiente_instalacion' ? '#36b9cc20' : '#e74a3b20',
+                                                    color: client.status === 'activo' ? '#1cc88a' : client.status === 'pendiente_instalacion' ? '#36b9cc' : '#e74a3b',
+                                                    border: `1px solid ${client.status === 'activo' ? '#1cc88a' : client.status === 'pendiente_instalacion' ? '#36b9cc' : '#e74a3b'}`
                                                 }}
                                                 size="small"
                                             />
@@ -1173,7 +1170,7 @@ export const ClientList: React.FC = () => {
                                                 {/* Servicios adicionales activos */}
                                                 {(() => {
                                                     if (!services) return null;
-                                                    const activeServices = services.additionalServices.filter(s => s.status === 'active');
+                                                    const activeServices = services.additionalServices.filter(s => s.status === 'activo');
                                                     const chips = [];
                                                     if (activeServices.some(s => /netflix/i.test(s.serviceName))) {
                                                         chips.push(<Chip key="svc-netflix" label="N" size="small" color="error" variant="filled" title="Netflix activo" sx={{ fontWeight: 'bold' }} />);
