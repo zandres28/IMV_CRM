@@ -374,15 +374,23 @@ export const ClientController = {
                 };
             });
 
-            // Ordenar por latestInstallationDate DESC, luego por fullName ASC
+            // Ordenar: clientes sin instalaciones primero (por created_at DESC),
+            // luego clientes con instalaciones (por installationDate DESC), luego por nombre
             clientsWithLatestDate.sort((a, b) => {
-                // Primero por fecha de instalación más reciente (DESC)
-                const dateA = a.latestInstallationDate ? new Date(a.latestInstallationDate).getTime() : 0;
-                const dateB = b.latestInstallationDate ? new Date(b.latestInstallationDate).getTime() : 0;
-                if (dateB !== dateA) {
-                    return dateB - dateA;
+                const hasInstA = !!a.latestInstallationDate;
+                const hasInstB = !!b.latestInstallationDate;
+                if (hasInstA !== hasInstB) {
+                    return hasInstA ? 1 : -1; // sin instalaciones primero
                 }
-                // Luego por nombre (ASC)
+                if (hasInstA) {
+                    const dateA = new Date(a.latestInstallationDate!).getTime();
+                    const dateB = new Date(b.latestInstallationDate!).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                } else {
+                    const dateA = new Date(a.created_at).getTime();
+                    const dateB = new Date(b.created_at).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                }
                 return (a.fullName || '').localeCompare(b.fullName || '');
             });
 
