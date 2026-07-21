@@ -25,7 +25,7 @@ import installationBillingRoutes from "./routes/installation-billing";
 import n8nIntegrationRoutes from "./routes/n8n-integration";
 import reportRoutes from "./routes/reports";
 import serviceOutageRoutes from "./routes/service-outages";
-import ponMapRoutes from "./routes/pon-map";
+
 import publicRoutes from "./routes/public";
 import serviceTransferRoutes from "./routes/serviceTransfer";
 import dashboardRoutes from "./routes/dashboard";
@@ -148,7 +148,6 @@ app.use("/api/installation-billing", authMiddleware, installationBillingRoutes);
 app.use("/api/n8n", apiKeyMiddleware, n8nIntegrationRoutes);
 app.use("/api/reports", authMiddleware, reportRoutes);
 app.use("/api/service-outages", authMiddleware, serviceOutageRoutes);
-app.use("/api/pon-map", authMiddleware, ponMapRoutes);
 app.use("/api/service-transfers", authMiddleware, serviceTransferRoutes);
 app.use("/api/notifications", authMiddleware, notificationRoutes);
 app.use("/api/dashboard", authMiddleware, dashboardRoutes);

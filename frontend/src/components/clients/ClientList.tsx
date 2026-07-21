@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Table,
@@ -52,13 +51,6 @@ import AuthService from '../../services/AuthService';
 
 type Order = 'asc' | 'desc';
 type OrderBy = keyof Client;
-
-interface PonEntry {
-    ponId?: string;
-    onuId?: string;
-    nombre?: string;
-    estado?: string;
-}
 
 export const ClientList: React.FC = () => {
     const navigate = useNavigate();
@@ -144,9 +136,6 @@ export const ClientList: React.FC = () => {
         products: ProductSold[];
         installations: Installation[];
     }>>({});
-
-    // Mapa de serial ONU -> { ponId, onuId }
-    const [ponMap, setPonMap] = useState<Record<string, PonEntry>>({});
 
     const loadClients = useCallback(async () => {
         try {
@@ -267,15 +256,6 @@ export const ClientList: React.FC = () => {
     useEffect(() => {
         const fetchAll = async () => {
             await loadClients();
-            // Cargar mapa PON/ONU una sola vez
-            try {
-                const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-                const res = await axios.get(`${apiUrl}/pon-map`);
-                const ponData = res.data as Record<string, PonEntry>;
-                setPonMap(ponData || {});
-            } catch (e) {
-                console.warn('No se pudo cargar el mapa PON/ONU:', e);
-            }
         };
         fetchAll();
     }, [loadClients]);
@@ -519,8 +499,6 @@ export const ClientList: React.FC = () => {
                         const services = clientServices[client.id];
                         const installations = services?.installations || [];
                         const instWithSerial = installations.find(inst => inst.isActive && inst.onuSerialNumber) || installations.find(inst => inst.onuSerialNumber);
-                        const serial = instWithSerial?.onuSerialNumber?.toUpperCase();
-                        const ponEntry = serial ? ponMap[serial] : undefined;
                         return (
                             <Card key={client.id} sx={{ mb: 2, boxShadow: 3 }}>
                                 <CardContent onClick={() => navigate(`/clients/${client.id}`)} sx={{ cursor: 'pointer' }}>
@@ -565,10 +543,10 @@ export const ClientList: React.FC = () => {
                                         </Box>
                                     </Box>
 
-                                    {ponEntry?.nombre && (
+                                    {instWithSerial?.napLabel && (
                                         <Box mb={1}>
                                             <Chip
-                                                label={`Etiqueta NAP: ${ponEntry.nombre}`}
+                                                label={`Etiqueta NAP: ${instWithSerial.napLabel}`}
                                                 size="small"
                                                 color="info"
                                             />
@@ -763,8 +741,6 @@ export const ClientList: React.FC = () => {
                                 const services = clientServices[client.id];
                                 const installations = services?.installations || [];
                                 const instWithSerial = installations.find(inst => inst.isActive && inst.onuSerialNumber) || installations.find(inst => inst.onuSerialNumber);
-                                const serial = instWithSerial?.onuSerialNumber?.toUpperCase();
-                                const ponEntry = serial ? ponMap[serial] : undefined;
                                 return (
                                     <TableRow
                                         key={client.id}
@@ -918,11 +894,7 @@ export const ClientList: React.FC = () => {
                                         </TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#5a5c69' }}>{client.city}</TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem' }}>
-                                            {instWithSerial?.napLabel ? (
-                                                <Chip label={instWithSerial.napLabel} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, borderColor: '#4e73df', color: '#4e73df' }} variant="outlined" />
-                                            ) : (
-                                                ponEntry?.nombre || '-'
-                                            )}
+                                            {instWithSerial?.napLabel || '-'}
                                         </TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>{formatPhoneForDisplay(client.primaryPhone)}</TableCell>
                                         <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>{formatPhoneForDisplay(client.secondaryPhone)}</TableCell>
@@ -1102,8 +1074,6 @@ export const ClientList: React.FC = () => {
                                 const services = clientServices[client.id];
                                 const installations = services?.installations || [];
                                 const instWithSerial = installations.find(i => i.isActive && i.onuSerialNumber) || installations.find(i => i.onuSerialNumber);
-                                const serial = instWithSerial?.onuSerialNumber?.toUpperCase();
-                                const mapping = serial ? ponMap[serial] : undefined;
                                 return (
                                     <TableRow
                                         key={client.id}
@@ -1213,11 +1183,11 @@ export const ClientList: React.FC = () => {
                                         </TableCell>
                                         <TableCell>{client.installationAddress}</TableCell>
                                         <TableCell>{client.city}</TableCell>
-                                        <TableCell>{mapping?.nombre || '-'}</TableCell>
+                                        <TableCell>{instWithSerial?.napLabel || '-'}</TableCell>
                                         <TableCell>{client.primaryPhone}</TableCell>
                                         <TableCell>{client.secondaryPhone}</TableCell>
-                                        <TableCell>{mapping?.ponId || '-'}</TableCell>
-                                        <TableCell>{mapping?.onuId || '-'}</TableCell>
+                                        <TableCell>{instWithSerial?.ponId || '-'}</TableCell>
+                                        <TableCell>{instWithSerial?.onuId || '-'}</TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={getStatusChipProps(client.status).label}
