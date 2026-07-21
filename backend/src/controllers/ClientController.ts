@@ -30,10 +30,10 @@ const buildPublicRequestWhatsappUrl = (data: {
 
     const text = [
         `📋 *Nueva Solicitud Web - IMV Networks*`,
-        `--------------------------------`,
         ``,
         `👤 *Cliente:* ${data.fullName}`,
         `📱 *Celular:* ${formatPhoneForWhatsapp(data.primaryPhone)}`,
+        ``,
         `📍 *Dirección:* ${data.installationAddress}`,
         `🏙️ *Ciudad:* ${data.city}`,
         `📶 *Plan:* ${data.planName}`,
@@ -55,11 +55,11 @@ const sendPublicRequestWhatsappNotification = async (data: {
 }) => {
     const message = [
         `📋 *Nueva Solicitud Web - IMV Networks*`,
-        `--------------------------------`,
         ``,
         `👤 *Cliente:* ${data.fullName}`,
         `🆔 *Documento:* ${data.identificationNumber}`,
         `📱 *Celular:* ${formatPhoneForWhatsapp(data.primaryPhone)}`,
+        ``,
         `📍 *Dirección:* ${data.installationAddress}`,
         `🏙️ *Ciudad:* ${data.city}`,
         `📶 *Plan:* ${data.planName}${data.planSpeedMbps ? ` (${data.planSpeedMbps} Mbps)` : ''}`,
