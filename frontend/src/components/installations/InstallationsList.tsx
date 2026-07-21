@@ -434,6 +434,29 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                     </Grid>
                                 </Grid>
 
+                                <Box mt={1}>
+                                    {(() => {
+                                        const onuStatus = onuStatusMap[installation.id];
+                                        if (loadingOnuStatus) return <CircularProgress size={14} />;
+                                        if (!onuStatus) return null;
+                                        return (
+                                            <Chip
+                                                label={onuStatus.isOnline ? 'ONU ONLINE' : 'ONU OFFLINE'}
+                                                icon={onuStatus.isOnline ? <WifiIcon /> : <WifiOffIcon />}
+                                                sx={{
+                                                    height: 20,
+                                                    fontSize: '0.6rem',
+                                                    fontWeight: 800,
+                                                    bgcolor: onuStatus.isOnline ? '#1cc88a20' : '#e74a3b20',
+                                                    color: onuStatus.isOnline ? '#1cc88a' : '#e74a3b',
+                                                    border: `1px solid ${onuStatus.isOnline ? '#1cc88a' : '#e74a3b'}`
+                                                }}
+                                                size="small"
+                                            />
+                                        );
+                                    })()}
+                                </Box>
+
                                 <Divider sx={{ my: 1, opacity: 0.5 }} />
 
                                 <Box display="flex" justifyContent="flex-end" gap={0.5}>
