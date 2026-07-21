@@ -9,13 +9,42 @@ jobs:
     name: Deploy Frontend to VPS
     runs-on: ubuntu-latest
     env:
-      # Cambia esto si usas otra rama para despliegues
       DEPLOY_BRANCH: master
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Deploy to VPS via SSH
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        env:
+          REACT_APP_API_URL: /api
+          CI: false
+          GENERATE_SOURCEMAP: false
+          DISABLE_ESLINT_PLUGIN: true
+          TSC_COMPILE_ON_ERROR: true
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Copy build to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          source: "frontend/build/*"
+          target: "/tmp/frontend-build"
+          strip_components: 2
+
+      - name: Deploy to running container
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -24,11 +53,14 @@ jobs:
           port: ${{ secrets.VPS_SSH_PORT }}
           script: |
             set -euo pipefail
-            # Directorio del repo en el VPS (configurar como secret REPO_DIR)
-            cd "${{ secrets.REPO_DIR }}"
-            git fetch --all
-            git reset --hard "origin/${{ env.DEPLOY_BRANCH }}"
-            docker image prune -f || true
-            docker compose build frontend
-            docker compose up -d frontend
-            docker compose ps
+            CONTAINER=$(docker ps --filter "name=frontend" --format "{{.Names}}" | head -1)
+            if [ -z "$CONTAINER" ]; then
+              echo "ERROR: No frontend container found"
+              docker ps -a
+              exit 1
+            fi
+            echo "Updating container: $CONTAINER"
+            docker exec "$CONTAINER" rm -rf /usr/share/nginx/html/static/* || true
+            docker cp /tmp/frontend-build/. "$CONTAINER":/usr/share/nginx/html/
+            docker exec "$CONTAINER" nginx -s reload 2>/dev/null || true
+            echo "Deploy complete"
