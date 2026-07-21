@@ -4,7 +4,7 @@
 - **Frontend:** React 18 + TypeScript 4.9 + MUI 5 + Redux Toolkit + Recharts. CRA (react-scripts 5).
 - **Backend:** Express 5 + TypeScript 5.9 + TypeORM 0.3 + MySQL 8.0. ts-node-dev for dev, tsc to build.
 - **Infra:** Docker Compose (db:3307, backend:3010, frontend:8095), Nginx reverse-proxy in frontend container.
-- **CI:** GitHub Actions — push to master → SSH into VPS → `docker compose build frontend && docker compose up -d frontend`.
+- **CI:** GitHub Actions — push to master → build frontend on runner (Node 18, `npm ci && npm run build` with `REACT_APP_API_URL=/api`) → `appleboy/scp-action` to copy build to VPS → `appleboy/ssh-action` to `docker cp` into running container. VPS RAM (312Mi free) is insufficient for React build, so building on runner and injecting via `docker cp` is required.
 
 ## Dev Commands
 ```bash
@@ -163,7 +163,37 @@ Frontend `InstallationsList.tsx` uses `Promise.all` to fetch ONU status for all 
 - Soft delete via `@DeleteDateColumn` on `deletedAt` (Client, Installation entities).
 - Enum columns use TypeORM `@Column({ type: 'enum', enum: [...] })`.
 
-## Design Context
+### CI/CD — GitHub Actions Secrets
+
+Required in `https://github.com/zandres28/IMV_CRM/settings/secrets/actions`:
+
+| Secret | Value | Purpose |
+|--------|-------|---------|
+| `VPS_HOST` | `149.130.162.188` | SSH host |
+| `VPS_USER` | `ubuntu` | SSH user |
+| `SSH_PRIVATE_KEY` | Content of `~/.ssh/github_actions_deploy` (RSA PEM format) | SSH key |
+| `VPS_SSH_PORT` | `22` | SSH port |
+
+`REPO_DIR` (`/home/ubuntu/imv_crm`) is no longer used by the CI script but can be kept for reference.
+
+**Important:** `appleboy/*` actions require the SSH key in RSA PEM format (converted via `ssh-keygen -p -m PEM`). ED25519 keys are NOT compatible.
+
+### Deploy Flow (`.github/workflows/deploy_frontend.yml`)
+1. `actions/checkout@v5` — checkout code
+2. `actions/setup-node@v4` — Node 18, cache npm
+3. Build frontend with `REACT_APP_API_URL=/api`, `CI=false`, sourcemaps off, ESLint disabled
+4. `appleboy/scp-action@v0.1.7` — copy `frontend/build/*` → `/tmp/frontend-build` on VPS (strip_components: 2)
+5. `appleboy/ssh-action@v0.1.10` — find frontend container by name, `docker cp` build into `/usr/share/nginx/html/`, reload nginx
+
+### Important: No `docker compose build` on VPS
+The VPS has only ~312Mi free RAM, which is insufficient for `react-scripts build`. The CI builds on the GitHub runner (ubuntu-latest, plentiful RAM) and only transfers the compiled artifacts.
+
+### CI Deploy Keys on VPS
+- `~/.ssh/authorized_keys` has 4 entries:
+  - Original `imv_oracle_srv` key (ED25519, for manual admin SSH)
+  - `github_actions_deploy` key (RSA 4096 PEM, for appleboy/* CI actions)
+
+# Design Context
 
 See `PRODUCT.md` (strategy) and `DESIGN.md` (visual system) for full documentation. Quick reference:
 

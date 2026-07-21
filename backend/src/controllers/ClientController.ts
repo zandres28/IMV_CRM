@@ -28,7 +28,18 @@ const buildPublicRequestWhatsappUrl = (data: {
 
     if (!targetPhone) return null;
 
-    const text = `Hola IMV, me interesa el servicio de ${data.planName}. Mi nombre es ${data.fullName}, ciudad ${data.city}, direccion ${data.installationAddress}, celular ${formatPhoneForWhatsapp(data.primaryPhone)}.`;
+    const text = [
+        `📋 *Nueva Solicitud Web - IMV Networks*`,
+        `--------------------------------`,
+        ``,
+        `👤 *Cliente:* ${data.fullName}`,
+        `📱 *Celular:* ${formatPhoneForWhatsapp(data.primaryPhone)}`,
+        `📍 *Dirección:* ${data.installationAddress}`,
+        `🏙️ *Ciudad:* ${data.city}`,
+        `📶 *Plan:* ${data.planName}`,
+        ``,
+        `_Cliente recién registrado vía formulario web_`
+    ].join('\n');
     return `https://api.whatsapp.com/send/?phone=${targetPhone}&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
 };
 
@@ -43,14 +54,18 @@ const sendPublicRequestWhatsappNotification = async (data: {
     planMonthlyFee?: number | null;
 }) => {
     const message = [
-        'Nueva solicitud web IMV',
-        `Cliente: ${data.fullName}`,
-        `Documento: ${data.identificationNumber}`,
-        `Ciudad: ${data.city}`,
-        `Direccion: ${data.installationAddress}`,
-        `Celular: ${formatPhoneForWhatsapp(data.primaryPhone)}`,
-        `Plan: ${data.planName}${data.planSpeedMbps ? ` (${data.planSpeedMbps} Mbps)` : ''}`,
-        `Mensualidad: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(Number(data.planMonthlyFee || 0))}`
+        `📋 *Nueva Solicitud Web - IMV Networks*`,
+        `--------------------------------`,
+        ``,
+        `👤 *Cliente:* ${data.fullName}`,
+        `🆔 *Documento:* ${data.identificationNumber}`,
+        `📱 *Celular:* ${formatPhoneForWhatsapp(data.primaryPhone)}`,
+        `📍 *Dirección:* ${data.installationAddress}`,
+        `🏙️ *Ciudad:* ${data.city}`,
+        `📶 *Plan:* ${data.planName}${data.planSpeedMbps ? ` (${data.planSpeedMbps} Mbps)` : ''}`,
+        `💰 *Mensualidad:* ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(Number(data.planMonthlyFee || 0))}`,
+        ``,
+        `_Cliente recién registrado vía formulario web_`
     ].join('\n');
 
     const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL || process.env.N8N_NOTIFICATIONS_WEBHOOK || process.env.REACT_APP_N8N_NOTIFICATIONS_WEBHOOK;
