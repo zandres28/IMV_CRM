@@ -77,12 +77,22 @@ export const OltController = {
             let messageAction = '';
 
             if (action === 'enable') {
-                await oltService.activateOnu(installation.ponId, installation.onuId);
+                const onu = await oltService.getOnuByPonPort(installation.ponId, parseInt(installation.onuId));
+                if (onu && onu.ControlFlag === 1) {
+                    console.log(`ONU ${installation.ponId}/${installation.onuId} ya activa en OLT (ControlFlag=1). Solo se actualiza BD.`);
+                } else {
+                    await oltService.activateOnu(installation.ponId, installation.onuId);
+                }
                 messageAction = 'activado';
                 installation.serviceStatus = 'activo';
                 await AppDataSource.getRepository(Installation).save(installation);
             } else if (action === 'disable') {
-                await oltService.deactivateOnu(installation.ponId, installation.onuId);
+                const onu = await oltService.getOnuByPonPort(installation.ponId, parseInt(installation.onuId));
+                if (onu && onu.ControlFlag === 0) {
+                    console.log(`ONU ${installation.ponId}/${installation.onuId} ya desactivada en OLT (ControlFlag=0). Solo se actualiza BD.`);
+                } else {
+                    await oltService.deactivateOnu(installation.ponId, installation.onuId);
+                }
                 messageAction = 'cortado';
                 installation.serviceStatus = 'suspendido';
                 await AppDataSource.getRepository(Installation).save(installation);
