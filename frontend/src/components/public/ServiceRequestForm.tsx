@@ -171,7 +171,7 @@ const ServiceRequestForm: React.FC = () => {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
-            <Box sx={{ bgcolor: 'primary.dark', color: 'white', py: 3 }}>
+            <Box sx={{ bgcolor: '#0B1020', backgroundImage: 'radial-gradient(600px 300px at -10% 0%, rgba(45,91,255,0.25), transparent 55%), radial-gradient(500px 280px at 110% 100%, rgba(0,212,166,0.18), transparent 60%)', color: 'white', py: 3 }}>
                 <Container maxWidth="sm">
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                         <Box component="img" src="/nexum_logo.png" alt="IMV" sx={{ height: 32, width: 'auto' }} />
