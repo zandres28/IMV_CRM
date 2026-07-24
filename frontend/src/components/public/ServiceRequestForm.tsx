@@ -177,10 +177,10 @@ const ServiceRequestForm: React.FC = () => {
                         <Box component="img" src="/nexum_logo.png" alt="IMV" sx={{ height: 32, width: 'auto' }} />
                         <Typography variant="caption" sx={{ opacity: 0.7, letterSpacing: '0.15em' }}>IMV NETWORKS</Typography>
                     </Stack>
-                    <Typography variant="h5" sx={{ fontWeight: 700, mt: 2 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mt: 2, color: '#E6E9F5' }}>
                         Solicita tu conexión a internet
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ opacity: 0.7, mt: 0.5, color: '#B0B8D4' }}>
                         Un asesor te contactará por WhatsApp en menos de 24 horas para coordinar la instalación.
                     </Typography>
                 </Container>
