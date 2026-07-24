@@ -45,22 +45,66 @@ const theme = createTheme({
     },
     divider: palette.border,
   },
-  shape: {
-    borderRadius: 14,
-  },
   typography: {
     fontFamily: '"DM Sans", "Inter", system-ui, sans-serif',
-    h1: { fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.02em' },
-    h2: { fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.02em' },
-    h3: { fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.015em' },
-    h4: { fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif', fontWeight: 700, letterSpacing: '-0.01em', color: palette.ink },
-    h5: { fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif', fontWeight: 600, letterSpacing: '-0.01em', color: palette.ink },
-    h6: { fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif', fontWeight: 600, color: palette.ink },
-    subtitle1: { fontWeight: 600, color: palette.inkSoft },
-    subtitle2: { fontWeight: 600, color: palette.muted, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.7rem' },
-    body1: { fontWeight: 400, color: palette.inkSoft },
-    body2: { fontWeight: 400, color: palette.muted },
-    overline: { fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: '0.65rem' },
+    h1: {
+      fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif',
+      fontWeight: 700,
+      letterSpacing: '-0.02em',
+      fontSize: 'clamp(1.8rem, 3.5vw, 3rem)',
+      lineHeight: 1.1,
+    },
+    h2: {
+      fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif',
+      fontWeight: 700,
+      letterSpacing: '-0.02em',
+      fontSize: 'clamp(1.4rem, 2.5vw, 2rem)',
+      lineHeight: 1.2,
+    },
+    h3: {
+      fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif',
+      fontWeight: 700,
+      letterSpacing: '-0.015em',
+      fontSize: 'clamp(1rem, 1.5vw, 1.25rem)',
+      lineHeight: 1.3,
+    },
+    h4: {
+      fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif',
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      color: palette.ink,
+      fontSize: '1.1rem',
+    },
+    h5: {
+      fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif',
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      color: palette.ink,
+      fontSize: '1rem',
+    },
+    h6: {
+      fontFamily: '"Bricolage Grotesque", "DM Sans", sans-serif',
+      fontWeight: 600,
+      color: palette.ink,
+      fontSize: '0.9rem',
+    },
+    subtitle1: { fontWeight: 600, color: palette.inkSoft, fontSize: '0.85rem' },
+    subtitle2: {
+      fontWeight: 600,
+      color: palette.muted,
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+      fontSize: '0.7rem',
+    },
+    body1: { fontWeight: 400, color: palette.inkSoft, fontSize: '0.875rem', lineHeight: 1.5 },
+    body2: { fontWeight: 400, color: palette.muted, fontSize: '0.8rem' },
+    overline: {
+      fontWeight: 600,
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      fontSize: '0.65rem',
+      lineHeight: 1.2,
+    },
     button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0' },
   },
   components: {
@@ -162,7 +206,7 @@ const theme = createTheme({
     },
     MuiChip: {
       styleOverrides: {
-        root: { borderRadius: 8, fontWeight: 600 },
+        root: { borderRadius: 8, fontWeight: 600, fontSize: '0.75rem' },
       },
     },
     MuiTooltip: {
@@ -174,6 +218,93 @@ const theme = createTheme({
           borderRadius: 8,
         },
         arrow: { color: palette.ink },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 24,
+          border: `1px solid ${palette.border}`,
+          boxShadow: '0 24px 48px -12px rgba(14,19,48,0.4)',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+        },
+        notchedOutline: {
+          borderColor: palette.border,
+        },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        variant: 'outlined',
+        size: 'small',
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        outlined: {
+          borderRadius: 8,
+        },
+      },
+    },
+    MuiTable: {
+      styleOverrides: {
+        root: {
+          borderCollapse: 'separate',
+          borderSpacing: 0,
+        },
+      },
+    },
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          '& .MuiTableCell-head': {
+            backgroundColor: palette.sunken,
+            color: palette.brand,
+            fontWeight: 800,
+            fontSize: '0.65rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            borderBottom: `1px solid ${palette.border}`,
+          },
+        },
+      },
+    },
+    MuiTableRow: {
+      styleOverrides: {
+        root: {
+          '&:hover': {
+            backgroundColor: 'rgba(45,91,255,0.04)',
+          },
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(45,91,255,0.08)',
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottom: `1px solid ${palette.border}`,
+          fontSize: '0.85rem',
+          color: palette.inkSoft,
+          padding: '10px 16px',
+        },
+        head: {
+          padding: '8px 16px',
+        },
+      },
+    },
+    MuiTablePagination: {
+      styleOverrides: {
+        root: {
+          borderTop: `1px solid ${palette.border}`,
+        },
       },
     },
   },

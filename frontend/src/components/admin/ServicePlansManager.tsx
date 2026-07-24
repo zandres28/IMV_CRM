@@ -86,15 +86,15 @@ export const ServicePlansManager: React.FC = () => {
             <TableContainer>
                 <Table>
                     <TableHead>
-                        <TableRow sx={{ backgroundColor: '#1976d2' }}>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Plan</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sucursal</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Velocidad (Mbps)</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vr. del plan</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vr. de Instalación</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>En App</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Formulario</TableCell>
-                            <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
+                        <TableRow>
+                            <TableCell>Plan</TableCell>
+                            <TableCell>Sucursal</TableCell>
+                            <TableCell>Velocidad (Mbps)</TableCell>
+                            <TableCell>Vr. del plan</TableCell>
+                            <TableCell>Vr. de Instalación</TableCell>
+                            <TableCell>En App</TableCell>
+                            <TableCell>Formulario</TableCell>
+                            <TableCell>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -102,9 +102,8 @@ export const ServicePlansManager: React.FC = () => {
                             <TableRow 
                                 key={p.id}
                                 sx={{ 
-                                    backgroundColor: index % 2 === 0 ? 'white' : '#f5f5f5',
                                     '&:hover': {
-                                        backgroundColor: '#e3f2fd'
+                                        backgroundColor: 'rgba(45,91,255,0.04)'
                                     }
                                 }}
                             >

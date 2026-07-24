@@ -69,6 +69,7 @@ export const ClientList: React.FC = () => {
     const [dateFilter, setDateFilter] = useState<{ month: number | null, year: number | null }>({ month: null, year: null });
     const [order, setOrder] = useState<Order>('desc');
     const [orderBy, setOrderBy] = useState<OrderBy>('latestInstallationDate');
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [deleteError, setDeleteError] = useState<{
         open: boolean;
         message: string;
@@ -313,29 +314,26 @@ export const ClientList: React.FC = () => {
     const uniqueCities = Array.from(new Set(clients.map(c => c.city?.toUpperCase()))).filter(Boolean).sort();
 
     const handleDelete = async (id: number) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
-            try {
-                await ClientService.delete(id);
-                setClients(clients.filter(client => client.id !== id));
-            } catch (error: any) {
-                console.error('Error al eliminar el cliente:', error);
+        try {
+            await ClientService.delete(id);
+            setClients(clients.filter(client => client.id !== id));
+        } catch (error: any) {
+            console.error('Error al eliminar el cliente:', error);
 
-                // Mostrar error específico de validación
-                if (error.response?.data) {
-                    const errorData = error.response.data;
-                    setDeleteError({
-                        open: true,
-                        message: errorData.message || 'Error al eliminar el cliente',
-                        hint: errorData.hint,
-                        installations: errorData.installations,
-                        pendingPayments: errorData.pendingPayments
-                    });
-                } else {
-                    setDeleteError({
-                        open: true,
-                        message: 'Error al eliminar el cliente. Por favor, intenta nuevamente.',
-                    });
-                }
+            if (error.response?.data) {
+                const errorData = error.response.data;
+                setDeleteError({
+                    open: true,
+                    message: errorData.message || 'Error al eliminar el cliente',
+                    hint: errorData.hint,
+                    installations: errorData.installations,
+                    pendingPayments: errorData.pendingPayments
+                });
+            } else {
+                setDeleteError({
+                    open: true,
+                    message: 'Error al eliminar el cliente. Por favor, intenta nuevamente.',
+                });
             }
         }
     };
@@ -500,7 +498,7 @@ export const ClientList: React.FC = () => {
                         const installations = services?.installations || [];
                         const instWithSerial = installations.find(inst => inst.isActive && inst.onuSerialNumber) || installations.find(inst => inst.onuSerialNumber);
                         return (
-                            <Card key={client.id} sx={{ mb: 2, boxShadow: 3 }}>
+                            <Card key={client.id} sx={{ mb: 2 }}>
                                 <CardContent onClick={() => navigate(`/clients/${client.id}`)} sx={{ cursor: 'pointer' }}>
                                     <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                                         <Box>
@@ -684,56 +682,41 @@ export const ClientList: React.FC = () => {
             ) : (
                 <TableContainer component={Paper} ref={tableContainerRef} onScroll={handleTableScroll}>
                     <Table size="small">
-                        <TableHead sx={{ bgcolor: '#f8f9fc' }}>
+                        <TableHead>
                             <TableRow>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>
+                                <TableCell>
                                     <TableSortLabel
                                         active={orderBy === 'fullName'}
                                         direction={orderBy === 'fullName' ? order : 'asc'}
                                         onClick={() => handleRequestSort('fullName')}
-                                        sx={{
-                                            color: '#4e73df !important',
-                                            '&:hover': { color: '#2e59d9' },
-                                            '& .MuiTableSortLabel-icon': { color: '#4e73df !important' }
-                                        }}
                                     >
                                         Nombre Completo
                                     </TableSortLabel>
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>Servicios/Productos</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>Dirección</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>
+                                <TableCell>Servicios/Productos</TableCell>
+                                <TableCell>Dirección</TableCell>
+                                <TableCell>
                                     <TableSortLabel
                                         active={orderBy === 'city'}
                                         direction={orderBy === 'city' ? order : 'asc'}
                                         onClick={() => handleRequestSort('city')}
-                                        sx={{
-                                            color: '#4e73df !important',
-                                            '&:hover': { color: '#2e59d9' },
-                                            '& .MuiTableSortLabel-icon': { color: '#4e73df !important' }
-                                        }}
                                     >
                                         Ciudad
                                     </TableSortLabel>
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>Etiqueta NAP</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>Celular 1</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>Celular 2</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>
+                                <TableCell>Etiqueta NAP</TableCell>
+                                <TableCell>Celular 1</TableCell>
+                                <TableCell>Celular 2</TableCell>
+                                <TableCell>
                                     <TableSortLabel
                                         active={orderBy === 'status'}
                                         direction={orderBy === 'status' ? order : 'asc'}
                                         onClick={() => handleRequestSort('status')}
-                                        sx={{
-                                            color: '#4e73df !important',
-                                            '&:hover': { color: '#2e59d9' },
-                                            '& .MuiTableSortLabel-icon': { color: '#4e73df !important' }
-                                        }}
                                     >
                                         Estado
                                     </TableSortLabel>
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', py: 1.5, textTransform: 'uppercase' }}>Acciones</TableCell>
+                                <TableCell>Acciones</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -745,33 +728,21 @@ export const ClientList: React.FC = () => {
                                     <TableRow
                                         key={client.id}
                                         onClick={() => navigate(`/clients/${client.id}`)}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            '&:hover': {
-                                                backgroundColor: '#f8f9fc'
-                                            },
-                                            borderBottom: '1px solid #e3e6f0'
-                                        }}
+                                        sx={{ cursor: 'pointer' }}
                                     >
                                         <TableCell sx={{ whiteSpace: 'nowrap', minWidth: '220px', py: 1 }}>
                                             <Box>
                                                 <Box display="flex" alignItems="center" gap={1}>
-                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#5a5c69' }}>
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
                                                         {client.fullName}
                                                     </Typography>
                                                     {(client.pendingInteractionsCount || 0) > 0 && (
                                                         <Chip
                                                             icon={<ReportProblemIcon style={{ width: 12, height: 12 }} />}
                                                             label={`${client.pendingInteractionsCount} CRM`}
-                                                            sx={{ 
-                                                                height: 18, 
-                                                                fontSize: '0.65rem', 
-                                                                fontWeight: 800,
-                                                                bgcolor: '#f6c23e20',
-                                                                color: '#f6c23e',
-                                                                border: '1px solid #f6c23e'
-                                                            }}
+                                                            color="warning"
                                                             size="small"
+                                                            sx={{ height: 18, fontSize: '0.65rem', fontWeight: 800 }}
                                                         />
                                                     )}
                                                 </Box>
@@ -816,7 +787,8 @@ export const ClientList: React.FC = () => {
                                                     <Chip
                                                         label="RETIRADO"
                                                         size="small"
-                                                        sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#e74a3b', color: 'white' }}
+                                                        color="error"
+                                                        sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }}
                                                     />
                                                 )}
                                                 {/* Planes activos */}
@@ -825,14 +797,9 @@ export const ClientList: React.FC = () => {
                                                         key={`plan-${inst.id}`}
                                                         label={(inst.servicePlan?.name || inst.serviceType).toUpperCase()}
                                                         size="small"
-                                                        sx={{ 
-                                                            height: 18, 
-                                                            fontSize: '0.6rem', 
-                                                            fontWeight: 800, 
-                                                            bgcolor: '#1cc88a20', 
-                                                            color: '#1cc88a',
-                                                            border: '1px solid #1cc88a'
-                                                        }}
+                                                        color="success"
+                                                        variant="outlined"
+                                                        sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }}
                                                     />
                                                 ))}
                                                 {/* Servicios adicionales activos */}
@@ -841,13 +808,13 @@ export const ClientList: React.FC = () => {
                                                     const activeServices = services.additionalServices.filter(s => s.status === 'activo');
                                                     const chips = [];
                                                     if (activeServices.some(s => /netflix/i.test(s.serviceName))) {
-                                                        chips.push(<Chip key="svc-netflix" label="N" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#e74a3b', color: 'white' }} title="Netflix activo" />);
+                                                        chips.push(<Chip key="svc-netflix" label="N" size="small" color="error" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }} title="Netflix activo" />);
                                                     }
                                                     if (activeServices.some(s => /tele.?lat/i.test(s.serviceName.replace(/\s+/g, '')) || /tele\s+latino/i.test(s.serviceName))) {
-                                                        chips.push(<Chip key="svc-telel" label="TeleL" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#6f42c120', color: '#6f42c1', border: '1px solid #6f42c1' }} title="Tele Latino activo" />);
+                                                        chips.push(<Chip key="svc-telel" label="TeleL" size="small" variant="outlined" color="info" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }} title="Tele Latino activo" />);
                                                     }
                                                     if (activeServices.some(s => /tv\s*box/i.test(s.serviceName) || /tvbox/i.test(s.serviceName.replace(/\s+/g, '')))) {
-                                                        chips.push(<Chip key="svc-tvbox" label="TVBox" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#36b9cc20', color: '#36b9cc', border: '1px solid #36b9cc' }} title="TVBOX activo" />);
+                                                        chips.push(<Chip key="svc-tvbox" label="TVBox" size="small" variant="outlined" color="info" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }} title="TVBOX activo" />);
                                                     }
                                                     return chips;
                                                 })()}
@@ -855,61 +822,46 @@ export const ClientList: React.FC = () => {
                                                 {services?.products?.map((product) => {
                                                     const productName = product.productName.toLowerCase();
                                                     let label = product.productName;
-                                                    let color = '#5a5c69';
-                                                    let bg = '#f8f9fc';
+                                                    let chipColor: 'default' | 'info' | 'warning' = 'default';
                                                     if (/tv\s*box|tvbox/i.test(productName)) {
                                                         label = 'TVBox';
-                                                        color = '#36b9cc';
-                                                        bg = '#36b9cc20';
+                                                        chipColor = 'info';
                                                     } else if (/router/i.test(productName)) {
                                                         label = 'Router';
-                                                        color = '#4e73df';
-                                                        bg = '#4e73df20';
+                                                        chipColor = 'info';
                                                     } else if (/antena/i.test(productName)) {
                                                         label = 'Antena';
-                                                        color = '#f6c23e';
-                                                        bg = '#f6c23e20';
+                                                        chipColor = 'warning';
                                                     }
                                                     return (
                                                         <Chip
                                                             key={`prod-${product.id}`}
                                                             label={label.toUpperCase()}
                                                             size="small"
-                                                            sx={{ 
-                                                                height: 18, 
-                                                                fontSize: '0.6rem', 
-                                                                fontWeight: 800, 
-                                                                bgcolor: bg, 
-                                                                color: color,
-                                                                border: `1px solid ${color}`
-                                                            }}
+                                                            color={chipColor}
+                                                            variant={chipColor === 'default' ? 'filled' : 'outlined'}
+                                                            sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }}
                                                             title={`Producto: ${product.productName} - Estado: ${product.status}`}
                                                         />
                                                     );
                                                 })}
                                             </Box>
                                         </TableCell>
-                                        <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>
+                                        <TableCell sx={{ fontSize: '0.75rem' }}>
                                             {client.installationAddress}
                                         </TableCell>
-                                        <TableCell sx={{ fontSize: '0.7rem', color: '#5a5c69' }}>{client.city}</TableCell>
-                                        <TableCell sx={{ fontSize: '0.7rem' }}>
+                                        <TableCell sx={{ fontSize: '0.75rem' }}>{client.city}</TableCell>
+                                        <TableCell sx={{ fontSize: '0.75rem' }}>
                                             {instWithSerial?.napLabel || '-'}
                                         </TableCell>
-                                        <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>{formatPhoneForDisplay(client.primaryPhone)}</TableCell>
-                                        <TableCell sx={{ fontSize: '0.7rem', color: '#858796' }}>{formatPhoneForDisplay(client.secondaryPhone)}</TableCell>
+                                        <TableCell sx={{ fontSize: '0.75rem' }}>{formatPhoneForDisplay(client.primaryPhone)}</TableCell>
+                                        <TableCell sx={{ fontSize: '0.75rem' }}>{formatPhoneForDisplay(client.secondaryPhone)}</TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={client.status === 'activo' ? 'ACTIVO' : client.status === 'pendiente_instalacion' ? 'PEND. INST.' : 'INACTIVO'}
-                                                sx={{ 
-                                                    height: 18, 
-                                                    fontSize: '0.6rem', 
-                                                    fontWeight: 800,
-                                                    bgcolor: client.status === 'activo' ? '#1cc88a20' : client.status === 'pendiente_instalacion' ? '#36b9cc20' : '#e74a3b20',
-                                                    color: client.status === 'activo' ? '#1cc88a' : client.status === 'pendiente_instalacion' ? '#36b9cc' : '#e74a3b',
-                                                    border: `1px solid ${client.status === 'activo' ? '#1cc88a' : client.status === 'pendiente_instalacion' ? '#36b9cc' : '#e74a3b'}`
-                                                }}
+                                                color={client.status === 'activo' ? 'success' : client.status === 'pendiente_instalacion' ? 'info' : 'error'}
                                                 size="small"
+                                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }}
                                             />
                                         </TableCell>
                                         <TableCell sx={{ py: 0.5 }}>
@@ -917,7 +869,7 @@ export const ClientList: React.FC = () => {
                                                 <>
                                                     <IconButton
                                                         size="small"
-                                                        sx={{ color: '#4e73df' }}
+                                                        color="primary"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             navigate(`/clients/${client.id}`);
@@ -927,7 +879,7 @@ export const ClientList: React.FC = () => {
                                                     </IconButton>
                                                     <IconButton
                                                         size="small"
-                                                        sx={{ color: '#1cc88a' }}
+                                                        color="success"
                                                         title="Agregar Instalación"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -938,10 +890,10 @@ export const ClientList: React.FC = () => {
                                                     </IconButton>
                                                     <IconButton
                                                         size="small"
-                                                        sx={{ color: '#e74a3b' }}
+                                                        color="error"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleDelete(client.id);
+                                                            setConfirmDeleteId(client.id);
                                                         }}
                                                     >
                                                         <DeleteIcon fontSize="small" />
@@ -969,6 +921,36 @@ export const ClientList: React.FC = () => {
                     />
                 </TableContainer>
             )}
+
+            {/* Dialogo de confirmación de eliminación */}
+            <Dialog
+                open={confirmDeleteId !== null}
+                onClose={() => setConfirmDeleteId(null)}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>Eliminar cliente</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        ¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmDeleteId(null)} color="inherit">
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            if (confirmDeleteId !== null) handleDelete(confirmDeleteId);
+                            setConfirmDeleteId(null);
+                        }}
+                        variant="contained"
+                        color="error"
+                    >
+                        Eliminar
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Dialog de error al eliminar */}
             <Dialog
