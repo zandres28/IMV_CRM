@@ -496,7 +496,7 @@ const MonthlyBilling: React.FC = () => {
     return (
         <Box sx={{ p: isMobile ? 1 : 0 }}>
             <Box sx={{ mb: 3, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? 2 : 0, px: isMobile ? 0 : 3, pt: isMobile ? 0 : 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 800, color: '#5a5c69' }}>
+                <Typography variant="h4">
                     Facturación Mensual
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
@@ -551,7 +551,7 @@ const MonthlyBilling: React.FC = () => {
             {stats && (
                 <Grid container spacing={3} sx={{ mb: 4, px: isMobile ? 0 : 3 }}>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #4e73df', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card sx={{ borderLeft: '4px solid #4e73df', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#4e73df', textTransform: 'uppercase', mb: 1 }}>
                                     Total Clientes
@@ -563,7 +563,7 @@ const MonthlyBilling: React.FC = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #36b9cc', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card sx={{ borderLeft: '4px solid #36b9cc', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#36b9cc', textTransform: 'uppercase', mb: 1 }}>
                                     Total a Cobrar
@@ -578,7 +578,7 @@ const MonthlyBilling: React.FC = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #1cc88a', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card sx={{ borderLeft: '4px solid #1cc88a', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#1cc88a', textTransform: 'uppercase', mb: 1 }}>
                                     Recaudado Total
@@ -593,7 +593,7 @@ const MonthlyBilling: React.FC = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #20c997', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card sx={{ borderLeft: '4px solid #20c997', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#20c997', textTransform: 'uppercase', mb: 1 }}>
                                     Recaudado Solo Servicios
@@ -608,7 +608,7 @@ const MonthlyBilling: React.FC = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
-                        <Card sx={{ borderLeft: '4px solid #e74a3b', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                        <Card sx={{ borderLeft: '4px solid #e74a3b', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
                             <CardContent sx={{ py: '16px !important' }}>
                                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#e74a3b', textTransform: 'uppercase', mb: 1 }}>
                                     Pendiente
@@ -627,7 +627,7 @@ const MonthlyBilling: React.FC = () => {
 
             <Grid container spacing={3} sx={{ mb: 3, px: isMobile ? 0 : 3 }}>
                 <Grid item xs={12}>
-                    <Card sx={{ borderLeft: '4px solid #20c997', boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                    <Card sx={{ borderLeft: '4px solid #20c997', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
                         <CardContent sx={{ py: '16px !important' }}>
                             <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#20c997', textTransform: 'uppercase', mb: 1 }}>
                                 Recordatorios WhatsApp - {selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1)} {selectedYear}
@@ -676,7 +676,7 @@ const MonthlyBilling: React.FC = () => {
                             onClick={() => setBillingComponentFilter(billingComponentFilter === 'servicePlan' ? 'all' : 'servicePlan')}
                             sx={{ 
                                 borderLeft: '4px solid #f6c23e', 
-                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s ease-in-out',
                                 transform: billingComponentFilter === 'servicePlan' ? 'scale(1.02)' : 'scale(1)',
@@ -706,7 +706,7 @@ const MonthlyBilling: React.FC = () => {
                             onClick={() => setBillingComponentFilter(billingComponentFilter === 'additionalServices' ? 'all' : 'additionalServices')}
                             sx={{ 
                                 borderLeft: '4px solid #6f42c1', 
-                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s ease-in-out',
                                 transform: billingComponentFilter === 'additionalServices' ? 'scale(1.02)' : 'scale(1)',
@@ -736,7 +736,7 @@ const MonthlyBilling: React.FC = () => {
                             onClick={() => setBillingComponentFilter(billingComponentFilter === 'products' ? 'all' : 'products')}
                             sx={{ 
                                 borderLeft: '4px solid #4e73df', 
-                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s ease-in-out',
                                 transform: billingComponentFilter === 'products' ? 'scale(1.02)' : 'scale(1)',
@@ -766,7 +766,7 @@ const MonthlyBilling: React.FC = () => {
                             onClick={() => setBillingComponentFilter(billingComponentFilter === 'installations' ? 'all' : 'installations')}
                             sx={{ 
                                 borderLeft: '4px solid #36b9cc', 
-                                boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)',
+                                boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s ease-in-out',
                                 transform: billingComponentFilter === 'installations' ? 'scale(1.02)' : 'scale(1)',
@@ -836,7 +836,7 @@ const MonthlyBilling: React.FC = () => {
                                 const label = methodLabels[method] || method;
                                 return (
                                     <Grid item xs={6} sm={4} md={2} key={method}>
-                                        <Card sx={{ borderLeft: `4px solid ${color}`, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)' }}>
+                                        <Card sx={{ borderLeft: `4px solid ${color}`, boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
                                             <CardContent sx={{ py: '12px !important', px: '14px !important' }}>
                                                 <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color, textTransform: 'uppercase', mb: 0.5 }}>
                                                     {label}
@@ -858,7 +858,7 @@ const MonthlyBilling: React.FC = () => {
             })()}
 
             {/* Filtro */}
-            <Paper sx={{ mb: 3, mx: isMobile ? 0 : 3, p: 2, borderRadius: 2, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)', borderBottom: '1px solid #e3e6f0' }}>
+            <Paper sx={{ mb: 3, mx: isMobile ? 0 : 3, p: 2, borderRadius: 2, boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)', borderBottom: '1px solid #e3e6f0' }}>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                     <TextField
                         placeholder="Buscar cliente (Nombre o Cédula)..."
@@ -927,10 +927,10 @@ const MonthlyBilling: React.FC = () => {
 
             {/* Tabla de pagos (Desktop) o Tarjetas (Mobile) */}
             {isMobile ? renderMobileCards() : (
-            <Paper sx={{ mb: 4, mx: 3, borderRadius: 2, boxShadow: '0 .15rem 1.75rem 0 rgba(58,59,69,.15)', overflow: 'hidden' }}>
+            <Paper sx={{ mb: 4, mx: 3, borderRadius: 2, boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)', overflow: 'hidden' }}>
                 <TableContainer>
                     <Table size="small">
-                        <TableHead sx={{ bgcolor: '#f8f9fc' }}>
+                        <TableHead>
                             <TableRow>
                                 <TableCell sx={{ width: 48 }}>
                                     <Tooltip title={allSelected ? 'Deseleccionar todos' : 'Seleccionar todos (solo pendientes)'}>
@@ -942,12 +942,12 @@ const MonthlyBilling: React.FC = () => {
                                         />
                                     </Tooltip>
                                 </TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Cliente</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Servicios/Productos</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Monto Total</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Estado</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }}>Fecha Cobro</TableCell>
-                                <TableCell sx={{ fontWeight: 800, fontSize: '0.65rem', color: '#4e73df', textTransform: 'uppercase' }} align="center">Acciones</TableCell>
+                                <TableCell>Cliente</TableCell>
+                                <TableCell>Servicios/Productos</TableCell>
+                                <TableCell>Monto Total</TableCell>
+                                <TableCell>Estado</TableCell>
+                                <TableCell>Fecha Cobro</TableCell>
+                                <TableCell align="center">Acciones</TableCell>
                             </TableRow>
                         </TableHead>
                     <TableBody>
@@ -955,8 +955,7 @@ const MonthlyBilling: React.FC = () => {
                             <TableRow 
                                 key={payment.id}
                                 sx={{ 
-                                    backgroundColor: index % 2 === 0 ? 'white' : '#f5f5f5',
-                                    '&:hover': { backgroundColor: '#e3f2fd' }
+                                    '&:hover': { backgroundColor: 'rgba(45,91,255,0.04)' }
                                 }}
                             >
                                 <TableCell>

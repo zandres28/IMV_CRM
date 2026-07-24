@@ -1,9 +1,5 @@
 # Nexum CRM
 
-## Register
-
-product
-
 ## Platform
 
 web

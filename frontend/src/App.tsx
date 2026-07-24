@@ -123,32 +123,7 @@ function App() {
       }
     };
 
-  const getPageTitle = (path: string) => {
-    if (path.includes('/dashboard')) return 'Panel Principal';
-    if (path.includes('/clients')) return 'Gestión de Clientes';
-    if (path.includes('/installation-billing')) return 'Facturación de Instalaciones';
-    if (path.includes('/interactions')) return 'Solicitudes CRM';
-    if (path.includes('/service-outages')) return 'Caídas de Servicio';
-    if (path.includes('/service-transfers')) return 'Traslados';
-    if (path.includes('/network/mikrotik')) return 'Monitor Mikrotik';
-    if (path.includes('/network/devices')) return 'Dispositivos de Red';
-    if (path.includes('/billing')) return 'Centro de Facturación';
-    if (path.includes('/consultas')) return 'Consultas Avanzadas';
-    if (path.includes('/admin/users')) return 'Gestión de Usuarios';
-    if (path.includes('/admin/roles')) return 'Roles y Permisos';
-    if (path.includes('/admin/settings')) return 'Configuración del Sistema';
-    if (path.includes('/admin/api-access')) return 'Accesos API';
-    if (path.includes('/admin/service-plans')) return 'Planes de Servicio';
-    if (path.includes('/admin/technicians')) return 'Gestión de Técnicos';
-    if (path.includes('/admin/promotions')) return 'Gestor de Imágenes Promocionales';
-    if (path.includes('/admin/avisos')) return 'Avisos Masivos WhatsApp';
-    if (path.includes('/installations/agenda')) return 'Agenda de Instalaciones';
-    if (path.includes('/admin/interaction-types')) return 'Tipos de Interacción';
-    
-    return 'Nexum CRM';
-  };
-
-  useEffect(() => {
+useEffect(() => {
     const checkTokenExpiry = () => {
       const token = AuthService.getAccessToken();
       if (!token) {
@@ -270,9 +245,9 @@ function App() {
               <MenuIcon />
             </IconButton>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
+<Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
               <Typography variant="h6" sx={{ fontWeight: 800, color: tokens.nightInk, fontSize: '1rem', display: { xs: 'none', md: 'block' } }}>
-                {getPageTitle(location.pathname)}
+                Nexum CRM
               </Typography>
             </Box>
 
