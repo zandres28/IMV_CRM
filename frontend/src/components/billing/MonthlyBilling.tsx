@@ -49,7 +49,8 @@ import {
     Clear as ClearIcon,
     ExpandMore as ExpandMoreIcon,
     NotificationsActive as ReminderOnIcon,
-    NotificationsOff as ReminderOffIcon
+    NotificationsOff as ReminderOffIcon,
+    CalendarMonth as CalendarMonthIcon
 } from '@mui/icons-material';
 import MonthlyBillingService, { Payment, BillingStats } from '../../services/MonthlyBillingService';
 
@@ -73,6 +74,12 @@ const MonthlyBilling: React.FC = () => {
 
     const [selectedMonth, setSelectedMonth] = useState(initialMonth);
     const [selectedYear, setSelectedYear] = useState(initialYear);
+    // Modal de selección de mes: se muestra antes de cargar la facturación
+    // si la URL NO trae month/year. Si ya vienen por URL, se salta.
+    const hasUrlPeriod = Boolean(urlMonth && MONTHS.includes(urlMonth) && urlYear);
+    const [monthDialogOpen, setMonthDialogOpen] = useState(!hasUrlPeriod);
+    const [draftMonth, setDraftMonth] = useState(initialMonth);
+    const [draftYear, setDraftYear] = useState(initialYear);
     const [payments, setPayments] = useState<Payment[]>([]);
     const [stats, setStats] = useState<BillingStats | null>(null);
     const [loading, setLoading] = useState(false);
@@ -186,8 +193,17 @@ const MonthlyBilling: React.FC = () => {
     }, [selectedMonth, selectedYear, filterStatus, viewMode]);
 
     useEffect(() => {
-        loadBillingData();
-    }, [loadBillingData]);
+        // No cargar la facturación hasta que se confirme el mes en el modal (salvo URL params)
+        if (!monthDialogOpen) {
+            loadBillingData();
+        }
+    }, [loadBillingData, monthDialogOpen]);
+
+    const handleConfirmPeriod = () => {
+        setSelectedMonth(draftMonth);
+        setSelectedYear(draftYear);
+        setMonthDialogOpen(false);
+    };
 
     // Limpiar selección al cambiar filtros
     useEffect(() => {
@@ -1278,16 +1294,35 @@ const MonthlyBilling: React.FC = () => {
                 <DialogContent>
                     {selectedPayment && (() => {
                         const monthIndex = MONTHS.indexOf(selectedPayment.paymentMonth.toLowerCase());
-                        const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 5);
-                        const firstDayOfMonth = new Date(selectedPayment.paymentYear, monthIndex, 1);
+                        const paymentAbsoluteMonth = selectedPayment.paymentYear * 12 + monthIndex;
 
-                        // Cuotas incluidas en el cobro base (dentro del período de facturación)
+                        // Mes objetivo de una cuota = mes de venta + (número de cuota - 1)
+                        const targetMonthOf = (product: { saleDate?: string }, inst: { installmentNumber: number }) => {
+                            if (product.saleDate) {
+                                const sale = new Date(product.saleDate);
+                                if (!isNaN(sale.getTime())) {
+                                    return sale.getFullYear() * 12 + sale.getMonth() + (Number(inst.installmentNumber) - 1);
+                                }
+                            }
+                            // Fallback: ventana del período de facturación (día 10 del mes siguiente)
+                            return null;
+                        };
+
+                        // Cuotas incluidas en el cobro base: las de ESTE mes objetivo (o vencidas de meses anteriores, que
+                        // entran en la deuda). El backend las marca como pagadas al registrar este pago.
                         const includedInstallments = selectedPayment.client?.productsSold?.flatMap(product =>
                             (product.installmentPayments || [])
                                 .filter(inst => {
-                                    const dueDate = new Date(inst.dueDate);
-                                    return inst.status === 'pendiente' &&
-                                        dueDate >= firstDayOfMonth && dueDate <= billingPeriodEnd;
+                                    if (inst.status !== 'pendiente') return false;
+                                    const targetAbs = targetMonthOf(product, inst);
+                                    // Sin saleDate cae a la ventana: vence dentro de [inicio del mes, 10 del siguiente]
+                                    if (targetAbs === null) {
+                                        const dueDate = new Date(inst.dueDate);
+                                        const windowEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 10);
+                                        const windowStart = new Date(selectedPayment.paymentYear, monthIndex, 1);
+                                        return dueDate >= windowStart && dueDate <= windowEnd;
+                                    }
+                                    return targetAbs <= paymentAbsoluteMonth;
                                 })
                                 .map(inst => ({ ...inst, productName: product.productName }))
                         ) || [];
@@ -1299,13 +1334,18 @@ const MonthlyBilling: React.FC = () => {
                                 .map(inst => ({ ...inst, productName: product.productName }))
                         ) || [];
 
-                        // Cuotas futuras opcionales (fuera del período, se pueden pagar anticipadamente)
+                        // Cuotas futuras opcionales (mes objetivo posterior al del cobro, se pueden pagar anticipadamente)
                         const futureInstallments = selectedPayment.client?.productsSold?.flatMap(product =>
                             (product.installmentPayments || [])
                                 .filter(inst => {
-                                    const dueDate = new Date(inst.dueDate);
-                                    return inst.status === 'pendiente' &&
-                                        dueDate > billingPeriodEnd;
+                                    if (inst.status !== 'pendiente') return false;
+                                    const targetAbs = targetMonthOf(product, inst);
+                                    if (targetAbs === null) {
+                                        const dueDate = new Date(inst.dueDate);
+                                        const windowEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 10);
+                                        return dueDate > windowEnd;
+                                    }
+                                    return targetAbs > paymentAbsoluteMonth;
                                 })
                                 .map(inst => ({ ...inst, productName: product.productName }))
                         ) || [];
@@ -1565,18 +1605,29 @@ const MonthlyBilling: React.FC = () => {
                                             </AccordionSummary>
                                             <AccordionDetails>
                                                 <List dense>
-                                                    {selectedPayment.client.productsSold.flatMap(product => 
+{selectedPayment.client.productsSold.flatMap(product => 
                                                         product.installmentPayments
                                                             ?.filter(inst => {
-                                                                // Mostrar cuotas que vencen en este mes de facturación o antes (si están pendientes)
-                                                                // O si el pago ya se realizó, las que coincidan con la fecha de pago aprox?
-                                                                // Por simplicidad, mostramos las que contribuyen al monto:
-                                                                // Vencimiento en el mes del pago (hasta día 5 del siguiente)
-                                                                const dueDate = new Date(inst.dueDate);
+                                                                // Mostrar cuotas cuyo mes objetivo es este mes (o antes si están pendientes):
+                                                                // mes de venta + (número de cuota - 1). Fallback a la ventana (hasta día 10 del siguiente).
+                                                                if (!inst.dueDate) return false;
+                                                                const targetAbs = (() => {
+                                                                    if (product.saleDate) {
+                                                                        const sale = new Date(product.saleDate);
+                                                                        if (!isNaN(sale.getTime())) {
+                                                                            return sale.getFullYear() * 12 + sale.getMonth() + (Number(inst.installmentNumber) - 1);
+                                                                        }
+                                                                    }
+                                                                    return null;
+                                                                })();
                                                                 const monthIndex = MONTHS.indexOf(selectedPayment.paymentMonth.toLowerCase());
-                                                                const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 5);
-                                                                 // Si es un pago histórico, mostrar las que vencían en ese periodo
-                                                                  return dueDate <= billingPeriodEnd && (inst.status === 'pendiente' || inst.status === 'completado');
+                                                                const paymentAbs = selectedPayment.paymentYear * 12 + monthIndex;
+                                                                if (targetAbs !== null) {
+                                                                    return targetAbs <= paymentAbs && (inst.status === 'pendiente' || inst.status === 'completado');
+                                                                }
+                                                                const dueDate = new Date(inst.dueDate);
+                                                                const billingPeriodEnd = new Date(selectedPayment.paymentYear, monthIndex + 1, 10);
+                                                                return dueDate <= billingPeriodEnd && (inst.status === 'pendiente' || inst.status === 'completado');
                                                             })
                                                             .map(inst => (
                                                                 <ListItem key={`${product.id}-${inst.id}`}>
@@ -1634,6 +1685,55 @@ const MonthlyBilling: React.FC = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDetailDialogOpen(false)}>Cerrar</Button>
+                </DialogActions>
+            </Dialog>
+        {/* Dialog para selección de mes/año al entrar */}
+            <Dialog open={monthDialogOpen} maxWidth="xs" fullWidth>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <CalendarMonthIcon sx={{ color: 'primary.main' }} />
+                    Seleccionar Mes de Trabajo
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Elija el período de facturación que desea consultar o gestionar.
+                    </Typography>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Mes"
+                                value={draftMonth}
+                                onChange={(e) => setDraftMonth(e.target.value)}
+                                size="small"
+                            >
+                                {MONTHS.map(month => (
+                                    <MenuItem key={month} value={month}>
+                                        {month.charAt(0).toUpperCase() + month.slice(1)}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Año"
+                                value={draftYear}
+                                onChange={(e) => setDraftYear(Number(e.target.value))}
+                                size="small"
+                            >
+                                {[2024, 2025, 2026, 2027].map(year => (
+                                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={handleConfirmPeriod} variant="contained" color="primary" fullWidth sx={{ textTransform: 'none' }}>
+                        Cargar Facturación
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>

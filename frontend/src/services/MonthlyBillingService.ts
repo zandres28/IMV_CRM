@@ -33,6 +33,8 @@ export interface Payment {
             id: number;
             productName: string;
             status: string;
+            saleDate?: string;
+            installments?: number;
             installmentPayments?: {
                 id: number;
                 installmentNumber: number;
