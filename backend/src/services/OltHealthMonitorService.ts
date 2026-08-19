@@ -1,8 +1,10 @@
 import cron from 'node-cron';
+import net from 'net';
 
 enum OltStatus {
     ONLINE = 'online',
     OFFLINE = 'offline',
+    WEB_HUNG = 'web_hung',
     UNKNOWN = 'unknown',
 }
 
@@ -12,7 +14,7 @@ let firstCheckDone = false;
 function getEvolutionConfig() {
     return {
         baseUrl: process.env.EVOLUTION_API_URL || 'https://imvevoapi.duckdns.org:8080',
-        instance: process.env.EVOLUTION_INSTANCE_NAME || 'imv_chatwoot2',
+        instance: process.env.EVOLUTION_INSTANCE_NAME || 'imv_chatwoot3',
         apiKey: process.env.EVOLUTION_API_KEY || '',
         adminPhone: process.env.WHATSAPP_ADMIN_PHONE || '573334006212',
     };
@@ -74,14 +76,42 @@ function formatTimestamp(): string {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
+function checkTcpPort(host: string, port: number, timeoutMs: number): Promise<boolean> {
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+        let done = false;
+        const finish = (ok: boolean) => {
+            if (done) return;
+            done = true;
+            socket.destroy();
+            resolve(ok);
+        };
+        socket.setTimeout(timeoutMs);
+        socket.once('connect', () => finish(true));
+        socket.once('timeout', () => finish(false));
+        socket.once('error', () => finish(false));
+        socket.connect(port, host);
+    });
+}
+
 async function checkOltHealth(): Promise<OltStatus> {
     const host = process.env.OLT_HOST || '192.168.1.94';
-    const port = process.env.OLT_WEB_PORT || '8080';
+    const port = parseInt(process.env.OLT_WEB_PORT || '8080', 10);
     const username = process.env.OLT_USER || 'admin';
     const password = process.env.OLT_PASSWORD || 'IMV*2025*';
 
+    // Fase 1: TCP. Si ni siquiera conecta, la OLT no responde a nivel de red
+    // (posible corte de energía o caída del enlace de gestión).
+    const tcpOk = await checkTcpPort(host, port, 5000);
+    if (!tcpOk) {
+        return OltStatus.OFFLINE;
+    }
+
+    // Fase 2: HTTP. Si TCP conecta pero el servidor web nunca contesta,
+    // el lighttpd de la OLT está colgado (los clientes siguen con servicio;
+    // la gestión solo se recupera reiniciando físicamente la OLT).
     const crypto = require('crypto');
-    const md5pass = crypto.createHash('md5').update(password).digest('hex');
+    const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
     const url = `http://${host}:${port}/cgi-bin/h.cgi?module=sys_login`;
 
     const controller = new AbortController();
@@ -98,14 +128,17 @@ async function checkOltHealth(): Promise<OltStatus> {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-            return OltStatus.OFFLINE;
+            return OltStatus.WEB_HUNG;
         }
 
         const result = await response.json() as any;
-        return result.code === 0 ? OltStatus.ONLINE : OltStatus.OFFLINE;
+        if (result.code !== 0) {
+            console.warn(`[OltHealthMonitor] OLT responde HTTP pero login falló (code=${result.code})`);
+        }
+        return OltStatus.ONLINE;
     } catch {
         clearTimeout(timeoutId);
-        return OltStatus.OFFLINE;
+        return OltStatus.WEB_HUNG;
     }
 }
 
@@ -128,11 +161,17 @@ export const startOltHealthMonitor = () => {
             const ts = formatTimestamp();
 
             if (currentStatus === OltStatus.OFFLINE) {
-                const msg = `⚠️ *ALERTA - CORTE DE ENERGÍA OLT*\n\nLa OLT ha dejado de responder.\n📅 ${ts}\n📍 Sitio del cliente\n\nPosible corte de energía en el sitio.`;
-                console.log(`[OltHealthMonitor] OLT CAÍDA - ${ts}`);
+                const msg = `⚠️ *ALERTA - CORTE DE ENERGÍA OLT*\n\nLa OLT no responde a nivel de red (sin TCP).\n📅 ${ts}\n📍 Sitio del cliente\n\nPosible corte de energía en el sitio.`;
+                console.log(`[OltHealthMonitor] OLT CAÍDA (sin red) - ${ts}`);
+                await sendWhatsAppAlert(msg);
+            } else if (currentStatus === OltStatus.WEB_HUNG) {
+                const msg = `⚠️ *ALERTA - GESTIÓN OLT COLGADA*\n\nEl servidor web de la OLT acepta conexiones pero no responde HTTP.\n📅 ${ts}\n📍 Sitio del cliente\n\n✅ El servicio de clientes NO está afectado (el tráfico sigue pasando).\n🔧 La gestión solo se recupera reiniciando físicamente la OLT (apagar/encender). Hacerlo en horario valle.`;
+                console.log(`[OltHealthMonitor] OLT WEB COLGADA - ${ts}`);
                 await sendWhatsAppAlert(msg);
             } else if (currentStatus === OltStatus.ONLINE) {
-                const msg = `✅ *OLT RESTAURADA*\n\nLa OLT ha vuelto a responder.\n📅 ${ts}\n📍 Sitio del cliente\n\nEl servicio debería estar restableciéndose.`;
+                const msg = lastOltStatus === OltStatus.WEB_HUNG
+                    ? `✅ *GESTIÓN OLT RESTAURADA*\n\nEl servidor web de la OLT vuelve a responder.\n📅 ${ts}\n📍 Sitio del cliente\n\nEl servicio de clientes nunca se interrumpió.`
+                    : `✅ *OLT RESTAURADA*\n\nLa OLT ha vuelto a responder.\n📅 ${ts}\n📍 Sitio del cliente\n\nEl servicio debería estar restableciéndose.`;
                 console.log(`[OltHealthMonitor] OLT RESTAURADA - ${ts}`);
                 await sendWhatsAppAlert(msg);
             }

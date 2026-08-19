@@ -20,8 +20,19 @@ interface ApiResponse {
 
 export class OltService {
     private baseUrl: string;
-    private token: string | null = null;
-    private tokenExpiry: number = 0;
+
+    // Token y caché compartidos entre TODAS las instancias: la OLT es un
+    // recurso único con un servidor web embebido (lighttpd) que se cuelga
+    // bajo ráfagas de peticiones simultáneas. Cada `new OltService()` con
+    // token propio generaba un sys_login + onu_list_get por petición.
+    private static token: string | null = null;
+    private static tokenExpiry: number = 0;
+    private static tokenPromise: Promise<string> | null = null;
+
+    private static onuListCache: OnuDevice[] | null = null;
+    private static onuListCacheExpiry: number = 0;
+    private static onuListPromise: Promise<OnuDevice[]> | null = null;
+    private static readonly ONU_LIST_TTL_MS = 30000;
 
     constructor() {
         const host = process.env.OLT_HOST || '192.168.1.94';
@@ -30,12 +41,22 @@ export class OltService {
     }
 
     private async ensureToken(): Promise<string> {
-        if (this.token && Date.now() < this.tokenExpiry) {
-            return this.token;
+        if (OltService.token && Date.now() < OltService.tokenExpiry) {
+            return OltService.token;
         }
 
+        // Single-flight: logins concurrentes comparten la misma promesa
+        if (!OltService.tokenPromise) {
+            OltService.tokenPromise = this.login().finally(() => {
+                OltService.tokenPromise = null;
+            });
+        }
+        return OltService.tokenPromise;
+    }
+
+    private async login(): Promise<string> {
         const password = process.env.OLT_PASSWORD || 'IMV*2025*';
-        const md5pass = crypto.createHash('md5').update(password).digest('hex');
+        const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
 
         const response = await fetch(`${this.baseUrl}?module=sys_login`, {
             method: 'POST',
@@ -48,9 +69,9 @@ export class OltService {
             throw new Error(`Error de autenticación OLT: ${result.description}`);
         }
 
-        this.token = result.data.token;
-        this.tokenExpiry = Date.now() + 600000;
-        return this.token!;
+        OltService.token = result.data.token;
+        OltService.tokenExpiry = Date.now() + 600000;
+        return OltService.token!;
     }
 
     private async apiGet(module: string, params: Record<string, any> = {}): Promise<any> {
@@ -65,7 +86,7 @@ export class OltService {
 
         const result = await response.json() as ApiResponse;
         if (result.code === 2) {
-            this.token = null;
+            OltService.token = null;
             return this.apiGet(module, params);
         }
         if (result.code !== 0) {
@@ -84,7 +105,7 @@ export class OltService {
 
         const result = await response.json() as ApiResponse;
         if (result.code === 2) {
-            this.token = null;
+            OltService.token = null;
             return this.apiPost(module, body);
         }
         if (result.code !== 0) {
@@ -94,8 +115,31 @@ export class OltService {
     }
 
     async getAllOnus(): Promise<OnuDevice[]> {
+        if (OltService.onuListCache && Date.now() < OltService.onuListCacheExpiry) {
+            return OltService.onuListCache;
+        }
+
+        // Single-flight: consultas concurrentes esperan el mismo fetch,
+        // así N peticiones simultáneas = 1 sola llamada HTTP a la OLT
+        if (!OltService.onuListPromise) {
+            OltService.onuListPromise = this.fetchAllOnus().finally(() => {
+                OltService.onuListPromise = null;
+            });
+        }
+        return OltService.onuListPromise;
+    }
+
+    private async fetchAllOnus(): Promise<OnuDevice[]> {
         const data = await this.apiGet('onu_list_get');
-        return data?.list || [];
+        const list: OnuDevice[] = data?.list || [];
+        OltService.onuListCache = list;
+        OltService.onuListCacheExpiry = Date.now() + OltService.ONU_LIST_TTL_MS;
+        return list;
+    }
+
+    static invalidateOnuListCache(): void {
+        OltService.onuListCache = null;
+        OltService.onuListCacheExpiry = 0;
     }
 
     async getOnuBySerial(serialNumber: string): Promise<OnuDevice | null> {
@@ -134,10 +178,12 @@ export class OltService {
 
     async rebootOnu(ponId: string, onuId: string): Promise<void> {
         await this.apiPost('onu_reboot', { PonId: ponId, OnuId: parseInt(onuId) });
+        OltService.invalidateOnuListCache();
     }
 
     async deactivateOnu(ponId: string, onuId: string): Promise<void> {
         await this.apiPost('onu_deactive', { PonId: ponId, OnuId: parseInt(onuId) });
+        OltService.invalidateOnuListCache();
     }
 
     async activateOnu(ponId: string, onuId: string): Promise<void> {
@@ -146,6 +192,7 @@ export class OltService {
             OnuId: parseInt(onuId),
             Action: 'activate'
         });
+        OltService.invalidateOnuListCache();
     }
 
     async getRawOnuList(): Promise<any[]> {
