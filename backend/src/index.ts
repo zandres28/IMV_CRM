@@ -39,6 +39,7 @@ import mikrotikRoutes from "./routes/mikrotik";
 import networkDeviceRoutes from "./routes/network-devices";
 import { startOltDisconnectScheduler } from "./services/OltSchedulerService";
 import { startOltHealthMonitor } from "./services/OltHealthMonitorService";
+import { startOltBackupScheduler } from "./services/OltBackupService";
 import path from "path";
 
 // Middleware
@@ -165,6 +166,9 @@ AppDataSource.initialize().then(() => {
 
     // Iniciar monitor de salud OLT (alerta de corte de energía)
     startOltHealthMonitor();
+
+    // Backup diario de config OLT
+    startOltBackupScheduler();
 
     app.listen(PORT, () => {
         console.log(`Servidor corriendo en el puerto ${PORT}`);
