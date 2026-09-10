@@ -109,6 +109,7 @@ app.use("/api/clients", authMiddleware, ...);                    // JWT only
 - **Patch bundle Evolution (crash LID):** `/evolution/dist/main.js`, reemplazo `i=t&&!o?(e.key.remoteJidAlt||e.key.remoteJid):e.key.remoteJid`, backup `.bak-lidfix`. Reiniciar `evolution_api` tras parchear.
 - **register-payment — fix ER_DUP_ENTRY (2026-09-09):** `payments.externalId` tiene constraint **UNIQUE**. Si el `reference` del comprobante ya quedó registrado en otro pago (las referencias se reutilizan entre meses/clientes; caso real: `91247868017` de ANGELA MOLINA = el mismo que el pago 651 del cliente 76 en marzo-2026), el `save` lanzaba 1062 → el workflow moría con **500 "Internal server error processing payment"** y el cliente nunca quedaba registrado/confirmado. Fix en `N8nIntegrationController.ts` `registerPayment`: `try { externalId = reference } catch (ER_DUP_ENTRY) { externalId = WHATSAPP-${Date.now()}; save }`. Harold Ocampo (85) registró OK con `M03975747`; Ángela (60) fallaba. Nunca borrar la UNIQUE: da dedup real.
 - **Node n8n "Responder: Monto No Coincide" (H2YRscVbeB19GaQ6):** tenía una IIFE multilínea en la expresión del body → **"invalid syntax"** (`Expression.renderExpression`) cada vez que el monto del comprobante no coincidía (ejecución 21562). Reescribida como concatenación simple de una línea (sin IIFE). Lección: NO usar IIFEs/funciones multilínea complejas dentro de expresiones `{{ }}` de n8n.
+- **Reactivación automática tras pago extemporáneo (2026-09-10):** `registerPayment` (n8n WhatsApp) y `registerPayment`/`bulkMarkPaid` (billing mensual) llaman `restoreServiceForClient(client.id)` (`OltStatusSyncService.ts:85`) tras marcar el pago. Valida deuda: NO reactiva si quedan facturas `pendiente/vencido` con `dueDate <= hoy`; si la deuda está saldada, reactiva instalaciones `suspendido` vía OLT (`OltService.activateOnu` = `onu_deactive {ControlFlag:1}`) y pone `serviceStatus='activo'` + `suspendedAt=NULL`. El `InstallationSubscriber` (`afterUpdate`) sincroniza `client.status='activo'`. Verificado 2026-09-10 con cliente 91 (inst #86): instalación y cliente quedaron `activo`; antes fallaba porque `activateOnu` usaba `onu_manual_add` (code:3).
 
 ## N8N Payment Reminders Workflow (Recordatorios Nativos)
 
@@ -125,6 +126,16 @@ app.use("/api/clients", authMiddleware, ...);                    // JWT only
 - **Fix T1 — recordatorios indebidos por fallback `|| 'pendiente'` (2026-09-09):** clientes activos SIN pago del mes consultado eran inventados como 'pendiente' por `payment?.status || 'pendiente'` → recibían cobro falso. Caso real: CONSUELO LENIS (cliente 26, instalación id 26 reactivada el 4-sep-2026; `installationDate=2026-09-04`, `retirementDate=2026-01-30`, `serviceStatus=activo`): sin pago de AGOSTO 2026 → el fallback la marcaba morosa. Fix estructural: `payment?.status ?? null` (`N8nIntegrationController.ts` en `getPaymentReminders`) → `null` no entra en `paymentStatus=pending`. Aplica a CUALQUIER activo sin factura del mes consultado (reactivado/reintegrado a mitad de mes, nuevo, retirado con fecha vieja), no solo a CONSUELO.
 - **check-payment-status (inyectado en el workflow 2026-09-08):** antes de cada `Send WhatsApp1`, un `GET /api/n8n/check-payment-status?phone={número}` revalida en vivo si el cliente sigue pendiente; si ya pagó (o el reminder se marcó sent), corta el envío del item. Nodo n8n "¿Sigue Pendiente?" decide la rama.
 - **Captura LID → número real (2026-09-09, cron `/home/ubuntu/lid-sync/lid_sync.sh` cada 30 min):** cuando WhatsApp asigna identifiers `@lid` (ej. `221092148965455@lid` = Tatavo, wrongly `+221092148965455` en Chatwoot), Evolution guarda el número real en `Message.key->>'remoteJidAlt'` (ej. `221092148965455@lid` → `573106434122@s.whatsapp.net`). En Chatwoot el contacto queda con `identifier = <lid>@lid` y `phone_number = +<lid>` (falso) → n8n no encontraba al cliente → comprobante perdido. El script extrae los pares `DISTINCT key->>'remoteJid' / key->>'remoteJidAlt'` de BD Evolution (tabla `Message`, filtro `key->>'fromMe'='false'` y no protocolMessage), y en `chatwoot_postgres` hace `UPDATE contacts SET phone_number='+'+split_part(real,'@',1), additional_attributes=coalesce(c.additional_attributes,'{}')||jsonb_build_object('evo_real_number','+...')` solo donde `phone_number IS NULL` o `= '+'||lid_digits`. Resultado inicial: **24 contactos corregidos** (solo los que Evolution ya había resuelto). El webhook de Chatwoot a n8n lee `meta.sender.phone_number` del contacto → tras el sync, `Extraer Datos del Mensaje` recibe el número real. Fuentes SQL: `/home/ubuntu/lid-sync/evo_pairs.sql` (query a Evolution) y el UPDATE inline del script; log en `/home/ubuntu/lid-sync/lid_sync.log`. No aplicar si `phone_number` ya es real (manual) por idempotencia. Los LID sin `remoteJidAlt` jamás se resuelven (nada que capturar).
+
+## Netflix Profiles Module (Cuentas Netflix)
+
+- **Tablas:** `netflix_accounts` / `netflix_slots`. Cada slot apunta a `clientId` + `additionalServiceId` (servicio `Netflix` en `additional_services`, cargo único de 15.000 para los "adicionales").
+- **`payment_method`** en `netflix_accounts` (NU, Nequi, Rappi, BBVA, Littio) — fuente: Excel control `PLANES NETFLIX.xlsx`.
+- **NO hay UNIQUE (accountId, pin)** (migración `...20260910180000` lo quitó): en `imv.tvbox2` hay dos perfiles con PIN 3650 reales (SandraP y Marlene). El control de PIN duplicado se hace a nivel de controller.
+- **Import (2026-09-10):** `backend/src/scripts/import-netflix.ts` + `backend/src/scripts/netflix-excel-import-data.json` → `npm run seed:netflix`. Idempotente. Genera PINs random para códigos `XXXX`/`LIBRE` (ANDRES y "Dihana casa 12 FCR4" en la cuenta `zandres`). Resultado: **8 cuentas, 39 perfiles, 25 vinculados a cliente**.
+- **Clientes con 2 perfiles (pagan 1 adicional):** César A. (50) = `CesarA`+`Marlene`; Carlos R. (53) = `CarlosR`+`yuleyr` → mismo `clientId`, el adicional de 15.000 queda como cargo único.
+- **Sin cliente en Excel (solo alias de perfil):** JuanD, ZORAIDA, LUIS ERNESTO BOHÓRQUEZ, Marcela_O, Maribel_C (cand. 83), Luz_A2, KENNY G SERRANO, ANDRES, Dihana, DIANA M. HURTADO, MariaCamila_M (cand. 22), Fransury_R, JOSÉ FABIÁN VALENCIA. `IMV` (pin 7055 en tvbox7) = perfil **libre** real.
+- **Stale adicionales que NO están en el Excel** (NO borrar): Nirzon (37), Cristian Arley (40), Cindy (56), Estefany Reina (70) — no tienen slot.
 
 ## OLT (C-Data / cgi-bin HTTP API)
 
@@ -154,8 +165,8 @@ http://{OLT_HOST}:{OLT_WEB_PORT}/cgi-bin/h.cgi?module={module}
 | `sys_login` | POST | `{Usrname, Password}` | Auth, returns token |
 | `onu_list_get` | GET | — | All ONUs, fields: `PonId`, `OnuId`, `RunningState`, `OnuDesc`, `PonSn`, `ControlFlag`, `ConfigState` |
 | `onu_reboot` | POST | `{PonId, OnuId}` | Reboot ONU |
-| `onu_deactive` | POST | `{PonId, OnuId}` | Deactivate ONU |
-| `onu_manual_add` | POST | `{PonId, OnuId, Action: 'activate'}` | Activate ONU |
+| `onu_deactive` | POST | `{PonId, OnuId, ControlFlag}` | Enable (1) / disable (0) ONU — the only toggle |
+| `onu_manual_add` | POST | full row (profile, serial, …) | Add a **new** ONU only — partial payload `{PonId, OnuId, Action:'activate'}` returns `code:3 "The parameter is invalid."` |
 | `sys_cfg_operate` | GET | — | Generate config backup → returns `{CfgFile, TarFile}` |
 | `sys_cfg_file_check` | GET | `{Filename}` | Validate config file before restore |
 | `sys_config_save` | POST | — | Save running config to flash |
@@ -197,6 +208,11 @@ OLT_PASSWORD=IMV*2025*
 - **Cron:** `*/5 * * * *` (every 5 min) — was `* * * * *` (every minute)
 - **Purpose:** Processes scheduled disconnections (`oltDisconnectScheduled=true` + `retirementDate` reached)
 - **NOT** for ONU status polling — that's done on-demand by frontend
+
+### ONU Enable/Disable — UI-Discovered Toggle (2026-09-10)
+- The Vue UI toggles an ONU via `module=onu_deactive` with body `{PonId, OnuId, ControlFlag}`: **`1` = enable, `0` = disable** (handler `setOnuDeactive` in chunk `/js/onu-list.e3cbc53d.js`). This is the **only** path to re-enable a `ControlFlag=0` ONU.
+- `onu_manual_add` is **only** for adding a brand-new ONU; calling it with a partial payload (e.g. `{PonId, OnuId, Action:'activate'}`) returns `code:3 "The parameter is invalid."`. Do NOT use it to reactivate.
+- `OltService.activateOnu` now sends `onu_deactive {PonId, OnuId, ControlFlag:1}`; `deactivateOnu` sends `ControlFlag:0`. Real fix verified 2026-09-10: ONU `DF51A6B78F39` (client 91, inst #86, `0/0/2/33`) went from `ControlFlag=0 / Run=0 / Cfg=1` → `ControlFlag=1 / Run=1 (online) / Cfg=4` right after the call.
 
 ### OLT Anti-Flooding Protections (2026-08-19, blindaje total 2026-08-30)
 The C-Data lighttpd hangs permanently under concurrent request bursts (accepts TCP, never answers HTTP; ping/ARP OK, data plane GPON unaffected — clients keep service; only fix is physical power-cycle, no SSH/API to revive it). **Root cause:** backend instantiated `new OltService()` per request, each doing its own `sys_login` + full `onu_list_get` download (~90 ONUs), and frontend `InstallationsList.tsx` fanned those out with `Promise.all` per installation. It re-hung again on 2026-08-27 even with the three original mitigations, so a hard whitelist was added:

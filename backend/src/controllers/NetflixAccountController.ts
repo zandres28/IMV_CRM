@@ -38,6 +38,7 @@ interface AccountPayload {
     email: string;
     maxSlots: number;
     notes: string | null;
+    paymentMethod: string | null;
     slots: SlotPayload[];
     freeSlots: number;
     occupiedSlots: number;
@@ -62,6 +63,7 @@ const serializeAccount = (account: NetflixAccount): AccountPayload => {
         email: account.email,
         maxSlots: account.maxSlots,
         notes: account.notes,
+        paymentMethod: account.paymentMethod ?? null,
         slots: slots.map(serializeSlot),
         freeSlots: slots.length - occupied,
         occupiedSlots: occupied,
@@ -103,7 +105,7 @@ export class NetflixAccountController {
 
     async create(req: Request, res: Response) {
         try {
-            const { email, maxSlots, notes } = req.body;
+            const { email, maxSlots, notes, paymentMethod } = req.body;
             if (!email || !String(email).trim()) {
                 return res.status(400).json({ message: 'El email de la cuenta es obligatorio' });
             }
@@ -118,6 +120,7 @@ export class NetflixAccountController {
             account.email = String(email).trim();
             account.maxSlots = count;
             account.notes = notes || null;
+            account.paymentMethod = paymentMethod ? String(paymentMethod).trim() : null;
 
             const saved = await this.accountRepository.save(account);
 
@@ -152,7 +155,7 @@ export class NetflixAccountController {
     async update(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            const { email, maxSlots, notes } = req.body;
+            const { email, maxSlots, notes, paymentMethod } = req.body;
 
             const account = await this.accountRepository.findOne({
                 where: { id: parseInt(id) },
@@ -200,6 +203,7 @@ export class NetflixAccountController {
             }
 
             if (notes !== undefined) account.notes = notes || null;
+            if (paymentMethod !== undefined) account.paymentMethod = paymentMethod ? String(paymentMethod).trim() : null;
             account.maxSlots = newMax;
             await this.accountRepository.save(account);
 

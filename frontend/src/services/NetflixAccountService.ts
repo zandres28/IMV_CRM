@@ -10,10 +10,10 @@ export const NetflixAccountService = {
     getByClient: async (clientId: number) =>
         (await axios.get(`${API_URL}/netflix-accounts/client/${clientId}`)).data,
 
-    create: async (payload: { email: string; maxSlots?: number; notes?: string }): Promise<NetflixAccount> =>
+    create: async (payload: { email: string; maxSlots?: number; notes?: string; paymentMethod?: string }): Promise<NetflixAccount> =>
         (await axios.post(`${API_URL}/netflix-accounts`, payload)).data,
 
-    update: async (id: number, payload: { email?: string; maxSlots?: number; notes?: string }): Promise<NetflixAccount> =>
+    update: async (id: number, payload: { email?: string; maxSlots?: number; notes?: string; paymentMethod?: string }): Promise<NetflixAccount> =>
         (await axios.put(`${API_URL}/netflix-accounts/${id}`, payload)).data,
 
     remove: async (id: number) => {

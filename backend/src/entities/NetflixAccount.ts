@@ -15,6 +15,9 @@ export class NetflixAccount {
     @Column({ name: 'notes', type: 'text', nullable: true })
     notes!: string | null;
 
+    @Column({ name: 'payment_method', type: 'varchar', length: 50, nullable: true })
+    paymentMethod!: string | null;
+
     @OneToMany(() => NetflixSlot, slot => slot.account)
     slots!: NetflixSlot[];
 

@@ -19,6 +19,7 @@ export interface NetflixAccount {
     email: string;
     maxSlots: number;
     notes: string | null;
+    paymentMethod: string | null;
     slots: NetflixSlot[];
     freeSlots: number;
     occupiedSlots: number;
