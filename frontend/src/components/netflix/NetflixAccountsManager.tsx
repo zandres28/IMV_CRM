@@ -271,13 +271,9 @@ export const NetflixAccountsManager: React.FC = () => {
         <Box
             key={slot.id}
             sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
                 py: 1.25,
                 px: 1.5,
                 borderRadius: 2,
-                flexWrap: 'wrap',
                 border: `1px solid ${slot.free ? tokens.border : 'rgba(0,212,166,0.25)'}`,
                 backgroundColor: slot.free ? tokens.sunken : 'rgba(0,212,166,0.06)',
                 transition: 'border-color 150ms ease, background-color 150ms ease',
@@ -286,43 +282,55 @@ export const NetflixAccountsManager: React.FC = () => {
                 },
             }}
         >
-            <Typography sx={{ fontWeight: 700, color: tokens.muted, fontSize: '0.72rem', minWidth: 24, fontFamily: 'JetBrains Mono, monospace' }}>
-                #{slot.slotIndex}
-            </Typography>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                    sx={{ fontWeight: 600, fontSize: '0.83rem', color: tokens.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    title={slot.profileName}
-                >
-                    {slot.profileName || `Perfil ${slot.slotIndex}`}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography sx={{ fontWeight: 700, color: tokens.muted, fontSize: '0.72rem', minWidth: 24, fontFamily: 'JetBrains Mono, monospace' }}>
+                    #{slot.slotIndex}
                 </Typography>
-                <Stack direction="row" spacing={0.5} alignItems="center" component="button"
-                    onClick={() => copyPin(slot.pin)}
-                    aria-label={`Copiar PIN ${slot.pin}`}
-                    sx={{ p: 0, m: 0, background: 'none', border: 'none', cursor: 'pointer', mt: 0.25, alignItems: 'center' }}>
-                    <LockIcon sx={{ fontSize: 12, color: tokens.muted }} />
-                    <Typography sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: tokens.inkSoft, letterSpacing: '0.06em' }}>
-                        {slot.pin}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                        sx={{ fontWeight: 600, fontSize: '0.83rem', color: tokens.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        title={slot.profileName}
+                    >
+                        {slot.profileName || `Perfil ${slot.slotIndex}`}
                     </Typography>
-                    <ContentCopyIcon sx={{ fontSize: 11, color: tokens.muted, opacity: 0.65 }} />
-                </Stack>
+                    <Stack direction="row" spacing={0.5} alignItems="center" component="button"
+                        onClick={() => copyPin(slot.pin)}
+                        aria-label={`Copiar PIN ${slot.pin}`}
+                        sx={{ p: 0, m: 0, background: 'none', border: 'none', cursor: 'pointer', mt: 0.25, alignItems: 'center' }}>
+                        <LockIcon sx={{ fontSize: 12, color: tokens.muted }} />
+                        <Typography sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: tokens.inkSoft, letterSpacing: '0.06em' }}>
+                            {slot.pin}
+                        </Typography>
+                        <ContentCopyIcon sx={{ fontSize: 11, color: tokens.muted, opacity: 0.65 }} />
+                    </Stack>
+                </Box>
+                <IconButton size="small" onClick={() => openEditSlot(slot)} aria-label={`Editar perfil ${slot.profileName}`}>
+                    <EditIcon fontSize="small" />
+                </IconButton>
             </Box>
             {slot.free ? (
-                <Button size="small" variant="contained" startIcon={<PersonAddIcon />} onClick={() => openAssign(slot)} sx={{ ml: 'auto' }}>
+                <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => openAssign(slot)}
+                    sx={{ mt: 1, width: '100%' }}
+                >
                     Asignar
                 </Button>
             ) : (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto', minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, mt: 1 }}>
                     <Tooltip title={slot.client?.fullName || 'Asignado'}>
                         <Chip
                             size="small"
                             label={slot.client?.fullName || 'Asignado'}
                             sx={{
+                                flex: 1,
+                                minWidth: 0,
                                 backgroundColor: 'rgba(0,212,166,0.12)',
                                 color: '#009F80',
                                 fontWeight: 600,
                                 fontSize: '0.72rem',
-                                maxWidth: { xs: 140, sm: 180 },
                                 '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
                             }}
                         />
@@ -332,9 +340,6 @@ export const NetflixAccountsManager: React.FC = () => {
                     </IconButton>
                 </Box>
             )}
-            <IconButton size="small" onClick={() => openEditSlot(slot)} aria-label={`Editar perfil ${slot.profileName}`}>
-                <EditIcon fontSize="small" />
-            </IconButton>
         </Box>
     );
 
