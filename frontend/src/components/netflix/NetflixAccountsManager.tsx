@@ -59,6 +59,7 @@ export const NetflixAccountsManager: React.FC = () => {
     const [formEmail, setFormEmail] = useState('');
     const [formMaxSlots, setFormMaxSlots] = useState<number>(5);
     const [formNotes, setFormNotes] = useState('');
+    const [formPaymentMethod, setFormPaymentMethod] = useState('');
     const [saving, setSaving] = useState(false);
 
     // ── Diálogo asignar slot ──
@@ -105,6 +106,7 @@ export const NetflixAccountsManager: React.FC = () => {
         setFormEmail('');
         setFormMaxSlots(5);
         setFormNotes('');
+        setFormPaymentMethod('');
         setAccountOpen(true);
     };
 
@@ -114,6 +116,7 @@ export const NetflixAccountsManager: React.FC = () => {
         setFormEmail(account.email);
         setFormMaxSlots(account.maxSlots);
         setFormNotes(account.notes || '');
+        setFormPaymentMethod(account.paymentMethod || '');
         setAccountOpen(true);
     };
 
@@ -129,6 +132,7 @@ export const NetflixAccountsManager: React.FC = () => {
                     email: formEmail.trim(),
                     maxSlots: formMaxSlots,
                     notes: formNotes.trim() || undefined,
+                    paymentMethod: formPaymentMethod.trim() || undefined,
                 });
                 setSuccess('Cuenta actualizada correctamente');
             } else {
@@ -136,6 +140,7 @@ export const NetflixAccountsManager: React.FC = () => {
                     email: formEmail.trim(),
                     maxSlots: formMaxSlots,
                     notes: formNotes.trim() || undefined,
+                    paymentMethod: formPaymentMethod.trim() || undefined,
                 });
                 setSuccess('Cuenta creada correctamente');
             }
@@ -364,6 +369,7 @@ export const NetflixAccountsManager: React.FC = () => {
                                         </Typography>
                                         <Typography sx={{ fontSize: '0.75rem', color: tokens.muted }}>
                                             {account.occupiedSlots} de {account.maxSlots} perfiles ocupados
+                                            {account.paymentMethod ? ` · ${account.paymentMethod}` : ''}
                                             {account.notes ? ` · ${account.notes}` : ''}
                                         </Typography>
                                     </Box>
@@ -431,6 +437,13 @@ export const NetflixAccountsManager: React.FC = () => {
                             size="small"
                             multiline
                             rows={2}
+                        />
+                        <TextField
+                            label="Método de pago (NU, Nequi, Rappi, BBVA, Littio…)"
+                            value={formPaymentMethod}
+                            onChange={(e) => setFormPaymentMethod(e.target.value)}
+                            fullWidth
+                            size="small"
                         />
                     </Stack>
                 </DialogContent>
