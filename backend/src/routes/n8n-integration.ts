@@ -1,16 +1,23 @@
 import { Router } from 'express';
 import { N8nIntegrationController } from '../controllers/N8nIntegrationController';
+import { PaymentStatementController } from '../controllers/PaymentStatementController';
 
 const router = Router();
 
 // Obtener datos para recordatorios de pago (n8n)
 router.get('/payment-reminders', (req, res) => N8nIntegrationController.getPaymentReminders(req, res));
 
+// Generar cuenta de cobro PDF (consecutivo {clientId}-{consecutivo}-{año})
+router.get('/payment-statement', (req, res) => PaymentStatementController.getPaymentStatement(req, res));
+
 // Marcar recordatorio como enviado
 router.post('/mark-sent', (req, res) => N8nIntegrationController.markAsSent(req, res));
 
 // Consultar deuda cliente (por teléfono)
 router.get('/client-debt', (req, res) => N8nIntegrationController.getClientDebt(req, res));
+
+// Verificar estado de pago en vivo por cliente+mes+año (re-check antes de envío n8n)
+router.get('/check-payment-status', (req, res) => N8nIntegrationController.checkPaymentStatus(req, res));
 
 // Obtener detalles cliente (sync contactos Chatwoot)
 router.get('/client-details', (req, res) => N8nIntegrationController.getClientByPhone(req, res));

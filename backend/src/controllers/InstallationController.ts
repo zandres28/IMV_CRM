@@ -416,6 +416,12 @@ export class InstallationController {
             // Sincronizar isActive con serviceStatus
             if (serviceStatus) {
                 installation.isActive = serviceStatus === 'activo';
+                // Registrar fecha de suspensión o limpiar al reactivar
+                if (serviceStatus === 'suspendido') {
+                    installation.suspendedAt = new Date();
+                } else if (serviceStatus === 'activo') {
+                    installation.suspendedAt = null;
+                }
             }
 
             await this.installationRepository.save(installation);
@@ -477,6 +483,12 @@ export class InstallationController {
 
             installation.serviceStatus = serviceStatus;
             installation.isActive = serviceStatus === 'activo';
+            // Registrar fecha de suspensión o limpiar al reactivar
+            if (serviceStatus === 'suspendido') {
+                installation.suspendedAt = new Date();
+            } else if (serviceStatus === 'activo') {
+                installation.suspendedAt = null;
+            }
 
             await this.installationRepository.save(installation);
             return res.json(installation);

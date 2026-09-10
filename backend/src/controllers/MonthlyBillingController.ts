@@ -11,6 +11,53 @@ import { Interaction } from "../entities/Interaction";
 import { Between, Brackets, In, Like } from "typeorm";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { hasPermission, PERMISSIONS } from "../utils/permissions";
+import { restoreServiceForClient } from "../services/OltStatusSyncService";
+
+// Día de vencimiento de cuotas de productos y de las facturas mensuales
+const CUTOFF_DAY = 5;
+
+// Índice de mes absoluto (año*12 + mes) para comparar "mes objetivo" de una cuota
+function getAbsoluteMonthIndex(date: Date): number {
+    return date.getFullYear() * 12 + date.getMonth();
+}
+
+/**
+ * Marca como pagadas las cuotas de productos cuyo "mes objetivo" coincide con el mes
+ * del pago (mes de venta + número de cuota - 1). Devuelve cuántas cuotas se marcaron.
+ */
+async function markInstallmentsOfMonthPaid(
+    installmentRepository: any,
+    clientId: number,
+    monthIdx: number,
+    yearNum: number,
+    payment: Payment
+): Promise<number> {
+    const pending = await installmentRepository
+        .createQueryBuilder('inst')
+        .innerJoinAndSelect('inst.product', 'product')
+        .innerJoin('product.client', 'client')
+        .where('client.id = :clientId', { clientId })
+        .andWhere('inst.status = :status', { status: 'pendiente' })
+        .getMany();
+
+    const paymentAbsoluteMonth = yearNum * 12 + monthIdx;
+    let count = 0;
+    for (const inst of pending) {
+        const sale = parseLocalDate(inst.product.saleDate as unknown as string) || new Date(inst.product.saleDate);
+        const targetMonthIndex = sale.getFullYear() * 12 + sale.getMonth() + (Number(inst.installmentNumber) - 1);
+        // Se marcan las cuotas cuyo mes objetivo coincide con el mes del pago
+        // y las vencidas de meses anteriores (incluidas en productFutureInstallmentsAmount de la deuda).
+        if (targetMonthIndex > paymentAbsoluteMonth) continue;
+
+        inst.status = 'completado';
+        inst.paymentDate = payment.paymentDate || new Date();
+        inst.notes = (inst.notes ? inst.notes + ' | ' : '') +
+            `Incluida en mensualidad ${payment.paymentMonth} ${payment.paymentYear}`;
+        await installmentRepository.save(inst);
+        count++;
+    }
+    return count;
+}
 
 export class MonthlyBillingController {
     /**
@@ -67,8 +114,8 @@ export class MonthlyBillingController {
             const lastDayOfMonth = new Date(yearNum, monthIndex + 1, 0);
             const totalDaysInMonth = lastDayOfMonth.getDate();
             
-            // Período de facturación: incluye cuotas con vencimiento hasta el día 5 del mes siguiente
-            const billingPeriodEnd = new Date(yearNum, monthIndex + 1, 5);
+            // Período de facturación: las facturas vencen el día 10 del mes siguiente
+            const billingPeriodEnd = new Date(yearNum, monthIndex + 1, CUTOFF_DAY);
 
             for (const client of clients) {
                 // Buscar instalaciones que deben ser facturadas:
@@ -178,16 +225,58 @@ export class MonthlyBillingController {
 
                     if (!isFullMonth) {
                         isProrated = true;
-                        // Calcular días (inclusive)
-                        const billedDays = Math.floor((billingEndDate.getTime() - billingStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        // Calcular días (excluyendo día de instalación: cuenta días completos de servicio)
+                        const billedDays = Math.floor((billingEndDate.getTime() - billingStartDate.getTime()) / (1000 * 60 * 60 * 24));
                         billedDaysAgg += billedDays;
                         
-                        // Calcular monto prorrateado: siempre usar 30 días y redondear a múltiplos de 500 hacia arriba
+                        // Calcular monto prorrateado: (mensualidad / 30 días) * días facturados, redondeado hacia arriba a múltiplos de 100
                         const monthlyFee = Number(installation.monthlyFee);
-                        const dailyRate = Math.ceil((monthlyFee / 30) / 500) * 500;
-                        servicePlanAmount += dailyRate * billedDays;
+                        let proratedAmount = Math.ceil((monthlyFee / 30) * billedDays / 100) * 100;
+
+                        // Prorrateo por suspensión: si el cliente estuvo suspendido >10 días en el mes, cobrar solo días activos
+                        if (installation.serviceStatus === 'suspendido' && installation.suspendedAt) {
+                            const suspendedAt = parseLocalDate(installation.suspendedAt as unknown as string) || new Date(installation.suspendedAt);
+                            const suspensionStart = suspendedAt > billingStartDate ? suspendedAt : billingStartDate;
+                            const today = new Date();
+                            const suspensionEnd = (today < billingEndDate ? today : billingEndDate);
+                            if (suspensionEnd >= suspensionStart) {
+                                const suspensionDays = Math.floor((suspensionEnd.getTime() - suspensionStart.getTime()) / (1000 * 60 * 60 * 24));
+                                if (suspensionDays > 10) {
+                                    const activeDays = billedDays - suspensionDays;
+                                    if (activeDays <= 0) {
+                                        proratedAmount = 0;
+                                    } else {
+                                        proratedAmount = Math.ceil((monthlyFee / 30) * activeDays / 100) * 100;
+                                    }
+                                }
+                            }
+                        }
+
+                        servicePlanAmount += proratedAmount;
                     } else {
-                        servicePlanAmount += Number(installation.monthlyFee);
+                        let monthAmount = Number(installation.monthlyFee);
+
+                        // Prorrateo por suspensión en mes completo: si suspendido >10 días, cobrar solo días activos
+                        if (installation.serviceStatus === 'suspendido' && installation.suspendedAt) {
+                            const suspendedAt = parseLocalDate(installation.suspendedAt as unknown as string) || new Date(installation.suspendedAt);
+                            const suspensionStart = suspendedAt > firstDayOfMonth ? suspendedAt : firstDayOfMonth;
+                            const today = new Date();
+                            const lastDay = lastDayOfMonth;
+                            const suspensionEnd = (today < lastDay ? today : lastDay);
+                            if (suspensionEnd >= suspensionStart) {
+                                const suspensionDays = Math.floor((suspensionEnd.getTime() - suspensionStart.getTime()) / (1000 * 60 * 60 * 24));
+                                if (suspensionDays > 10) {
+                                    const activeDays = 30 - suspensionDays;
+                                    if (activeDays <= 0) {
+                                        monthAmount = 0;
+                                    } else {
+                                        monthAmount = Math.ceil((monthAmount / 30) * activeDays / 100) * 100;
+                                    }
+                                }
+                            }
+                        }
+
+                        servicePlanAmount += monthAmount;
                     }
                 }
 
@@ -227,27 +316,28 @@ export class MonthlyBillingController {
                         const billingStartDate = serviceStartDate > firstDayOfMonth ? serviceStartDate : firstDayOfMonth;
                         if (billingEndDate < billingStartDate) continue;
 
-                        const billedDays = Math.floor((billingEndDate.getTime() - billingStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        const billedDays = Math.floor((billingEndDate.getTime() - billingStartDate.getTime()) / (1000 * 60 * 60 * 24));
                         const monthlyFee = Number(service.monthlyFee);
-                        const dailyRate = Math.ceil((monthlyFee / 30) / 500) * 500;
+                        const proratedAmount = Math.ceil((monthlyFee / 30) * billedDays / 100) * 100;
 
-                        additionalServicesAmount += dailyRate * billedDays;
+                        additionalServicesAmount += proratedAmount;
                         isProrated = true;
                     } else {
                         additionalServicesAmount += Number(service.monthlyFee);
                     }
                 }
 
-                // Cuotas de productos: del mes (hasta día 5 del siguiente) y futuras provisionadas
+                // Cuotas de productos: del mes (por "mes objetivo" = mes de venta + número de cuota - 1)
+                // y futuras provisionadas (cuotas ya vencidas aún sin pagar que no le tocaban a este mes)
                 const productsSold = await productSoldRepository.find({
                     where: { client: { id: client.id }, status: 'pendiente' },
                     relations: ['installmentPayments']
                 });
-                let productInstallmentsAmount = 0; // del período de facturación
-                let productFutureInstallmentsAmount = 0; // futuras provisionadas
+                let productInstallmentsAmount = 0; // del período de facturación (mes objetivo == mes)
+                let productFutureInstallmentsAmount = 0; // cuotas vencidas de meses anteriores sin pagar
                 let productFutureInstallmentsCount = 0;
                 for (const product of productsSold) {
-                    // Solo considerar productos vendidos hasta el fin del mes de facturación (NO incluir ventas del mes siguiente aunque sea antes del 5)
+                    // Solo considerar productos vendidos hasta el fin del mes de facturación (NO incluir ventas del mes siguiente aunque sea antes del 10)
                     const saleDate = parseLocalDate(product.saleDate as unknown as string) || new Date(product.saleDate);
                     if (saleDate > lastDayOfMonth) continue;
 
@@ -260,14 +350,17 @@ export class MonthlyBillingController {
                     });
 
                     for (const inst of pendingFromThisMonthOn) {
-                        const due = new Date(inst.dueDate);
-                        // Cuotas con vencimiento hasta el día 5 del mes siguiente se incluyen en este mes
-                        if (due <= billingPeriodEnd) {
+                        // Cuota pertenece al mes cuyo índice absoluto = mes de venta + (número de cuota - 1)
+                        const targetMonthIndex = getAbsoluteMonthIndex(saleDate) + (Number(inst.installmentNumber) - 1);
+                        if (targetMonthIndex === getAbsoluteMonthIndex(firstDayOfMonth)) {
+                            // Cuota que le toca a este mes: se cobra y se marca como pagada al pagar
                             productInstallmentsAmount += Number(inst.amount);
-                        } else {
+                        } else if (targetMonthIndex < getAbsoluteMonthIndex(firstDayOfMonth)) {
+                            // Cuota vencida de un mes anterior que aún no se ha pagado: se provisiona como deuda
                             productFutureInstallmentsAmount += Number(inst.amount);
                             productFutureInstallmentsCount += 1;
                         }
+                        // Si la cuota es de un mes futuro, no se incluye en este cobro
                     }
                 }
 
@@ -325,35 +418,36 @@ export class MonthlyBillingController {
                     payment.paymentType = 'monthly';
                 }
                 payment.client = client;
-                payment.amount = Number(totalAmount.toFixed(2));
                 payment.paymentMonth = monthName;
                 payment.paymentYear = yearNum;
-                payment.dueDate = new Date(yearNum, monthIndex + 1, 5);
-                // Si ya estaba pagado, no modificar estado ni amount; de lo contrario, marcar/actualizar
+                payment.dueDate = new Date(yearNum, monthIndex + 1, CUTOFF_DAY);
+                // Siempre usar 30 días como base para el cálculo del prorrateo
+                payment.totalDaysInMonth = 30;
+
+                // NO modificar montos/desglose/estado de pagos ya registrados como 'pagado'
                 if (payment.status !== 'pagado') {
+                    payment.amount = Number(totalAmount.toFixed(2));
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     payment.status = today > payment.dueDate ? 'vencido' : 'pendiente';
+                    payment.servicePlanAmount = Number(servicePlanAmount.toFixed(2));
+                    payment.additionalServicesAmount = Number(additionalServicesAmount.toFixed(2));
+                    payment.productInstallmentsAmount = Number(productInstallmentsAmount.toFixed(2));
+                    payment.installationFeeAmount = 0; // explícitamente excluir en mensual
+                    payment.outageDiscountAmount = Number(outageDiscountAmount.toFixed(2));
+                    payment.outageDays = outageDays;
+                    payment.productFutureInstallmentsAmount = Number(productFutureInstallmentsAmount.toFixed(2));
+                    payment.productFutureInstallmentsCount = productFutureInstallmentsCount;
+                    payment.isProrated = isProrated;
+                    payment.billedDays = isProrated ? billedDaysAgg : totalDaysInMonth;
+                    const futureNote = productFutureInstallmentsCount > 0
+                        ? ` | Incluye ${productFutureInstallmentsCount} cuota(s) anterior(es) de producto(s) pendiente(s) de pago`
+                        : '';
+                    const outageNote = outageDays > 0
+                        ? ` | Descuento por ${outageDays} día(s) sin servicio (-$${outageDiscountAmount.toLocaleString('es-CO')})`
+                        : '';
+                    payment.notes = isProrated ? `Prorrateo aplicado${futureNote}${outageNote}` : (payment.notes || '') + futureNote + outageNote;
                 }
-                payment.servicePlanAmount = Number(servicePlanAmount.toFixed(2));
-                payment.additionalServicesAmount = Number(additionalServicesAmount.toFixed(2));
-                payment.productInstallmentsAmount = Number(productInstallmentsAmount.toFixed(2));
-                payment.installationFeeAmount = 0; // explícitamente excluir en mensual
-                payment.outageDiscountAmount = Number(outageDiscountAmount.toFixed(2));
-                payment.outageDays = outageDays;
-                payment.productFutureInstallmentsAmount = Number(productFutureInstallmentsAmount.toFixed(2));
-                payment.productFutureInstallmentsCount = productFutureInstallmentsCount;
-                payment.isProrated = isProrated;
-                payment.billedDays = isProrated ? billedDaysAgg : totalDaysInMonth;
-                // Siempre usar 30 días como base para el cálculo del prorrateo
-                payment.totalDaysInMonth = 30;
-                const futureNote = productFutureInstallmentsCount > 0
-                    ? ` | Incluye ${productFutureInstallmentsCount} cuota(s) futura(s) provisionada(s)`
-                    : '';
-                const outageNote = outageDays > 0
-                    ? ` | Descuento por ${outageDays} día(s) sin servicio (-$${outageDiscountAmount.toLocaleString('es-CO')})`
-                    : '';
-                payment.notes = isProrated ? `Prorrateo aplicado${futureNote}${outageNote}` : (payment.notes || '') + futureNote + outageNote;
 
                 await paymentRepository.save(payment);
                 
@@ -405,6 +499,8 @@ export class MonthlyBillingController {
             const method = paymentMethod || 'transferencia';
 
             const paymentRepository = AppDataSource.getRepository(Payment);
+            const installmentRepository = AppDataSource.getRepository(ProductInstallment);
+            const monthIdx = getMonthIndex(monthName);
 
             const results: { clientId: number; status: 'updated' | 'not-found' | 'already-paid'; paymentId?: number }[] = [];
 
@@ -431,6 +527,25 @@ export class MonthlyBillingController {
                 payment.paymentMethod = method as any;
                 payment.paymentDate = paymentDate ? parseLocalDate(paymentDate)! : new Date();
                 await paymentRepository.save(payment);
+
+                // Atribuir las cuotas de productos cuyo mes objetivo coincide con este pago
+                const marked = await markInstallmentsOfMonthPaid(installmentRepository, clientId, monthIdx, yearNum, payment);
+                if (marked > 0) {
+                    payment.notes = (payment.notes || '') +
+                        ` | ${marked} cuota(s) del mes marcada(s) como pagada(s)`;
+                    await paymentRepository.save(payment);
+                }
+
+                // Si el cliente estaba suspendido por falta de pago, reactivarlo en la OLT
+                try {
+                    const restored = await restoreServiceForClient(clientId);
+                    if (restored.reactivated > 0) {
+                        console.log(`[Billing] Cliente ${clientId} reactivado en OLT (${restored.reactivated} instalación(es))`);
+                    }
+                } catch (oltError: any) {
+                    console.error('[Billing] Error reactivando servicio en OLT (bulk):', oltError.message);
+                }
+
                 results.push({ clientId, status: 'updated', paymentId: payment.id });
             }
 
@@ -497,14 +612,22 @@ export class MonthlyBillingController {
                 .leftJoinAndSelect('client.additionalServices', 'additionalServices')
                 .leftJoinAndSelect('client.productsSold', 'productsSold')
                 .where('payment.paymentType = :type', { type: 'monthly' })
-                .andWhere('client.deletedAt IS NULL');
+                .andWhere('client.deletedAt IS NULL')
+                // Excluir del recaudo mensual los cobros NO pagados de clientes retirados:
+                // un cliente retirado solo cuenta si efectivamente pagó (recaudo real).
+                // Los pendientes/vencidos de retirados se conservan en BD como histórico pero
+                // no aparecen en la facturación ni inflan los totales del mes.
+                .andWhere(new Brackets(qb => {
+                    qb.where('client.status <> :retired', { retired: 'retirado' })
+                      .orWhere('payment.status = :paid', { paid: 'pagado' });
+                }));
 
             if (viewMode === 'cumulative') {
                 // Modo acumulado: Pagos del mes seleccionado + Pagos pendientes/vencidos anteriores
                 const monthIndex = getMonthIndex(month as string);
                 const yearNum = parseInt(year as string);
-                // Fecha de vencimiento del mes seleccionado (día 5 del mes siguiente)
-                const currentMonthDueDate = new Date(yearNum, monthIndex + 1, 5);
+                // Fecha de vencimiento del mes seleccionado (día 10 del mes siguiente)
+                const currentMonthDueDate = new Date(yearNum, monthIndex + 1, CUTOFF_DAY);
                 
                 query.andWhere(
                     new Brackets(qb => {
@@ -714,7 +837,7 @@ export class MonthlyBillingController {
                 return res.status(403).json({ message: 'No tienes permiso para registrar pagos' });
             }
             const { id } = req.params;
-            const { paymentDate, paymentMethod, amount, notes, extraInstallmentIds } = req.body;
+            const { paymentDate, paymentMethod, amount, notes, extraInstallmentIds, includeMonthInstallments = true } = req.body;
 
             const paymentRepository = AppDataSource.getRepository(Payment);
             const installmentRepository = AppDataSource.getRepository(ProductInstallment);
@@ -732,37 +855,30 @@ export class MonthlyBillingController {
             payment.paymentDate = paymentDate ? parseLocalDate(paymentDate)! : new Date();
             payment.paymentMethod = paymentMethod;
             
-            // Calcular el período de facturación para este mes
+            // Calcular índices del mes de este pago
             const monthIdx = getMonthIndex(payment.paymentMonth);
             const yearNum = payment.paymentYear;
-            const firstDayOfMonth = new Date(yearNum, monthIdx, 1);
-            const billingPeriodEnd = new Date(yearNum, monthIdx + 1, 5);
 
-            // Marcar automáticamente las cuotas incluidas en el cobro base (las del período)
-            // Estas son las que se incluyeron en productInstallmentsAmount al generar la facturación
-            if (payment.client) {
-                const includedInstallments = await installmentRepository
-                    .createQueryBuilder('inst')
-                    .innerJoin('inst.product', 'product')
-                    .innerJoin('product.client', 'client')
-                    .where('client.id = :clientId', { clientId: payment.client.id })
-                    .andWhere('inst.status = :status', { status: 'pendiente' })
-                    .andWhere('inst.dueDate >= :start', { start: firstDayOfMonth })
-                    .andWhere('inst.dueDate <= :end', { end: billingPeriodEnd })
-                    .getMany();
+            // Si el cliente no pagó las cuotas de producto del mes (ej: pagó solo el servicio y
+            // la 1ra cuota del TVBOX se paga más tarde), se registra el pago sin marcarlas.
+            if (!includeMonthInstallments) {
+                payment.notes = (payment.notes || '') +
+                    ` | Cuotas del mes NO incluidas (se pagarán por separado)`;
+            }
 
-                let autoMarkedCount = 0;
-                for (const inst of includedInstallments) {
-                    inst.status = 'completado';
-                    inst.paymentDate = payment.paymentDate;
-                    inst.notes = (inst.notes ? inst.notes + ' | ' : '') +
-                        `Incluida en mensualidad ${payment.paymentMonth} ${payment.paymentYear}`;
-                    await installmentRepository.save(inst);
-                    autoMarkedCount++;
-                }
+            // Marcar automáticamente las cuotas de ESTE mes objetivo (las que entraron en productInstallmentsAmount
+            // al generar la facturación). Así se identifica qué rubro es servicio y qué rubro es cuota del mes.
+            if (payment.client && includeMonthInstallments) {
+                const autoMarkedCount = await markInstallmentsOfMonthPaid(
+                    installmentRepository,
+                    payment.client.id,
+                    monthIdx,
+                    yearNum,
+                    payment
+                );
                 if (autoMarkedCount > 0) {
                     payment.notes = (payment.notes || '') +
-                        ` | ${autoMarkedCount} cuota(s) del período marcada(s) como pagada(s)`;
+                        ` | ${autoMarkedCount} cuota(s) del mes marcada(s) como pagada(s)`;
                 }
             }
 
@@ -808,6 +924,18 @@ export class MonthlyBillingController {
             }
 
             await paymentRepository.save(payment);
+
+            // Si el cliente tenía el servicio suspendido por falta de pago, reactivarlo en la OLT
+            if (payment.client) {
+                try {
+                    const restored = await restoreServiceForClient(payment.client.id);
+                    if (restored.reactivated > 0) {
+                        console.log(`[Billing] Cliente ${payment.client.id} reactivado en OLT (${restored.reactivated} instalación(es))`);
+                    }
+                } catch (oltError: any) {
+                    console.error('[Billing] Error reactivando servicio en OLT tras pago:', oltError.message);
+                }
+            }
 
             res.json({
                 message: "Pago registrado exitosamente",

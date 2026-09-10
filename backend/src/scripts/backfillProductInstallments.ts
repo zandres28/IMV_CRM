@@ -24,8 +24,8 @@ async function main() {
       const toCreate = product.installments - have;
       for (let i = 0; i < toCreate; i++) {
         const cuotaIndex = have + i; // 0-based index for this cuota
-        // Misma regla que ProductController: día 5 del (mes siguiente + índice)
-        const dueDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1 + cuotaIndex, 5);
+        // Misma regla que ProductController: día 10 del (mes siguiente + índice)
+        const dueDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1 + cuotaIndex, 10);
         const inst = instRepo.create({
           product,
           installmentNumber: have + i + 1,

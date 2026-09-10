@@ -1,4 +1,5 @@
 import { Response, Request } from "express";
+import { DeepPartial } from "typeorm";
 import { AppDataSource } from "../config/database";
 import { Client } from "../entities/Client";
 import { AuthRequest } from "../middlewares/auth.middleware";
@@ -10,6 +11,7 @@ import { User } from "../entities/User";
 import { NotificationService } from "../services/NotificationService";
 import { OltService } from "../services/OltService";
 import { formatPhoneForWhatsapp } from './N8nIntegrationController';
+import { autoProvisionIptv } from './IptvController';
 import axios from 'axios';
 
 const clientRepository = AppDataSource.getRepository(Client);
@@ -550,8 +552,12 @@ export const ClientController = {
             if (req.user?.sucursal && !clientData.sucursal) {
                 clientData.sucursal = req.user.sucursal;
             }
-            const newClient = clientRepository.create(clientData);
+            const newClient = clientRepository.create(clientData as DeepPartial<Client>);
             const result = await clientRepository.save(newClient);
+
+            // Auto-provisión IPTV (fail-soft, no rompe la creación si el panel no está listo)
+            await autoProvisionIptv(result);
+
             return res.status(201).json(result);
         } catch (error: any) {
             console.error("Error al crear cliente:", error);
@@ -605,6 +611,12 @@ export const ClientController = {
             }
 
             const result = await clientRepository.save(client);
+
+            // Si el cliente pasa a estado activo, auto-provisionar IPTV (fail-soft)
+            if (result.status === 'activo') {
+                await autoProvisionIptv(result);
+            }
+
             return res.json(result);
         } catch (error) {
             return res.status(500).json({ message: "Error al actualizar el cliente", error });

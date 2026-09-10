@@ -349,12 +349,14 @@ const SERVICES: Service[] = [
         path: '/api/n8n/payment-reminders',
         description: 'Clientes y saldos para recordatorios de cobranza (WhatsApp)',
         auth: 'apiKey',
-        params: 'reminderType, paymentStatus, clientStatus, sentFilter, month, year',
+        params: 'reminderType, paymentStatus, clientStatus, sentFilter, reminderMode, incluirRetirados, month, year',
         paramTable: [
-          { param: 'reminderType', values: 'PROXIMO | VENCIDO | ULTIMO | PAGADO', description: 'Filtra por tipo de recordatorio. PROXIMO aún no vence, VENCIDO dentro del rango, ULTIMO muy atrasado, PAGADO ya cancelado.' },
-          { param: 'paymentStatus', values: 'pending | overdue | paid', description: 'pending: no pagados. overdue: superaron la fecha límite. paid/approved: ya pagados.' },
-          { param: 'clientStatus', values: 'active (default) | inactive | all', description: 'Estado del cliente. Por defecto solo activos.' },
-          { param: 'sentFilter', values: 'YES / NO', description: 'YES: ya recibieron recordatorio. NO: aún no.' },
+          { param: 'reminderType', values: 'PROXIMO | VENCIDO | ULTIMO | PAGADO | RECORDATORIO | all', description: 'Filtra por tipo de recordatorio. PROXIMO aún no vence, VENCIDO dentro del rango, ULTIMO muy atrasado, PAGADO ya cancelado, RECORDATORIO sin factura del mes. all (default) no filtra.' },
+          { param: 'paymentStatus', values: 'pending | overdue | paid', description: 'pending: no pagados (incluye vencidos). overdue: superaron la fecha límite. paid/approved: ya pagados. Sin el parámetro no filtra.' },
+          { param: 'clientStatus', values: 'active (default) | inactive | all', description: 'Estado del cliente. active: solo status=activo. inactive: cualquier estado distinto a activo. all: no filtra por estado.' },
+          { param: 'sentFilter', values: 'YES / NO', description: 'YES: ya recibieron recordatorio. NO: aún no. Solo se aplica si reminderMode != all.' },
+          { param: 'reminderMode', values: 'all | (cualquier otro)', description: 'all: ignora sentFilter (por defecto el flujo usa all). Cualquier otro valor activa el filtrado por sentFilter.' },
+          { param: 'incluirRetirados', values: 'true | false', description: 'true: incluye clientes retirados con deuda pendiente (su factura más reciente sin pagar). false (default): solo instalaciones activas.' },
           { param: 'month', values: 'ENERO, FEBRERO ... DICIEMBRE', description: 'Mes a consultar en mayúsculas. Por defecto: mes actual.' },
           { param: 'year', values: 'Ej: 2026', description: 'Año a consultar. Por defecto: año actual.' },
         ],
@@ -363,20 +365,26 @@ const SERVICES: Service[] = [
           { field: 'Nombre Completo', type: 'string', description: 'Nombre completo del cliente.' },
           { field: 'Celular 1 / Celular 2', type: 'string', description: 'Teléfonos con código 57 (formato WhatsApp).' },
           { field: 'PLAN', type: 'string', description: 'Nombre del plan de servicio.' },
-          { field: 'MES / FECHA_LIMITE', type: 'string', description: 'Mes de facturación y fecha límite de pago.' },
+          { field: 'MES / FECHA_LIMITE', type: 'string', description: 'Mes de facturación y fecha límite de pago (5 del mes siguiente).' },
           { field: 'DIAS', type: 'number', description: 'Días transcurridos desde el vencimiento. 0 si ya pagó.' },
-          { field: 'VALOR', type: 'number', description: 'Valor de la mensualidad (posiblemente prorrateado).' },
-          { field: 'ADICIONAL', type: 'number', description: 'Suma de servicios adicionales + cuotas pendientes.' },
-          { field: 'DETALLE_ADICIONAL', type: 'string', description: 'Nombres de servicios/productos adicionales.' },
-          { field: 'TIPO', type: 'string', description: 'PROXIMO | VENCIDO | ULTIMO | PAGADO.' },
-          { field: 'DESCUENTO_CORTE', type: 'number', description: 'Descuento en $ por caídas de servicio del mes.' },
-          { field: 'DIAS_CORTE', type: 'number', description: 'Total de días sin servicio en el mes.' },
-          { field: 'DETALLE_CORTE', type: 'string', description: 'Detalle de cada caída con fechas y monto.' },
+          { field: 'VALOR', type: 'number', description: 'Valor de la mensualidad (plan menos descuento por corte, o suma de planes activos si no hay factura).' },
+          { field: 'DESCUENTO', type: 'number', description: 'Descuento en $ por caídas de servicio del mes (outageDiscountAmount).' },
+          { field: 'ADICIONAL', type: 'number', description: 'Suma de servicios adicionales activos + cuotas de productos vencidas.' },
+          { field: 'DETALLE_ADICIONAL', type: 'string', description: 'Nombres de servicios/productos adicionales (o "Ninguno").' },
+          { field: 'CUOTA', type: 'string', description: 'Cuotas de producto pendientes, ej: "1/3, 2/3" (vacío si no hay).' },
+          { field: 'TIPO', type: 'string', description: 'PROXIMO | VENCIDO | ULTIMO | PAGADO | RECORDATORIO.' },
           { field: 'ENVIADO', type: 'string', description: 'YES si ya se envió, NO si aún no.' },
-          { field: 'estado_pago', type: 'string', description: 'pending | overdue | approved | paid.' },
-          { field: 'installation_id', type: 'number', description: 'ID de la instalación asociada.' },
+          { field: 'vecesEnviado', type: 'number', description: 'Número de recordatorios enviados en el mes consultado.' },
+          { field: 'clienteStatus', type: 'string', description: 'activo | inactivo | retirado (según filtro aplicado).' },
+          { field: 'estado_pago', type: 'string', description: 'pendiente | vencido | pagado (status de la factura).' },
+          { field: 'installation_id', type: 'number', description: 'ID de la primera instalación activa asociada.' },
+          { field: 'installation_ids', type: 'array', description: 'IDs de todas las instalaciones activas del cliente.' },
         ],
-        example: `# Vencidos sin recordatorio:
+        example: `# Solo clientes activos con factura pendiente (coincide con el CRM):
+curl -X GET "${API_BASE}/api/n8n/payment-reminders?paymentStatus=pending&month=JULIO&year=2026&reminderMode=all&clientStatus=activo&incluirRetirados=false" \\
+  -H "x-api-key: TU_API_KEY_N8N"
+
+# Vencidos sin recordatorio:
 curl -X GET "${API_BASE}/api/n8n/payment-reminders?reminderType=VENCIDO&sentFilter=NO" \\
   -H "x-api-key: TU_API_KEY_N8N"
 
@@ -384,41 +392,57 @@ curl -X GET "${API_BASE}/api/n8n/payment-reminders?reminderType=VENCIDO&sentFilt
 curl -X GET "${API_BASE}/api/n8n/payment-reminders?paymentStatus=overdue" \\
   -H "x-api-key: TU_API_KEY_N8N"
 
-# Mes específico:
-curl -X GET "${API_BASE}/api/n8n/payment-reminders?month=FEBRERO&year=2026&paymentStatus=pending" \\
+# Incluir retirados con deuda:
+curl -X GET "${API_BASE}/api/n8n/payment-reminders?month=JULIO&year=2026&incluirRetirados=true&clientStatus=all" \\
   -H "x-api-key: TU_API_KEY_N8N"`,
       },
       {
         method: 'POST',
         path: '/api/n8n/mark-sent',
-        description: 'Marcar recordatorio como enviado',
+        description: 'Registrar una interacción de recordatorio enviado (evita reenvíos duplicados)',
         auth: 'apiKey',
         body: `{
   "clientId": 1,
-  "type": "whatsapp",
-  "result": "success"
+  "installationId": 3,
+  "month": "JULIO",
+  "year": 2026
 }`,
         example: `curl -X POST "${API_BASE}/api/n8n/mark-sent" \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: TU_API_KEY_N8N" \\
   -d '{
     "clientId": 1,
-    "type": "whatsapp",
-    "result": "success"
+    "installationId": 3,
+    "month": "JULIO",
+    "year": 2026
   }'`,
       },
       {
         method: 'GET',
         path: '/api/n8n/suspension-candidates',
-        description: 'Clientes para suspensión automática (día 6)',
+        description: 'Clientes morosos candidatos a suspensión automática (día 6)',
         auth: 'apiKey',
-        example: `curl -X GET "${API_BASE}/api/n8n/suspension-candidates" \\
+        params: 'month (opcional, default mes actual), year (opcional, default año actual)',
+        responseFields: [
+          { field: 'period', type: 'string', description: 'Mes/año consultado, ej: "JULIO 2026".' },
+          { field: 'total_candidates', type: 'number', description: 'Cantidad total de candidatos (instalaciones).' },
+          { field: 'candidates', type: 'array', description: 'Lista de instalaciones morosas.' },
+          { field: 'clientId / clientName', type: 'number/string', description: 'ID y nombre del cliente.' },
+          { field: 'installationId', type: 'number', description: 'ID de la instalación.' },
+          { field: 'ponId / onuId / onuSerialNumber', type: 'string', description: 'Datos OLT para el corte.' },
+          { field: 'action_identifier', type: 'string', description: 'SN de la ONU o installationId (identificador para el corte).' },
+          { field: 'address / phone', type: 'string', description: 'Dirección y teléfono del cliente.' },
+          { field: 'reason', type: 'string', description: 'Motivo: "Sin pago registrado para {MES} {AÑO}".' },
+          { field: 'extensionDate', type: 'string', description: 'Fecha de extensión de suspensión si existe.' },
+          { field: 'automatable', type: 'boolean', description: 'true si la instalación tiene datos OLT para corte automático.' },
+        ],
+        example: `curl -X GET "${API_BASE}/api/n8n/suspension-candidates?month=JULIO&year=2026" \\
   -H "x-api-key: TU_API_KEY_N8N"`,
       },
       {
         method: 'POST',
         path: '/api/n8n/register-payment',
-        description: 'Registrar pago (requiere phone para identificar cliente)',
+        description: 'Registrar pago desde WhatsApp (identifica al cliente por teléfono y paga su factura más antigua)',
         auth: 'apiKey',
         body: `{
   "phone": "573001234567",
@@ -435,6 +459,93 @@ curl -X GET "${API_BASE}/api/n8n/payment-reminders?month=FEBRERO&year=2026&payme
     "amount": 50000,
     "reference": "REF123",
     "paymentMethod": "nequi"
+  }'`,
+      },
+      {
+        method: 'GET',
+        path: '/api/n8n/client-debt',
+        description: 'Consultar deuda total y facturas pendientes de un cliente por teléfono',
+        auth: 'apiKey',
+        params: 'phone (requerido)',
+        responseFields: [
+          { field: 'clientId', type: 'number', description: 'ID del cliente.' },
+          { field: 'clientName', type: 'string', description: 'Nombre completo del cliente.' },
+          { field: 'totalDebt', type: 'number', description: 'Suma de todas las facturas pendientes/vencidas.' },
+          { field: 'pendingInvoices', type: 'array', description: 'Facturas con id, month, year, amount, dueDate.' },
+        ],
+        example: `curl -X GET "${API_BASE}/api/n8n/client-debt?phone=573001234567" \\
+  -H "x-api-key: TU_API_KEY_N8N"`,
+      },
+      {
+        method: 'GET',
+        path: '/api/n8n/client-details',
+        description: 'Obtener datos del cliente por teléfono (sincronización con Chatwoot)',
+        auth: 'apiKey',
+        params: 'phone (requerido, con o sin código 57)',
+        responseFields: [
+          { field: 'id', type: 'number', description: 'ID del cliente.' },
+          { field: 'name', type: 'string', description: 'Nombre completo.' },
+          { field: 'email', type: 'string', description: 'Correo del cliente.' },
+          { field: 'phone', type: 'string', description: 'Teléfono principal.' },
+          { field: 'identifier', type: 'string', description: 'Número de cédula/documento.' },
+          { field: 'city', type: 'string', description: 'Ciudad.' },
+          { field: 'address', type: 'string', description: 'Dirección de instalación.' },
+        ],
+        example: `curl -X GET "${API_BASE}/api/n8n/client-details?phone=573001234567" \\
+  -H "x-api-key: TU_API_KEY_N8N"`,
+      },
+      {
+        method: 'POST',
+        path: '/api/n8n/reset-reminders',
+        description: 'Eliminar registros de recordatorio enviado (reset para reenvío)',
+        auth: 'apiKey',
+        params: 'phone (para uno) | all (para todos). Se requiere uno de los dos.',
+        body: `# Resetear uno por teléfono:
+{ "phone": "573001234567" }
+
+# Resetear todos los del mes actual:
+{ "all": true }`,
+        example: `curl -X POST "${API_BASE}/api/n8n/reset-reminders" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: TU_API_KEY_N8N" \\
+  -d '{ "all": true }'`,
+      },
+      {
+        method: 'POST',
+        path: '/api/n8n/promotions/send',
+        description: 'Lista de clientes activos para enviar promociones (imagenes/textos) por WhatsApp',
+        auth: 'apiKey',
+        params: 'message (caption o texto), media (URL o base64, opcional), mediatype (default image)',
+        body: `{
+  "message": "🔥 Promoción de noviembre",
+  "media": "https://ejemplo.com/promo.jpg",
+  "mediatype": "image"
+}`,
+        example: `curl -X POST "${API_BASE}/api/n8n/promotions/send" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: TU_API_KEY_N8N" \\
+  -d '{
+    "message": "🔥 Promoción de noviembre",
+    "media": "https://ejemplo.com/promo.jpg"
+  }'`,
+      },
+      {
+        method: 'POST',
+        path: '/api/n8n/avisos/send',
+        description: 'Lista filtrada de destinatarios para avisos masivos (emergencias, mantenimiento, suspensiones)',
+        auth: 'apiKey',
+        params: 'message (requerido), ponId (opcional), planId (opcional), installationDateFrom / installationDateTo (opcionales)',
+        body: `{
+  "message": "⚠️ Mantenimiento programado",
+  "ponId": "0/0/1",
+  "planId": 2
+}`,
+        example: `curl -X POST "${API_BASE}/api/n8n/avisos/send" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: TU_API_KEY_N8N" \\
+  -d '{
+    "message": "⚠️ Mantenimiento programado",
+    "ponId": "0/0/1"
   }'`,
       },
     ],

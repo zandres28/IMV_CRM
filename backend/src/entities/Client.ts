@@ -62,6 +62,19 @@ export class Client {
     @Column({ type: 'enum', enum: ['activo', 'suspendido', 'retirado', 'inactivo', 'pendiente_instalacion'], default: 'activo' })
     status: string;
 
+    // IPTV - Xtream UI fields
+    @Column({ type: 'varchar', length: 80, nullable: true })
+    iptvUsername?: string | null;
+
+    @Column({ type: 'varchar', length: 80, nullable: true })
+    iptvPassword?: string | null;
+
+    @Column({ type: 'enum', enum: ['activo', 'suspendido', 'no_creado'], default: 'no_creado' })
+    iptvStatus?: string;
+
+    @Column({ type: 'datetime', nullable: true })
+    iptvExpDate?: Date | null;
+
     @Column({ type: 'date', nullable: true, transformer: dateOnlyTransformer })
     retirementDate?: Date | null;
 

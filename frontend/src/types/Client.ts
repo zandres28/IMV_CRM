@@ -23,4 +23,10 @@ export interface Client {
     requestedPlanMonthlyFee?: number | null;
     requestedInstallationFee?: number | null;
     sucursal?: string | null;
+
+    // IPTV fields
+    iptvUsername?: string | null;
+    iptvPassword?: string | null;
+    iptvStatus?: 'activo' | 'suspendido' | 'no_creado';
+    iptvExpDate?: string | null;
 }

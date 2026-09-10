@@ -53,10 +53,10 @@ export class ProductController {
             // Crear las cuotas
             const baseDate = this.parseLocalDate(saleDate)!;
             const installmentPromises = Array.from({ length: installments }, (_, index) => {
-                // Nueva regla: Cuota 1 vence el 5 del mes siguiente a la venta.
-                // Cuota 2 vence el 5 del mes subsiguiente, etc.
-                // Ej: Venta Enero. Cuota 1 vence 05 Feb. Cuota 2 vence 05 Mar.
-                const dueDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1 + index, 5);
+                // Regla: Cuota 1 vence el 10 del mes siguiente a la venta.
+                // Cuota 2 vence el 10 del mes subsiguiente, etc.
+                // Ej: Venta Enero. Cuota 1 vence 10 Feb. Cuota 2 vence 10 Mar.
+                const dueDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1 + index, 10);
                 
                 return this.installmentRepository.create({
                     product,
@@ -114,7 +114,8 @@ export class ProductController {
             }
 
             for (let i = 0; i < need; i++) {
-                current.setMonth(current.getMonth() + 1);
+                // Normalizar vencimiento al día 10 del mes siguiente al último creado
+                current = new Date(current.getFullYear(), current.getMonth() + 1, 10);
                 const inst = this.installmentRepository.create({
                     product,
                     installmentNumber: existing.length + i + 1,
@@ -160,7 +161,8 @@ export class ProductController {
                     current = this.parseLocalDate(lastDue)!;
                 }
                 for (let i = 0; i < need; i++) {
-                    current.setMonth(current.getMonth() + 1);
+                    // Normalizar vencimiento al día 10 del mes siguiente al último creado
+                    current = new Date(current.getFullYear(), current.getMonth() + 1, 10);
                     const inst = this.installmentRepository.create({
                         product,
                         installmentNumber: existing.length + i + 1,
@@ -241,8 +243,8 @@ export class ProductController {
                         status: 'pendiente'
                     });
 
-                    // Crear nuevas cuotas
-                    const currentDate = this.parseLocalDate(saleDate || (product.saleDate as unknown as string))!;
+                    // Crear nuevas cuotas con vencimiento el día 10 (misma regla que createProduct)
+                    const base = this.parseLocalDate(saleDate || (product.saleDate as unknown as string))!;
                     const newInstallments = Array.from({ length: installments }, (_, index) => {
                         const existingInstallment = product.installmentPayments.find(
                             ip => ip.installmentNumber === index + 1
@@ -252,12 +254,12 @@ export class ProductController {
                             return existingInstallment;
                         }
 
-                        currentDate.setMonth(currentDate.getMonth() + 1);
+                        const dueDate = new Date(base.getFullYear(), base.getMonth() + 1 + index, 10);
                         return this.installmentRepository.create({
                             product,
                             installmentNumber: index + 1,
                             amount: installmentAmount,
-                            dueDate: new Date(currentDate),
+                            dueDate,
                             status: 'pendiente'
                         });
                     });

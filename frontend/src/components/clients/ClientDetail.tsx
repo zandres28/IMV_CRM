@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip, Alert } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Box, Paper, Typography, Tab, Tabs, Chip, Grid, Button, IconButton, Tooltip, Alert, Drawer } from '@mui/material';
 import { ClientForm } from './ClientForm';
 import { ClientRetirementDialog } from './ClientRetirementDialog';
+import { ClientServicesOverview } from './ClientServicesOverview';
 import { ServicesList } from '../services/ServicesList';
 import { ProductsList } from '../services/ProductsList';
 import { InstallationsList } from '../installations/InstallationsList';
@@ -16,7 +16,11 @@ import { AdditionalServiceService } from '../../services/AdditionalServiceServic
 import { ProductService } from '../../services/ProductService';
 import { Payment } from '../../services/MonthlyBillingService';
 import AuthService from '../../services/AuthService';
-import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, PowerSettingsNew as PowerIcon, RestartAlt as RestartIcon } from '@mui/icons-material';
+import { LocationOn as LocationIcon, Speed as SpeedIcon, ArrowBack as ArrowBackIcon, PowerSettingsNew as PowerIcon, RestartAlt as RestartIcon, Close as CloseIcon } from '@mui/icons-material';
+import { AdditionalServiceForm } from '../services/AdditionalServiceForm';
+import { InstallationForm } from '../installations/InstallationForm';
+import { ProductForm } from '../services/ProductForm';
+import { EditProductDialog } from '../services/EditProductDialog';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -45,21 +49,21 @@ const getTabIndexFromParam = (tabParam: string | null, isTechnician: boolean): n
     const normalized = tabParam.toLowerCase();
     const technicianMapping: Record<string, number> = {
         instalaciones: 0,
-        servicios: 1,
-        productos: 2,
-        crm: 3,
-        historial: 3,
-        interacciones: 3
+        servicios: 0,
+        productos: 0,
+        crm: 1,
+        historial: 1,
+        interacciones: 1
     };
     const defaultMapping: Record<string, number> = {
         general: 0,
         servicios: 1,
-        productos: 2,
-        instalaciones: 3,
-        pagos: 4,
-        crm: 5,
-        historial: 5,
-        interacciones: 5
+        productos: 1,
+        instalaciones: 1,
+        pagos: 1,
+        crm: 2,
+        historial: 2,
+        interacciones: 2
     };
 
     const mapping = isTechnician ? technicianMapping : defaultMapping;
@@ -93,12 +97,19 @@ export const ClientDetail: React.FC = () => {
     const focusInteractionId = parsedInteractionId !== undefined && !Number.isNaN(parsedInteractionId)
         ? parsedInteractionId
         : undefined;
-    const crmTabIndex = isTechnician ? 3 : 5;
+    const crmTabIndex = isTechnician ? 1 : 2;
 
-    // Estado para confirmación de eliminación
-    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-    const [paymentToDelete, setPaymentToDelete] = useState<number | null>(null);
     const [loadingAction, setLoadingAction] = useState(false);
+
+    // Estado para Drawer de vista detallada
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerType, setDrawerType] = useState<'installation' | 'service' | 'product'>('installation');
+    const [drawerItem, setDrawerItem] = useState<Installation | AdditionalService | ProductSold | null>(null);
+
+    // Estado para forms de edición a nivel raíz (sin nested dialogs)
+    const [editFormOpen, setEditFormOpen] = useState(false);
+    const [editFormType, setEditFormType] = useState<'installation' | 'service' | 'product' | 'product-edit'>('installation');
+    const [editFormItem, setEditFormItem] = useState<Installation | AdditionalService | ProductSold | null>(null);
 
     const loadClient = useCallback(async () => {
         try {
@@ -208,42 +219,6 @@ export const ClientDetail: React.FC = () => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(numericValue);
     };
 
-    const allPayments = React.useMemo(() => {
-        const regularPayments = payments.map(p => ({
-            id: `payment-${p.id}`,
-            dueDate: p.dueDate,
-            monthYear: `${p.paymentMonth} ${p.paymentYear}`,
-            type: p.paymentType === 'monthly' ? 'Mensualidad' : 
-                  p.paymentType === 'installation' ? 'Instalación' : 'Otro',
-            amount: p.amount,
-            status: p.status,
-            paymentDate: p.paymentDate,
-            method: p.paymentMethod,
-            isProduct: false
-        }));
-
-        const productInstallments = products.flatMap(product => 
-            (product.installmentPayments || []).map(inst => ({
-                id: `installment-${inst.id}`,
-                dueDate: inst.dueDate,
-                monthYear: `Cuota ${inst.installmentNumber}`,
-                type: `Producto: ${product.productName}`,
-                amount: inst.amount,
-                status: inst.status === 'completado' ? 'pagado' : inst.status,
-                paymentDate: inst.paymentDate,
-                method: '-',
-                isProduct: true
-            }))
-        );
-
-        const combined = [...regularPayments, ...productInstallments].sort((a, b) => 
-            new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()
-        );
-        
-        console.log('Pagos combinados y ordenados:', combined);
-        return combined;
-    }, [payments, products]);
-
     const getStatusColor = (status: string) => {
         const statusMap: Record<string, 'success' | 'warning' | 'error' | 'default' | 'info'> = {
             activo: 'success',
@@ -266,27 +241,101 @@ export const ClientDetail: React.FC = () => {
         return statusMap[status] || status;
     };
 
-    const handleDeleteClick = (paymentIdRaw: string) => {
-        // El ID viene como "payment-123", extraemos el numero
-        if (paymentIdRaw.startsWith('payment-')) {
-            const id = parseInt(paymentIdRaw.replace('payment-', ''));
-            setPaymentToDelete(id);
-            setOpenDeleteDialog(true);
+    // --- Handlers para ClientServicesOverview ---
+    const handleViewInstallation = (inst: Installation) => {
+        setDrawerItem(inst);
+        setDrawerType('installation');
+        setDrawerOpen(true);
+    };
+
+    const handleEditInstallation = (inst: Installation) => {
+        setEditFormItem(inst);
+        setEditFormType('installation');
+        setEditFormOpen(true);
+    };
+
+    const handleViewService = (svc: AdditionalService) => {
+        setDrawerItem(svc);
+        setDrawerType('service');
+        setDrawerOpen(true);
+    };
+
+    const handleEditService = (svc: AdditionalService) => {
+        setEditFormItem(svc);
+        setEditFormType('service');
+        setEditFormOpen(true);
+    };
+
+    const handleViewProduct = (prod: ProductSold) => {
+        setDrawerItem(prod);
+        setDrawerType('product');
+        setDrawerOpen(true);
+    };
+
+    const handleEditProduct = (prod: ProductSold) => {
+        setEditFormItem(prod);
+        setEditFormType('product-edit');
+        setEditFormOpen(true);
+    };
+
+    const handleToggleOltFromOverview = async (inst: Installation) => {
+        if (!activeInstallation) return;
+        const currentStatus = inst.serviceStatus;
+        const newStatus = currentStatus === 'activo' ? 'suspendido' : 'activo';
+        const actionText = newStatus === 'activo' ? 'ACTIVAR' : 'SUSPENDER';
+        if (!window.confirm(`¿Seguro que deseas ${actionText} el servicio de este cliente? Esto ejecutará la orden en la OLT.`)) return;
+        setLoadingAction(true);
+        try {
+            await InstallationService.toggleOltService(inst.id, newStatus === 'activo' ? 'enable' : 'disable');
+            await loadInstallations();
+            await loadClient();
+            alert(newStatus === 'activo' ? 'ONU activada correctamente.' : 'ONU deshabilitada correctamente.');
+        } catch (error) {
+            console.error(error);
+            alert(`Error al intentar ${newStatus === 'activo' ? 'activar' : 'suspender'} la ONU.`);
+        } finally {
+            setLoadingAction(false);
         }
     };
 
-    const handleConfirmDelete = async () => {
-        if (paymentToDelete) {
-            try {
-                await ClientService.deletePayment(paymentToDelete);
-                setOpenDeleteDialog(false);
-                setPaymentToDelete(null);
-                loadPayments(); // Recargar lista
-            } catch (error) {
-                console.error("Error eliminando pago", error);
-                alert("Error eliminando el pago");
-            }
+    const handleRebootOnuFromOverview = async (inst: Installation) => {
+        if (!window.confirm('¿Reiniciar ONU del cliente? Esto interrumpirá el servicio momentáneamente.')) return;
+        setLoadingAction(true);
+        try {
+            await InstallationService.rebootOnu(inst.id);
+            alert('Comando enviado a la OLT con éxito.');
+        } catch (error) {
+            console.error(error);
+            alert('Error al reiniciar la ONU. Verifique conexión.');
+        } finally {
+            setLoadingAction(false);
         }
+    };
+
+    const handleAddInstallation = () => {
+        setEditFormItem(null);
+        setEditFormType('installation');
+        setEditFormOpen(true);
+    };
+
+    const handleAddService = () => {
+        setEditFormItem(null);
+        setEditFormType('service');
+        setEditFormOpen(true);
+    };
+
+    const handleAddProduct = () => {
+        setEditFormItem(null);
+        setEditFormType('product');
+        setEditFormOpen(true);
+    };
+
+    const handleFormSave = () => {
+        setEditFormOpen(false);
+        loadInstallations();
+        loadAdditionalServices();
+        loadProducts();
+        loadClient();
     };
 
     if (!client) {
@@ -576,18 +625,13 @@ export const ClientDetail: React.FC = () => {
                 >
                     {AuthService.hasRole('tecnico') ? (
                         [
-                            <Tab key="tech-inst" label="Instalaciones" />,
-                            <Tab key="tech-serv" label="Servicios Adicionales" />,
-                            <Tab key="tech-prod" label="Productos" />,
+                            <Tab key="tech-serv" label="Servicios" />,
                             <Tab key="tech-hist" label="Historial CRM" />
                         ]
                     ) : (
                         [
                             <Tab key="gen" label="Información General" />,
-                            <Tab key="serv" label="Servicios Adicionales" />,
-                            <Tab key="prod" label="Productos" />,
-                            <Tab key="inst" label="Instalaciones" />,
-                            <Tab key="pagos" label="Pagos" />,
+                            <Tab key="serv" label="Servicios" />,
                             <Tab key="hist" label="Historial CRM" />
                         ]
                     )}
@@ -597,19 +641,32 @@ export const ClientDetail: React.FC = () => {
             {AuthService.hasRole('tecnico') ? (
                 <>
                     <Box hidden={tabValue !== 0} role="tabpanel">
-                        {tabValue === 0 && <InstallationsList clientId={client.id} client={client} />}
+                        {tabValue === 0 && (
+                            <Box sx={{ p: 3 }}>
+                                <ClientServicesOverview
+                                    client={client}
+                                    installations={installations}
+                                    additionalServices={additionalServices}
+                                    products={products}
+                                    payments={payments}
+                                    onViewInstallation={handleViewInstallation}
+                                    onEditInstallation={handleEditInstallation}
+                                    onViewService={handleViewService}
+                                    onEditService={handleEditService}
+                                    onViewProduct={handleViewProduct}
+                                    onEditProduct={handleEditProduct}
+                                    onToggleOltService={handleToggleOltFromOverview}
+                                    onRebootOnu={handleRebootOnuFromOverview}
+                                    onAddInstallation={handleAddInstallation}
+                                    onAddService={handleAddService}
+                                    onAddProduct={handleAddProduct}
+                                />
+                            </Box>
+                        )}
                     </Box>
 
                     <Box hidden={tabValue !== 1} role="tabpanel">
-                        {tabValue === 1 && <ServicesList clientId={client.id} />}
-                    </Box>
-
-                    <Box hidden={tabValue !== 2} role="tabpanel">
-                        {tabValue === 2 && <ProductsList clientId={client.id} />}
-                    </Box>
-
-                    <Box hidden={tabValue !== 3} role="tabpanel">
-                        {tabValue === 3 && (
+                        {tabValue === 1 && (
                             <ClientInteractionHistory
                                 clientId={client.id}
                                 focusInteractionId={focusInteractionId}
@@ -624,74 +681,27 @@ export const ClientDetail: React.FC = () => {
                     </TabPanel>
 
                     <TabPanel value={tabValue} index={1}>
-                        <ServicesList clientId={client.id} />
+                        <ClientServicesOverview
+                            client={client}
+                            installations={installations}
+                            additionalServices={additionalServices}
+                            products={products}
+                            payments={payments}
+                            onViewInstallation={handleViewInstallation}
+                            onEditInstallation={handleEditInstallation}
+                            onViewService={handleViewService}
+                            onEditService={handleEditService}
+                            onViewProduct={handleViewProduct}
+                            onEditProduct={handleEditProduct}
+                            onToggleOltService={handleToggleOltFromOverview}
+                            onRebootOnu={handleRebootOnuFromOverview}
+                            onAddInstallation={handleAddInstallation}
+                            onAddService={handleAddService}
+                            onAddProduct={handleAddProduct}
+                        />
                     </TabPanel>
 
                     <TabPanel value={tabValue} index={2}>
-                        <ProductsList clientId={client.id} />
-                    </TabPanel>
-
-                    <TabPanel value={tabValue} index={3}>
-                        <InstallationsList clientId={client.id} client={client} onChange={() => { loadInstallations(); loadClient(); }} />
-                    </TabPanel>
-
-                    <TabPanel value={tabValue} index={4}>
-                        <TableContainer component={Paper}>
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                                        <TableCell>Fecha Vencimiento</TableCell>
-                                        <TableCell>Mes/Año / Detalle</TableCell>
-                                        <TableCell>Tipo</TableCell>
-                                        <TableCell>Monto</TableCell>
-                                        <TableCell>Estado</TableCell>
-                                        <TableCell>Fecha Pago</TableCell>
-                                        <TableCell>Método</TableCell>
-                                        <TableCell>Acciones</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {allPayments.map((payment) => (
-                                        <TableRow key={payment.id}>
-                                            <TableCell>{new Date(payment.dueDate).toLocaleDateString()}</TableCell>
-                                            <TableCell>{payment.monthYear}</TableCell>
-                                            <TableCell>{payment.type}</TableCell>
-                                            <TableCell>
-                                                {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(payment.amount)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip 
-                                                    label={payment.status === 'pagado' ? 'Pagado' : 
-                                                           payment.status === 'pendiente' ? 'Pendiente' : 
-                                                           payment.status === 'vencido' ? 'Vencido' : 'Anulado'}
-                                                    color={payment.status === 'pagado' ? 'success' : 
-                                                           payment.status === 'pendiente' ? 'warning' : 
-                                                           payment.status === 'vencido' ? 'error' : 'default'}
-                                                    size="small"
-                                                />
-                                            </TableCell>
-                                            <TableCell>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : '-'}</TableCell>
-                                            <TableCell>{payment.method || '-'}</TableCell>
-                                            <TableCell>
-                                                {!payment.isProduct && (
-                                                    <IconButton size="small" color="error" onClick={() => handleDeleteClick(payment.id)}>
-                                                        <DeleteIcon />
-                                                    </IconButton>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {allPayments.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={8} align="center">No hay pagos registrados</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </TabPanel>
-
-                    <TabPanel value={tabValue} index={5}>
                         <ClientInteractionHistory
                             clientId={client.id}
                             focusInteractionId={focusInteractionId}
@@ -700,32 +710,80 @@ export const ClientDetail: React.FC = () => {
                 </>
             )}
             
-            <Dialog
-                open={openDeleteDialog}
-                onClose={() => setOpenDeleteDialog(false)}
-            >
-                <DialogTitle>Confirmar eliminación</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        ¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpenDeleteDialog(false)} color="primary">
-                        Cancelar
-                    </Button>
-                    <Button onClick={handleConfirmDelete} color="error" autoFocus>
-                        Eliminar
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
             <ClientRetirementDialog
                 open={openRetireDialog}
                 onClose={() => setOpenRetireDialog(false)}
                 client={client}
                 onSuccess={() => { setOpenRetireDialog(false); loadClient(); }}
             />
+
+            {/* Drawer para vista detallada */}
+            <Drawer
+                anchor="right"
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                PaperProps={{ sx: { width: { xs: '100%', sm: 500 }, p: 0 } }}
+            >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderBottom: '1px solid #E2E6F0' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        {drawerType === 'installation' ? 'Instalación' : drawerType === 'service' ? 'Servicio Adicional' : 'Producto'}
+                    </Typography>
+                    <IconButton onClick={() => setDrawerOpen(false)} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
+                <Box sx={{ overflow: 'auto', height: 'calc(100% - 64px)' }}>
+                    {drawerType === 'installation' && (
+                        <InstallationsList clientId={client.id} client={client} onChange={() => { loadInstallations(); loadClient(); }} />
+                    )}
+                    {drawerType === 'service' && (
+                        <ServicesList clientId={client.id} />
+                    )}
+                    {drawerType === 'product' && (
+                        <ProductsList clientId={client.id} />
+                    )}
+                </Box>
+            </Drawer>
+
+            {/* Forms de edición a nivel raíz (sin nested dialogs) */}
+            {editFormType === 'installation' && (
+                <InstallationForm
+                    open={editFormOpen}
+                    onClose={() => setEditFormOpen(false)}
+                    onSave={handleFormSave}
+                    installation={editFormItem as Installation | undefined}
+                    clientId={client.id}
+                />
+            )}
+            {editFormType === 'service' && (
+                <AdditionalServiceForm
+                    open={editFormOpen}
+                    onClose={() => setEditFormOpen(false)}
+                    clientId={client.id}
+                    service={editFormItem as AdditionalService | undefined}
+                    onSave={handleFormSave}
+                />
+            )}
+            {editFormType === 'product' && (
+                <ProductForm
+                    open={editFormOpen}
+                    onClose={() => setEditFormOpen(false)}
+                    clientId={client.id}
+                    onSave={handleFormSave}
+                />
+            )}
+            {editFormType === 'product-edit' && (
+                <EditProductDialog
+                    open={editFormOpen}
+                    onClose={() => setEditFormOpen(false)}
+                    product={editFormItem as ProductSold | null}
+                    onSave={(productId, data) => {
+                        ProductService.updateProduct(productId, data).then(() => {
+                            handleFormSave();
+                        });
+                    }}
+                />
+            )}
 
         </Box>
     );

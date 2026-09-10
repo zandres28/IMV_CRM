@@ -10,5 +10,7 @@ router.use(apiKeyMiddleware);
 router.post("/reboot/:installationId", OltController.rebootOnu);
 router.post("/service/:installationId", OltController.toggleService); // Body: { action: 'enable' | 'disable' }
 router.get("/status/:installationId", OltController.getStatus);
+router.post("/sync-service-status", OltController.syncServiceStatus);
+router.post("/restore-client/:clientId", OltController.restoreClientService);
 
 export default router;

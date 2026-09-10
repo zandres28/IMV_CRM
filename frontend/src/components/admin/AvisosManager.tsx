@@ -38,7 +38,7 @@ import { ServicePlanService, ServicePlan } from '../../services/ServicePlanServi
 // ────────────────────────────────────────────────────────────────────────────
 // Tipos de filtro de destinatarios
 // ────────────────────────────────────────────────────────────────────────────
-type FilterMode = 'all' | 'pon' | 'date' | 'plan';
+type FilterMode = 'all' | 'pon' | 'date' | 'plan' | 'active' | 'debt';
 
 const N8N_WEBHOOK_URL = process.env.REACT_APP_N8N_NOTIFICATIONS_WEBHOOK || '';
 
@@ -166,6 +166,11 @@ export const AvisosManager: React.FC = () => {
 
     const buildFilters = (): AvisoFilters => {
         const f: AvisoFilters = {};
+        if (filterMode === 'active') f.clientStatus = ['activo'];
+        if (filterMode === 'debt') {
+            f.clientStatus = ['activo', 'suspendido', 'inactivo', 'pendiente_instalacion'];
+            f.paymentStatus = ['pendiente', 'vencido'];
+        }
         if (filterMode === 'pon' && filterPon.trim()) f.ponId = filterPon.trim();
         if (filterMode === 'plan' && filterPlanId) f.planId = filterPlanId as number;
         if (filterMode === 'date') {
@@ -430,6 +435,8 @@ export const AvisosManager: React.FC = () => {
                                 sx={{ flexWrap: 'wrap', gap: 0.5 }}
                             >
                                 <ToggleButton value="all">Todos</ToggleButton>
+                                <ToggleButton value="active">Solo activos</ToggleButton>
+                                <ToggleButton value="debt">Pendientes de pago</ToggleButton>
                                 <ToggleButton value="pon">Por PON ID</ToggleButton>
                                 <ToggleButton value="date">Por fecha instalación</ToggleButton>
                                 <ToggleButton value="plan">Por plan</ToggleButton>

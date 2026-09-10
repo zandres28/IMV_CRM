@@ -37,9 +37,12 @@ import avisoRoutes from "./routes/avisos";
 import promotionRoutes from "./routes/promotions";
 import mikrotikRoutes from "./routes/mikrotik";
 import networkDeviceRoutes from "./routes/network-devices";
+import iptvRoutes from "./routes/iptv";
+import netflixAccountRoutes from "./routes/netflix-accounts";
 import { startOltDisconnectScheduler } from "./services/OltSchedulerService";
 import { startOltHealthMonitor } from "./services/OltHealthMonitorService";
 import { startOltBackupScheduler } from "./services/OltBackupService";
+import { startOltStatusSync } from "./services/OltStatusSyncService";
 import path from "path";
 
 // Middleware
@@ -143,6 +146,8 @@ app.use("/api/promotions", authMiddleware, promotionRoutes);
 app.use("/api/avisos", authMiddleware, avisoRoutes);
 app.use("/api/mikrotik", authMiddleware, mikrotikRoutes);
 app.use("/api/network-devices", authMiddleware, networkDeviceRoutes);
+app.use("/api/iptv", authMiddleware, iptvRoutes);
+app.use("/api/netflix-accounts", authMiddleware, netflixAccountRoutes);
 app.use("/api/service-plans", authMiddleware, servicePlanRoutes);
 app.use("/api/technicians", authMiddleware, technicianRoutes);
 app.use("/api/monthly-billing", authMiddleware, monthlyBillingRoutes);
@@ -169,6 +174,13 @@ AppDataSource.initialize().then(() => {
 
     // Backup diario de config OLT
     startOltBackupScheduler();
+
+    // DESACTIVADO (2026-09-10): el sync automático OLT→CRM cada 5 min
+    // sobrecargaba la OLT (perdía acceso SSH/web). La suspensión/reactivación
+    // se maneja ahora a demanda: endpoints /api/olt/sync-service-status y
+    // /api/olt/restore-client/:clientId, y la reactivación automática tras
+    // registrar un pago en MonthlyBillingController/N8nIntegrationController.
+    // startOltStatusSync();
 
     app.listen(PORT, () => {
         console.log(`Servidor corriendo en el puerto ${PORT}`);

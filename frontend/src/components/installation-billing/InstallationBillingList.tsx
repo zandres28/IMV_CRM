@@ -506,11 +506,7 @@ const InstallationBillingList: React.FC = () => {
                 >
                     <MenuItem value=""><em>Seleccione...</em></MenuItem>
                   <MenuItem value="efectivo">Efectivo</MenuItem>
-                  <MenuItem value="transferencia">Transferencia</MenuItem>
-                  <MenuItem value="nequi">Nequi</MenuItem>
-                  <MenuItem value="daviplata">Daviplata</MenuItem>
                   <MenuItem value="bancolombia">Bancolombia</MenuItem>
-                  <MenuItem value="otro">Otro</MenuItem>
                 </Select>
               </FormControl>
 
@@ -554,11 +550,7 @@ const InstallationBillingList: React.FC = () => {
                   onChange={(e) => setPaymentData({ ...paymentData, paymentMethod: e.target.value })}
                 >
                   <MenuItem value="efectivo">Efectivo</MenuItem>
-                  <MenuItem value="transferencia">Transferencia</MenuItem>
-                  <MenuItem value="nequi">Nequi</MenuItem>
-                  <MenuItem value="daviplata">Daviplata</MenuItem>
                   <MenuItem value="bancolombia">Bancolombia</MenuItem>
-                  <MenuItem value="otro">Otro</MenuItem>
                 </Select>
               </FormControl>
               <TextField
