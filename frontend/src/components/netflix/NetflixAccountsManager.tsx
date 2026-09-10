@@ -7,6 +7,7 @@ import {
     Chip,
     CircularProgress,
     Container,
+    Divider,
     Dialog,
     DialogActions,
     DialogContent,
@@ -18,6 +19,7 @@ import {
     TextField,
     Typography,
     Stack,
+    Tooltip,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -27,6 +29,7 @@ import {
     Lock as LockIcon,
     PersonAdd as PersonAddIcon,
     Close as CloseIcon,
+    ContentCopy as ContentCopyIcon,
 } from '@mui/icons-material';
 import { NetflixAccountService } from '../../services/NetflixAccountService';
 import { ClientService } from '../../services/ClientService';
@@ -170,7 +173,7 @@ export const NetflixAccountsManager: React.FC = () => {
 
     const openAssign = (slot: NetflixSlot) => {
         clearBanners();
-        setAssignDialog({ slot, clientId: null, profileName: '', pin: '' });
+        setAssignDialog({ slot, clientId: null, profileName: slot.profileName, pin: slot.pin });
     };
 
     const openEditSlot = (slot: NetflixSlot) => {
@@ -186,7 +189,12 @@ export const NetflixAccountsManager: React.FC = () => {
         }
         setSaving(true);
         try {
-            await NetflixAccountService.assignSlot(assignDialog.slot.id, assignDialog.clientId, assignDialog.pin.trim() || undefined);
+            await NetflixAccountService.assignSlot(
+                assignDialog.slot.id,
+                assignDialog.clientId,
+                assignDialog.pin.trim() || undefined,
+                assignDialog.profileName.trim() || undefined
+            );
             setSuccess('Perfil asignado');
             setAssignDialog(null);
             await loadAccounts();
@@ -232,6 +240,33 @@ export const NetflixAccountsManager: React.FC = () => {
     const totalFree = accounts.reduce((acc, a) => acc + a.freeSlots, 0);
     const totalOccupied = accounts.reduce((acc, a) => acc + a.occupiedSlots, 0);
 
+    const copyPin = async (pin: string) => {
+        try {
+            await navigator.clipboard.writeText(pin);
+        } catch {
+            /* clipboard no disponible */
+        }
+    };
+
+    const MetaRow = ({ label, value }: { label: string; value: string }) => (
+        <Box sx={{ display: 'flex', gap: 1, py: 0.25 }}>
+            <Typography
+                sx={{
+                    flex: '0 0 86px',
+                    fontSize: '0.62rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: tokens.muted,
+                    pt: 0.3,
+                }}
+            >
+                {label}
+            </Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: tokens.inkSoft, minWidth: 0 }}>{value}</Typography>
+        </Box>
+    );
+
     const renderSlotRow = (slot: NetflixSlot) => (
         <Box
             key={slot.id}
@@ -239,80 +274,101 @@ export const NetflixAccountsManager: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1.5,
-                py: 1,
+                py: 1.25,
                 px: 1.5,
                 borderRadius: 2,
+                flexWrap: 'wrap',
                 border: `1px solid ${slot.free ? tokens.border : 'rgba(0,212,166,0.25)'}`,
                 backgroundColor: slot.free ? tokens.sunken : 'rgba(0,212,166,0.06)',
+                transition: 'border-color 150ms ease, background-color 150ms ease',
+                '&:hover': {
+                    borderColor: slot.free ? 'rgba(45,91,255,0.35)' : 'rgba(0,212,166,0.45)',
+                },
             }}
         >
-            <Typography sx={{ fontWeight: 700, color: tokens.muted, fontSize: '0.75rem', minWidth: 22 }}>
+            <Typography sx={{ fontWeight: 700, color: tokens.muted, fontSize: '0.72rem', minWidth: 24, fontFamily: 'JetBrains Mono, monospace' }}>
                 #{slot.slotIndex}
             </Typography>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', color: tokens.ink }}>
+                <Typography
+                    sx={{ fontWeight: 600, fontSize: '0.83rem', color: tokens.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    title={slot.profileName}
+                >
                     {slot.profileName || `Perfil ${slot.slotIndex}`}
                 </Typography>
-                <Stack direction="row" spacing={0.5} alignItems="center">
+                <Stack direction="row" spacing={0.5} alignItems="center" component="button"
+                    onClick={() => copyPin(slot.pin)}
+                    aria-label={`Copiar PIN ${slot.pin}`}
+                    sx={{ p: 0, m: 0, background: 'none', border: 'none', cursor: 'pointer', mt: 0.25, alignItems: 'center' }}>
                     <LockIcon sx={{ fontSize: 12, color: tokens.muted }} />
-                    <Typography sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: tokens.inkSoft }}>
+                    <Typography sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: tokens.inkSoft, letterSpacing: '0.06em' }}>
                         {slot.pin}
                     </Typography>
+                    <ContentCopyIcon sx={{ fontSize: 11, color: tokens.muted, opacity: 0.65 }} />
                 </Stack>
             </Box>
             {slot.free ? (
-                <Button size="small" variant="contained" startIcon={<PersonAddIcon />} onClick={() => openAssign(slot)}>
+                <Button size="small" variant="contained" startIcon={<PersonAddIcon />} onClick={() => openAssign(slot)} sx={{ ml: 'auto' }}>
                     Asignar
                 </Button>
             ) : (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Chip
-                        size="small"
-                        label={slot.client?.fullName || 'Asignado'}
-                        sx={{
-                            backgroundColor: 'rgba(0,212,166,0.12)',
-                            color: '#009F80',
-                            fontWeight: 600,
-                            fontSize: '0.72rem',
-                            maxWidth: 180,
-                        }}
-                    />
-                    <IconButton size="small" onClick={() => handleRelease(slot)} color="error">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto', minWidth: 0 }}>
+                    <Tooltip title={slot.client?.fullName || 'Asignado'}>
+                        <Chip
+                            size="small"
+                            label={slot.client?.fullName || 'Asignado'}
+                            sx={{
+                                backgroundColor: 'rgba(0,212,166,0.12)',
+                                color: '#009F80',
+                                fontWeight: 600,
+                                fontSize: '0.72rem',
+                                maxWidth: { xs: 140, sm: 180 },
+                                '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
+                            }}
+                        />
+                    </Tooltip>
+                    <IconButton size="small" onClick={() => handleRelease(slot)} color="error" aria-label={`Liberar perfil ${slot.profileName}`}>
                         <CloseIcon fontSize="small" />
                     </IconButton>
                 </Box>
             )}
-            <IconButton size="small" onClick={() => openEditSlot(slot)}>
+            <IconButton size="small" onClick={() => openEditSlot(slot)} aria-label={`Editar perfil ${slot.profileName}`}>
                 <EditIcon fontSize="small" />
             </IconButton>
         </Box>
     );
 
     return (
-        <Container maxWidth="lg" sx={{ px: 3, py: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 }, py: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'flex-start' }, gap: 2, mb: 2.5 }}>
+                <Box sx={{ minWidth: 0 }}>
                     <Typography
                         sx={{
                             fontFamily: 'Bricolage Grotesque, sans-serif',
                             fontWeight: 700,
                             letterSpacing: '-0.02em',
-                            fontSize: '1.4rem',
+                            fontSize: 'clamp(1.35rem, 2.5vw, 1.65rem)',
+                            lineHeight: 1.2,
                             color: tokens.ink,
                         }}
                     >
                         Cuentas Netflix
                     </Typography>
-                    <Typography sx={{ color: tokens.muted, fontSize: '0.85rem' }}>
-                        Administra perfiles generosamente compartidos entre clientes del CRM.
+                    <Typography sx={{ color: tokens.muted, fontSize: '0.85rem', mt: 0.25 }}>
+                        Administra perfiles compartidos entre clientes del CRM.
                     </Typography>
                 </Box>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
+                <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={openCreate}
+                    sx={{ alignSelf: { xs: 'stretch', sm: 'auto' }, whiteSpace: 'nowrap' }}
+                >
                     Nueva Cuenta
                 </Button>
             </Box>
 
-            <Stack direction="row" spacing={1.5} sx={{ mb: 3 }}>
+            <Stack direction="row" sx={{ mb: 3, gap: 1, flexWrap: 'wrap' }}>
                 <Chip
                     icon={<LiveTvIcon />}
                     label={`${accounts.length} cuenta${accounts.length === 1 ? '' : 's'}`}
@@ -359,33 +415,46 @@ export const NetflixAccountsManager: React.FC = () => {
                                 sx={{
                                     p: 2.5,
                                     height: '100%',
-                                    border: `1px solid ${account.full ? 'rgba(229,72,77,0.3)' : tokens.border}`,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    border: `1px solid ${account.full ? 'rgba(229,72,77,0.35)' : tokens.border}`,
+                                    transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
+                                    '&:hover': {
+                                        borderColor: 'rgba(45,91,255,0.35)',
+                                        boxShadow: '0 1px 0 rgba(14,19,48,0.06), 0 16px 32px -18px rgba(14,19,48,0.28)',
+                                    },
                                 }}
                             >
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                                    <Box sx={{ minWidth: 0 }}>
-                                        <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.ink }} noWrap>
-                                            {account.email}
-                                        </Typography>
-                                        <Typography sx={{ fontSize: '0.75rem', color: tokens.muted }}>
-                                            {account.occupiedSlots} de {account.maxSlots} perfiles ocupados
-                                            {account.paymentMethod ? ` · ${account.paymentMethod}` : ''}
-                                            {account.notes ? ` · ${account.notes}` : ''}
-                                        </Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1.5 }}>
+                                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                                        <Tooltip title={account.email}>
+                                            <Typography
+                                                sx={{ fontWeight: 700, fontSize: '0.92rem', color: tokens.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                            >
+                                                {account.email}
+                                            </Typography>
+                                        </Tooltip>
+                                        <Box sx={{ mt: 1 }}>
+                                            <MetaRow label="Perfiles" value={`${account.occupiedSlots} de ${account.maxSlots} ocupados`} />
+                                            {account.paymentMethod ? <MetaRow label="Pago" value={account.paymentMethod} /> : null}
+                                            {account.notes ? <MetaRow label="Notas" value={account.notes} /> : null}
+                                        </Box>
                                     </Box>
-                                    <Stack direction="row" spacing={0.5}>
-                                        <IconButton size="small" onClick={() => openEdit(account)}>
+                                    <Stack direction="row" spacing={0.25}>
+                                        <IconButton size="small" onClick={() => openEdit(account)} aria-label={`Editar cuenta ${account.email}`}>
                                             <EditIcon fontSize="small" />
                                         </IconButton>
-                                        <IconButton size="small" color="error" onClick={() => setDeleteTarget(account)}>
+                                        <IconButton size="small" color="error" onClick={() => setDeleteTarget(account)} aria-label={`Eliminar cuenta ${account.email}`}>
                                             <DeleteIcon fontSize="small" />
                                         </IconButton>
                                     </Stack>
                                 </Box>
+                                <Divider sx={{ my: 1.5 }} />
                                 <Chip
                                     size="small"
                                     label={account.full ? 'Completa' : `${account.freeSlots} libre${account.freeSlots === 1 ? '' : 's'}`}
                                     sx={{
+                                        alignSelf: 'flex-start',
                                         mb: 2,
                                         backgroundColor: account.full ? 'rgba(229,72,77,0.10)' : 'rgba(0,212,166,0.12)',
                                         color: account.full ? tokens.danger : '#009F80',
@@ -401,12 +470,13 @@ export const NetflixAccountsManager: React.FC = () => {
             )}
 
             {/* ── Diálogo crear / editar cuenta ── */}
-            <Dialog open={accountOpen} onClose={() => setAccountOpen(false)} maxWidth="xs" fullWidth>
+            <Dialog open={accountOpen} onClose={() => setAccountOpen(false)} maxWidth="xs" fullWidth scroll="paper">
                 <DialogTitle sx={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 700 }}>
                     {editingAccount ? 'Editar cuenta' : 'Nueva cuenta de Netflix'}
                 </DialogTitle>
-                <DialogContent>
+                <DialogContent sx={{ overflowY: 'auto' }}>
                     <Stack spacing={2} sx={{ mt: 1 }}>
+                        <Divider />
                         <TextField
                             label="Email de la cuenta"
                             value={formEmail}
@@ -456,13 +526,13 @@ export const NetflixAccountsManager: React.FC = () => {
             </Dialog>
 
             {/* ── Diálogo asignar ── */}
-            <Dialog open={!!assignDialog} onClose={() => setAssignDialog(null)} maxWidth="xs" fullWidth>
+            <Dialog open={!!assignDialog} onClose={() => setAssignDialog(null)} maxWidth="xs" fullWidth scroll="paper">
                 {assignDialog && (
                     <>
                         <DialogTitle sx={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 700 }}>
                             Asignar perfil #{assignDialog.slot.slotIndex}
                         </DialogTitle>
-                        <DialogContent>
+                        <DialogContent sx={{ overflowY: 'auto' }}>
                             <Stack spacing={2} sx={{ mt: 1 }}>
                                 <Autocomplete
                                     options={clients}
@@ -478,7 +548,7 @@ export const NetflixAccountsManager: React.FC = () => {
                                     size="small"
                                 />
                                 <TextField
-                                    label="PIN de 4 dígitos (opcional)"
+                                    label="PIN de 4 dígitos"
                                     value={assignDialog.pin}
                                     onChange={(e) =>
                                         setAssignDialog((s) =>
@@ -488,7 +558,7 @@ export const NetflixAccountsManager: React.FC = () => {
                                     inputProps={{ maxLength: 4 }}
                                     fullWidth
                                     size="small"
-                                    placeholder="Se genera automáticamente si se deja vacío"
+                                    helperText="Ya trae el PIN actual del perfil; cámbialo solo si es necesario."
                                 />
                             </Stack>
                         </DialogContent>
@@ -503,13 +573,13 @@ export const NetflixAccountsManager: React.FC = () => {
             </Dialog>
 
             {/* ── Diálogo editar slot ── */}
-            <Dialog open={!!editSlotDialog} onClose={() => setEditSlotDialog(null)} maxWidth="xs" fullWidth>
+            <Dialog open={!!editSlotDialog} onClose={() => setEditSlotDialog(null)} maxWidth="xs" fullWidth scroll="paper">
                 {editSlotDialog && (
                     <>
                         <DialogTitle sx={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 700 }}>
                             Editar perfil #{editSlotDialog.slot.slotIndex}
                         </DialogTitle>
-                        <DialogContent>
+                        <DialogContent sx={{ overflowY: 'auto' }}>
                             <Stack spacing={2} sx={{ mt: 1 }}>
                                 <TextField
                                     label="Nombre del perfil"
@@ -543,9 +613,9 @@ export const NetflixAccountsManager: React.FC = () => {
             </Dialog>
 
             {/* ── Confirmación de borrado ── */}
-            <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
+            <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth scroll="paper">
                 <DialogTitle sx={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 700 }}>Eliminar cuenta</DialogTitle>
-                <DialogContent>
+                <DialogContent sx={{ overflowY: 'auto' }}>
                     <Typography sx={{ color: tokens.inkSoft, fontSize: '0.85rem' }}>
                         ¿Eliminar la cuenta <b>{deleteTarget?.email}</b>? También se liberarán sus{' '}
                         {deleteTarget?.occupiedSlots} perfiles ocupados.
