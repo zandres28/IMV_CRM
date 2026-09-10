@@ -37,6 +37,7 @@ import {
     ListItem,
     ListItemText,
     ListItemIcon,
+    FormControlLabel,
     useMediaQuery,
     useTheme
 } from '@mui/material';
@@ -50,7 +51,9 @@ import {
     ExpandMore as ExpandMoreIcon,
     NotificationsActive as ReminderOnIcon,
     NotificationsOff as ReminderOffIcon,
-    CalendarMonth as CalendarMonthIcon
+    CalendarMonth as CalendarMonthIcon,
+    Block as BlockIcon,
+    DeleteForever as DeleteIcon
 } from '@mui/icons-material';
 import MonthlyBillingService, { Payment, BillingStats } from '../../services/MonthlyBillingService';
 
@@ -152,6 +155,7 @@ const MonthlyBilling: React.FC = () => {
     const [paymentDate, setPaymentDate] = useState(toInputDateString(new Date()));
     const [paymentNotes, setPaymentNotes] = useState('');
     const [extraInstallmentIds, setExtraInstallmentIds] = useState<number[]>([]);
+    const [includeMonthInstallments, setIncludeMonthInstallments] = useState(true);
 
     // Dialog para detalle
     const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -247,6 +251,7 @@ const MonthlyBilling: React.FC = () => {
             setPaymentDate(toInputDateString(new Date()));
             setPaymentNotes('');
             setExtraInstallmentIds([]);
+            setIncludeMonthInstallments(true);
             setPaymentDialogOpen(true);
         } catch (error) {
             console.error('Error cargando detalle para pago:', error);
@@ -267,15 +272,21 @@ const MonthlyBilling: React.FC = () => {
             const extraAmount = selectedPayment.client?.productsSold?.flatMap(p => p.installmentPayments || [])
                 .filter(i => extraInstallmentIds.includes(i.id))
                 .reduce((sum, i) => sum + Number(i.amount), 0) || 0;
-            
-            const totalAmount = Number(selectedPayment.amount) + extraAmount;
+
+            // Si no se incluyen las cuotas del mes, el total parte del servicio + adicionales (sin cuotas)
+            const baseAmount = includeMonthInstallments
+                ? Number(selectedPayment.amount)
+                : Number(selectedPayment.amount) - Number(selectedPayment.productInstallmentsAmount || 0);
+
+            const totalAmount = baseAmount + extraAmount;
 
             await MonthlyBillingService.registerPayment(selectedPayment.id, {
                 paymentDate,
                 paymentMethod,
                 amount: totalAmount,
                 notes: paymentNotes,
-                extraInstallmentIds
+                extraInstallmentIds,
+                includeMonthInstallments
             });
             alert('Pago registrado exitosamente');
             setPaymentDialogOpen(false);
@@ -283,6 +294,32 @@ const MonthlyBilling: React.FC = () => {
         } catch (error) {
             console.error('Error registrando pago:', error);
             alert('Error registrando pago');
+        }
+    };
+
+    const handleAnularPayment = async (payment: Payment) => {
+        if (!window.confirm(`¿Anular el pago de ${payment.client?.fullName} por ${formatCurrency(payment.amount)} (${payment.paymentMonth} ${payment.paymentYear})? El cobro volverá a pendiente.`)) return;
+        try {
+            await MonthlyBillingService.updatePaymentStatus(payment.id, 'anulado');
+            alert('Pago anulado correctamente');
+            setDetailDialogOpen(false);
+            loadBillingData();
+        } catch (error) {
+            console.error('Error anulando pago:', error);
+            alert('Error anulando pago');
+        }
+    };
+
+    const handleDeletePayment = async (payment: Payment) => {
+        if (!window.confirm(`¿ELIMINAR definitivamente el pago de ${payment.client?.fullName} por ${formatCurrency(payment.amount)} (${payment.paymentMonth} ${payment.paymentYear})? Esta acción no se puede deshacer.`)) return;
+        try {
+            await MonthlyBillingService.deletePayment(payment.id);
+            alert('Pago eliminado');
+            setDetailDialogOpen(false);
+            loadBillingData();
+        } catch (error) {
+            console.error('Error eliminando pago:', error);
+            alert('Error eliminando pago');
         }
     };
 
@@ -441,8 +478,8 @@ const MonthlyBilling: React.FC = () => {
                                 </Typography>
                             </Box>
                             <Chip 
-                                label={payment.status === 'pagado' ? 'Pagado' : (payment.status === 'vencido' ? 'Vencido' : 'Pendiente')} 
-                                color={payment.status === 'pagado' ? 'success' : (payment.status === 'vencido' ? 'error' : 'warning')} 
+                                label={payment.status === 'pagado' ? 'Pagado' : (payment.status === 'vencido' ? 'Vencido' : (payment.status === 'anulado' ? 'Anulado' : 'Pendiente'))} 
+                                color={payment.status === 'pagado' ? 'success' : (payment.status === 'vencido' ? 'error' : (payment.status === 'anulado' ? 'default' : 'warning'))} 
                                 size="small" 
                             />
                         </Box>
@@ -502,6 +539,17 @@ const MonthlyBilling: React.FC = () => {
                             >
                                 Pagar
                             </Button>
+                        )}
+                        {payment.status === 'pagado' && (
+                            <Tooltip title="Anular pago">
+                                <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={(e) => { e.stopPropagation(); handleAnularPayment(payment); }}
+                                >
+                                    <BlockIcon />
+                                </IconButton>
+                            </Tooltip>
                         )}
                     </Box>
                 </Card>
@@ -1132,6 +1180,17 @@ const MonthlyBilling: React.FC = () => {
                                             </IconButton>
                                         </Tooltip>
                                     )}
+                                    {payment.status === 'pagado' && (
+                                        <Tooltip title="Anular pago">
+                                            <IconButton
+                                                size="small"
+                                                color="error"
+                                                onClick={() => handleAnularPayment(payment)}
+                                            >
+                                                <BlockIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
                                     {payment.client && (
                                     <Tooltip title={payment.reminderSent ? "Deshabilitar envío (Ya enviado)" : "Habilitar envío (No enviado)"}>
                                         <IconButton
@@ -1260,11 +1319,7 @@ const MonthlyBilling: React.FC = () => {
                                 onChange={(e) => setBulkPaymentMethod(e.target.value)}
                             >
                                 <MenuItem value="efectivo">Efectivo</MenuItem>
-                                <MenuItem value="nequi">Nequi</MenuItem>
                                 <MenuItem value="bancolombia">Bancolombia</MenuItem>
-                                <MenuItem value="daviplata">Daviplata</MenuItem>
-                                <MenuItem value="transferencia">Transferencia</MenuItem>
-                                <MenuItem value="otro">Otro</MenuItem>
                             </Select>
                         </FormControl>
 
@@ -1384,7 +1439,12 @@ const MonthlyBilling: React.FC = () => {
                                     </Typography>
                                 )}
                                 <Typography variant="h6" sx={{ mt: 1 }}>
-                                    <strong>Total a Pagar:</strong> {formatCurrency(Number(selectedPayment.amount) + extraAmount)}
+                                    <strong>Total a Pagar:</strong> {formatCurrency(
+                                        (includeMonthInstallments
+                                            ? Number(selectedPayment.amount)
+                                            : Number(selectedPayment.amount) - Number(selectedPayment.productInstallmentsAmount || 0))
+                                        + extraAmount
+                                    )}
                                 </Typography>
                             </Alert>
 
@@ -1398,9 +1458,22 @@ const MonthlyBilling: React.FC = () => {
                                     {/* Cuotas incluidas en el cobro base */}
                                     {includedInstallments.length > 0 && (
                                         <Box sx={{ mb: 1, border: '1px solid #1976d2', borderRadius: 1, p: 1, bgcolor: '#e3f2fd' }}>
-                                            <Typography variant="caption" sx={{ color: '#1565c0', fontWeight: 700, display: 'block', mb: 0.5 }}>
-                                                ✓ Incluidas en este cobro (se marcarán como pagadas)
-                                            </Typography>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        size="small"
+                                                        checked={includeMonthInstallments}
+                                                        onChange={(e) => setIncludeMonthInstallments(e.target.checked)}
+                                                    />
+                                                }
+                                                label={
+                                                    <Typography variant="caption" sx={{ color: '#1565c0', fontWeight: 700 }}>
+                                                        {includeMonthInstallments
+                                                            ? '✓ Incluidas en este cobro (se marcarán como pagadas)'
+                                                            : 'Cuotas del mes excluidas (quedarán pendientes)'}
+                                                    </Typography>
+                                                }
+                                            />
                                             <List dense>
                                                 {includedInstallments.map(inst => (
                                                     <ListItem key={inst.id} disablePadding sx={{ py: 0.25 }}>
@@ -1512,11 +1585,7 @@ const MonthlyBilling: React.FC = () => {
                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                 >
                                     <MenuItem value="efectivo">Efectivo</MenuItem>
-                                    <MenuItem value="nequi">Nequi</MenuItem>
                                     <MenuItem value="bancolombia">Bancolombia</MenuItem>
-                                    <MenuItem value="daviplata">Daviplata</MenuItem>
-                                    <MenuItem value="transferencia">Transferencia</MenuItem>
-                                    <MenuItem value="otro">Otro</MenuItem>
                                 </Select>
                             </FormControl>
 
@@ -1684,6 +1753,12 @@ const MonthlyBilling: React.FC = () => {
                     )}
                 </DialogContent>
                 <DialogActions>
+                    {selectedPayment?.status === 'pagado' && (
+                        <>
+                            <Button color="warning" startIcon={<BlockIcon />} onClick={() => handleAnularPayment(selectedPayment)}>Anular pago</Button>
+                            <Button color="error" startIcon={<DeleteIcon />} onClick={() => handleDeletePayment(selectedPayment)}>Eliminar</Button>
+                        </>
+                    )}
                     <Button onClick={() => setDetailDialogOpen(false)}>Cerrar</Button>
                 </DialogActions>
             </Dialog>

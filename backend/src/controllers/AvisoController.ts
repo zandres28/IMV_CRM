@@ -86,14 +86,16 @@ export class AvisoController {
     // Retorna count + primeros 5 nombres para confirmación
     static async preview(req: Request, res: Response) {
         try {
-            const { ponId, planId, installationDateFrom, installationDateTo } = req.body as {
+            const { ponId, planId, installationDateFrom, installationDateTo, clientStatus, paymentStatus } = req.body as {
                 ponId?: string;
                 planId?: number;
                 installationDateFrom?: string;
                 installationDateTo?: string;
+                clientStatus?: string[];
+                paymentStatus?: string[];
             };
 
-            const recipients = await AvisoController._buildRecipients({ ponId, planId, installationDateFrom, installationDateTo });
+            const recipients = await AvisoController._buildRecipients({ ponId, planId, installationDateFrom, installationDateTo, clientStatus, paymentStatus });
 
             return res.json({
                 count: recipients.length,
@@ -111,6 +113,8 @@ export class AvisoController {
         planId?: number;
         installationDateFrom?: string;
         installationDateTo?: string;
+        clientStatus?: string[];
+        paymentStatus?: string[];
     }) {
         const installationRepo = AppDataSource.getRepository(Installation);
 
@@ -119,8 +123,26 @@ export class AvisoController {
             .innerJoinAndSelect('inst.client', 'client')
             .leftJoinAndSelect('inst.servicePlan', 'plan')
             .where('inst.isActive = :isActive', { isActive: true })
-            .andWhere('inst.isDeleted = :isDeleted', { isDeleted: false })
-            .andWhere('client.status = :status', { status: 'activo' });
+            .andWhere('inst.isDeleted = :isDeleted', { isDeleted: false });
+
+        // Filtro por estado del cliente (por defecto solo activos, o los estados indicados)
+        const statuses = filters.clientStatus && filters.clientStatus.length
+            ? filters.clientStatus
+            : ['activo'];
+        qb = qb.andWhere('client.status IN (:...statuses)', { statuses });
+
+        // Filtro por estado de pago: incluye solo clientes con al menos una factura en esos estados
+        if (filters.paymentStatus && filters.paymentStatus.length) {
+            qb = qb.andWhere(qb => {
+                const subQb = qb.subQuery()
+                    .select('payment.clientId')
+                    .from('payments', 'payment')
+                    .where('payment.clientId = client.id')
+                    .andWhere('payment.status IN (:...paymentStatuses)')
+                    .getQuery();
+                return `EXISTS (${subQb})`;
+            }).setParameter('paymentStatuses', filters.paymentStatus);
+        }
 
         if (filters.ponId && filters.ponId.trim() !== '') {
             qb = qb.andWhere('inst.ponId = :ponId', { ponId: filters.ponId.trim() });

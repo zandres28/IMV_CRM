@@ -128,6 +128,7 @@ const MonthlyBillingService = {
         amount?: number;
         notes?: string;
         extraInstallmentIds?: number[];
+        includeMonthInstallments?: boolean;
     }) => {
         const response = await axios.put(`${API_URL}/${id}/pay`, data);
         return response.data;
@@ -136,6 +137,12 @@ const MonthlyBillingService = {
     // Actualizar estado de un pago
     updatePaymentStatus: async (id: number, status: string, notes?: string) => {
         const response = await axios.put(`${API_URL}/${id}/status`, { status, notes });
+        return response.data;
+    },
+
+    // Eliminar un pago
+    deletePayment: async (id: number) => {
+        const response = await axios.delete(`${API_URL}/${id}`);
         return response.data;
     },
 

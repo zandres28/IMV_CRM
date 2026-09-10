@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AppDataSource } from "../config/database";
 import { Installation } from "../entities/Installation";
 import { OltService } from "../services/OltService";
+import { syncSuspendedInstallations, restoreServiceForClient } from "../services/OltStatusSyncService";
 
 // Helper para buscar instalación por ID o Serial Number
 const findInstallation = async (identifier: string) => {
@@ -85,6 +86,7 @@ export const OltController = {
                 }
                 messageAction = 'activado';
                 installation.serviceStatus = 'activo';
+                installation.suspendedAt = null;
                 await AppDataSource.getRepository(Installation).save(installation);
             } else if (action === 'disable') {
                 const onu = await oltService.getOnuByPonPort(installation.ponId, parseInt(installation.onuId));
@@ -95,6 +97,7 @@ export const OltController = {
                 }
                 messageAction = 'cortado';
                 installation.serviceStatus = 'suspendido';
+                installation.suspendedAt = new Date();
                 await AppDataSource.getRepository(Installation).save(installation);
             } else if (action === 'reboot' || action === 'restart') {
                 await oltService.rebootOnu(installation.ponId, installation.onuId);
@@ -175,6 +178,46 @@ export const OltController = {
         } catch (error: any) {
             console.error("Error obteniendo estado de ONU:", error);
             return res.status(500).json({ message: "Error al consultar estado de ONU", error: error.message });
+        }
+    },
+
+    /**
+     * Sincroniza el estado de servicio desde la OLT al CRM: marca como
+     * suspendidas las instalaciones activas cuyo ONU está desactivado
+     * (ControlFlag=0). POST /api/olt/sync-service-status
+     */
+    syncServiceStatus: async (_req: Request, res: Response) => {
+        try {
+            const result = await syncSuspendedInstallations();
+            return res.json({
+                message: `Sync completado: ${result.suspended} instalación(es) suspendida(s) de ${result.checked} revisadas`,
+                ...result
+            });
+        } catch (error: any) {
+            console.error("Error en sync de estado OLT:", error);
+            return res.status(500).json({ message: "Error sincronizando estado OLT", error: error.message });
+        }
+    },
+
+    /**
+     * Reactiva en la OLT y en el CRM todas las instalaciones suspendidas de
+     * un cliente (tras registrar un pago). POST /api/olt/restore-client/:clientId
+     */
+    restoreClientService: async (req: Request, res: Response) => {
+        try {
+            const { clientId } = req.params;
+            if (!clientId || isNaN(Number(clientId))) {
+                return res.status(400).json({ message: "clientId inválido" });
+            }
+
+            const result = await restoreServiceForClient(parseInt(clientId, 10));
+            return res.json({
+                message: `Instalaciones reactivadas: ${result.reactivated}`,
+                ...result
+            });
+        } catch (error: any) {
+            console.error("Error reactivando servicio de cliente:", error);
+            return res.status(500).json({ message: "Error reactivando servicio", error: error.message });
         }
     }
 };

@@ -9,6 +9,7 @@ import { Interaction } from '../entities/Interaction';
 import { SystemSetting } from '../entities/SystemSetting';
 import { InteractionType } from '../entities/InteractionType';
 import { In, Between, Like } from 'typeorm';
+import { restoreServiceForClient } from '../services/OltStatusSyncService';
 
 // Helper: Formatear teléfono para WhatsApp (Evolution API requiere código país 57)
 export const formatPhoneForWhatsapp = (phone: string | null | undefined): string => {
@@ -27,7 +28,7 @@ export const N8nIntegrationController = {
     getPaymentReminders: async (req: Request, res: Response) => {
         try {
             // Obtener filtros de query params
-            const { paymentStatus, clientStatus, reminderType, sentFilter } = req.query;
+            const { paymentStatus, clientStatus, reminderType, sentFilter, reminderMode, incluirRetirados } = req.query;
             
             const clientRepository = AppDataSource.getRepository(Client);
             const paymentRepository = AppDataSource.getRepository(Payment);
@@ -106,8 +107,11 @@ export const N8nIntegrationController = {
                 select: ['clientId']
             });
 
-            // Mapa de clientes que ya recibieron recordatorio en el mes consultado
-            const sentClientIds = new Set(sentReminders.map(i => i.clientId));
+            // Mapa de clientes con conteo de veces que recibieron recordatorio en el mes consultado
+            const sentCountMap = new Map<number, number>();
+            sentReminders.forEach(i => {
+                sentCountMap.set(i.clientId, (sentCountMap.get(i.clientId) || 0) + 1);
+            });
 
             // --- OPTIMIZACIÓN DE CONSULTAS (BULK FETCH) ---
             // Traer todos los datos relacionados en 3 consultas masivas en lugar de N consultas por cliente
@@ -164,10 +168,10 @@ export const N8nIntegrationController = {
 
             const reminders = [];
 
-            // Calcular fecha límite (5 del mes siguiente al consultado)
-            const deadlineDate = new Date(queryYear, safeMonthIndex + 1, 5);
+            // Calcular fecha límite (10 del mes siguiente al consultado)
+            const deadlineDate = new Date(queryYear, safeMonthIndex + 1, 10);
             const deadlineMonthName = deadlineDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
-            const formattedDeadline = `05 de ${deadlineMonthName}`;
+            const formattedDeadline = `10 de ${deadlineMonthName}`;
 
             // Obtener configuración de días de recordatorio
             const systemSettingRepository = AppDataSource.getRepository(SystemSetting);
@@ -280,6 +284,8 @@ export const N8nIntegrationController = {
                 const planDetails = [...new Set(activeInstallations.map(inst => inst.servicePlan?.name || inst.serviceType).filter(Boolean))].join(', ');
                 const outageDiscountValue = payment ? Number(payment.outageDiscountAmount || 0) : 0;
 
+                const vecesEnviado = sentCountMap.get(client.id) || 0;
+
                 const reminderData = {
                     'ID Cliente': `CL-${String(client.id).padStart(4, '0')}`,
                     'Nombre Completo': client.fullName,
@@ -295,13 +301,137 @@ export const N8nIntegrationController = {
                     'DETALLE_ADICIONAL': [additionalDetails, productDetails].filter(d => d && d !== '').join(', ') || 'Ninguno',
                     'CUOTA': cuota,
                     'TIPO': tipo,
-                    'ENVIADO': sentClientIds.has(client.id) ? 'YES' : 'NO',
-                    'estado_pago': payment?.status || 'pendiente',
+                    'ENVIADO': vecesEnviado > 0 ? 'YES' : 'NO',
+                    'vecesEnviado': vecesEnviado,
+                    'clienteStatus': client.status,
+                    'estado_pago': payment?.status ?? null,
                     'installation_id': primaryInstallation?.id || null,
                     'installation_ids': activeInstallations.map(inst => inst.id)
                 };
 
                 reminders.push(reminderData);
+            }
+
+            // === INCLUIR CLIENTES RETIRADOS CON DEUDA PENDIENTE ===
+            if (incluirRetirados === 'true') {
+                const retiredClients = await clientRepository
+                    .createQueryBuilder('client')
+                    .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted', { isDeleted: false })
+                    .leftJoinAndSelect('installation.servicePlan', 'servicePlan')
+                    .where('client.status = :status', { status: 'retirado' })
+                    .getMany();
+
+                if (retiredClients.length > 0) {
+                    const retiredIds = retiredClients.map(c => c.id);
+
+                    // Fetch ALL pending payments for retired clients (any month)
+                    const retiredPayments = await paymentRepository.find({
+                        where: { client: { id: In(retiredIds) }, status: In(['pendiente', 'vencido']) },
+                        order: { paymentYear: 'DESC', paymentMonth: 'DESC' as any },
+                        relations: ['client']
+                    });
+
+                    // Group by client, keep newest payment per client
+                    const newestPaymentPerClient = new Map<number, Payment>();
+                    for (const p of retiredPayments) {
+                        if (!newestPaymentPerClient.has(p.client.id)) {
+                            newestPaymentPerClient.set(p.client.id, p);
+                        }
+                    }
+
+                    if (newestPaymentPerClient.size > 0) {
+                        // Fetch interactions for each unique month/year among retired payments
+                        const retiredSentCounts = new Map<number, number>();
+                        const monthYearGroups = new Map<string, number[]>();
+                        for (const [cid, payment] of newestPaymentPerClient) {
+                            const key = `${String(payment.paymentYear)}-${payment.paymentMonth}`;
+                            if (!monthYearGroups.has(key)) monthYearGroups.set(key, []);
+                            monthYearGroups.get(key)!.push(cid);
+                        }
+                        for (const [key, cids] of monthYearGroups) {
+                            const [py, pm] = key.split('-');
+                            const mi = monthNames.indexOf(pm.toUpperCase());
+                            if (mi === -1) continue;
+                            const y = parseInt(py, 10);
+                            const start = new Date(y, mi, 1);
+                            const end = new Date(y, mi + 1, 0);
+                            end.setHours(23, 59, 59, 999);
+                            const pSent = await interactionRepository.find({
+                                where: {
+                                    clientId: In(cids),
+                                    subject: Like('Recordatorio WhatsApp Autom%'),
+                                    created_at: Between(start, end)
+                                },
+                                select: ['clientId']
+                            });
+                            pSent.forEach(r => {
+                                retiredSentCounts.set(r.clientId, (retiredSentCounts.get(r.clientId) || 0) + 1);
+                            });
+                        }
+
+                        for (const client of retiredClients) {
+                            const pendingPayment = newestPaymentPerClient.get(client.id);
+                            if (!pendingPayment) continue;
+
+                            const pMonth = pendingPayment.paymentMonth.toUpperCase();
+                            const pYear = pendingPayment.paymentYear;
+                            const pMonthIndex = monthNames.indexOf(pMonth);
+                            const safePMonthIndex = pMonthIndex !== -1 ? pMonthIndex : 0;
+
+                            // Calculate deadline (10th of next month after the payment's month)
+                            const pDeadlineDate = new Date(pYear, safePMonthIndex + 1, 10);
+                            const pDeadlineMonth = pDeadlineDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
+                            const pFormattedDeadline = `10 de ${pDeadlineMonth}`;
+
+                            // Calculate days overdue
+                            let pDias = 0;
+                            let pTipo = 'RECORDATORIO';
+                            const pPaymentStatus = pendingPayment.status as string;
+                            if (pPaymentStatus === 'pagado') {
+                                pTipo = 'PAGADO';
+                            } else if (pendingPayment.dueDate) {
+                                const pDueDate = new Date(pendingPayment.dueDate);
+                                const diffTime = currentDate.getTime() - pDueDate.getTime();
+                                pDias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                if (pDias < vencidoMin) {
+                                    pTipo = 'PROXIMO';
+                                } else if (pDias <= vencidoMax) {
+                                    pTipo = 'VENCIDO';
+                                } else {
+                                    pTipo = 'ULTIMO';
+                                }
+                            }
+
+                            const inactiveInstallations = client.installations?.filter(inst => !inst.isDeleted) || [];
+                            const primaryInstallation = inactiveInstallations[0];
+                            const planDetails = [...new Set(inactiveInstallations.map(inst => inst.servicePlan?.name || inst.serviceType).filter(Boolean))].join(', ');
+                            const pVecesEnviado = retiredSentCounts.get(client.id) || 0;
+
+                            reminders.push({
+                                'ID Cliente': `CL-${String(client.id).padStart(4, '0')}`,
+                                'Nombre Completo': client.fullName,
+                                'Celular 1': formatPhoneForWhatsapp(client.primaryPhone),
+                                'Celular 2': formatPhoneForWhatsapp(client.secondaryPhone) || '',
+                                'PLAN': planDetails || 'N/A',
+                                'MES': pMonth,
+                                'FECHA_LIMITE': pFormattedDeadline,
+                                'DIAS': pDias,
+                                'VALOR': Number(pendingPayment.servicePlanAmount || 0),
+                                'DESCUENTO': Number(pendingPayment.outageDiscountAmount || 0),
+                                'ADICIONAL': Number(pendingPayment.additionalServicesAmount || 0) + Number(pendingPayment.productInstallmentsAmount || 0) + Number(pendingPayment.productFutureInstallmentsAmount || 0),
+                                'DETALLE_ADICIONAL': 'Ninguno',
+                                'CUOTA': '',
+                                'TIPO': pTipo,
+                                'ENVIADO': pVecesEnviado > 0 ? 'YES' : 'NO',
+                                'vecesEnviado': pVecesEnviado,
+                                'clienteStatus': 'retirado',
+                                'estado_pago': pPaymentStatus,
+                                'installation_id': primaryInstallation?.id || null,
+                                'installation_ids': inactiveInstallations.map(inst => inst.id)
+                            });
+                        }
+                    }
+                }
             }
 
             // --- FILTER LOGIC (IN-MEMORY) ---
@@ -311,7 +441,7 @@ export const N8nIntegrationController = {
 
             let filteredReminders = reminders;
 
-            if (sentFilter) {
+            if (sentFilter && reminderMode !== 'all') {
                 const sFilter = String(sentFilter).toUpperCase();
                 if (sFilter === 'FALSE' || sFilter === 'NO') {
                     filteredReminders = filteredReminders.filter(r => r.ENVIADO === 'NO');
@@ -548,25 +678,27 @@ export const N8nIntegrationController = {
 
     // Endpoint para enviar avisos masivos (emergencias, mantenimiento, suspensiones, etc.) vía n8n
     // Requiere header x-api-key igual a process.env.N8N_API_KEY
-    // Body: { message, ponId?, planId?, installationDateFrom?, installationDateTo? }
+    // Body: { message, ponId?, planId?, installationDateFrom?, installationDateTo?, clientStatus?, paymentStatus? }
     // Devuelve array de destinatarios listos para iterar en n8n → Evolution API (sendText)
     sendAviso: async (req: Request, res: Response) => {
         try {
             const { AvisoController } = await import('./AvisoController');
 
-            const { message, ponId, planId, installationDateFrom, installationDateTo } = req.body as {
+            const { message, ponId, planId, installationDateFrom, installationDateTo, clientStatus, paymentStatus } = req.body as {
                 message?: string;
                 ponId?: string;
                 planId?: number;
                 installationDateFrom?: string;
                 installationDateTo?: string;
+                clientStatus?: string[];
+                paymentStatus?: string[];
             };
 
             if (!message || message.trim() === '') {
                 return res.status(400).json({ message: 'El campo message es requerido' });
             }
 
-            const recipients = await AvisoController._buildRecipients({ ponId, planId, installationDateFrom, installationDateTo });
+            const recipients = await AvisoController._buildRecipients({ ponId, planId, installationDateFrom, installationDateTo, clientStatus, paymentStatus });
 
             // Transformar al formato que espera n8n para enviar via Evolution API
             const payload = recipients.map(r => ({
@@ -627,6 +759,41 @@ export const N8nIntegrationController = {
         }
     },
 
+    // Verificación en vivo de si un cliente sigue debiendo un mes/año específico (previene envíos a quien ya pagó durante la campaña)
+    checkPaymentStatus: async (req: Request, res: Response) => {
+        try {
+            const { clientId, month, year } = req.query;
+
+            if (!clientId || !month || !year) {
+                return res.status(400).json({ message: 'clientId, month y year son requeridos' });
+            }
+
+            const paymentRepository = AppDataSource.getRepository(Payment);
+
+            const payment = await paymentRepository.findOne({
+                where: {
+                    client: { id: Number(clientId) },
+                    paymentMonth: String(month).toLowerCase(),
+                    paymentYear: Number(year)
+                }
+            });
+
+            const status = payment?.status ?? null;
+            const pending = status === 'pendiente' || status === 'vencido';
+
+            return res.json({
+                clientId: Number(clientId),
+                month: String(month).toLowerCase(),
+                year: Number(year),
+                status,
+                pending
+            });
+        } catch (error) {
+            console.error('Error checking payment status:', error);
+            return res.status(500).json({ message: 'Internal server error' });
+        }
+    },
+
     getClientDebt: async (req: Request, res: Response) => {
         try {
             const { phone } = req.query;
@@ -661,15 +828,42 @@ export const N8nIntegrationController = {
 
             const totalDebt = pendingPayments.reduce((sum, p) => sum + Number(p.amount), 0);
 
+            // Factura más antigua (la que el cliente probablemente está pagando)
+            const oldestInvoice = pendingPayments.length > 0 ? pendingPayments[0] : null;
+            const oldestInvoiceAmount = oldestInvoice ? Number(oldestInvoice.amount) : 0;
+
+            // Desglose de deuda por categoría
+            const debtBreakdown = {
+                servicePlan: pendingPayments.reduce((sum, p) => sum + Number(p.servicePlanAmount || 0), 0),
+                additionalServices: pendingPayments.reduce((sum, p) => sum + Number(p.additionalServicesAmount || 0), 0),
+                productInstallments: pendingPayments.reduce((sum, p) => sum + Number(p.productInstallmentsAmount || 0), 0),
+                outageDiscounts: pendingPayments.reduce((sum, p) => sum + Number(p.outageDiscountAmount || 0), 0)
+            };
+
             return res.json({
                 clientId: client.id,
                 clientName: client.fullName,
                 totalDebt,
+                oldestInvoiceAmount,
+                oldestInvoice: oldestInvoice ? {
+                    id: oldestInvoice.id,
+                    month: oldestInvoice.paymentMonth,
+                    year: oldestInvoice.paymentYear,
+                    amount: Number(oldestInvoice.amount),
+                    servicePlanAmount: Number(oldestInvoice.servicePlanAmount || 0),
+                    additionalServicesAmount: Number(oldestInvoice.additionalServicesAmount || 0),
+                    productInstallmentsAmount: Number(oldestInvoice.productInstallmentsAmount || 0),
+                    dueDate: oldestInvoice.dueDate
+                } : null,
+                debtBreakdown,
                 pendingInvoices: pendingPayments.map(p => ({
                     id: p.id,
                     month: p.paymentMonth,
                     year: p.paymentYear,
-                    amount: Number(p.amount), // Asegurar númerico
+                    amount: Number(p.amount),
+                    servicePlanAmount: Number(p.servicePlanAmount || 0),
+                    additionalServicesAmount: Number(p.additionalServicesAmount || 0),
+                    productInstallmentsAmount: Number(p.productInstallmentsAmount || 0),
                     dueDate: p.dueDate
                 }))
             });
@@ -726,13 +920,35 @@ export const N8nIntegrationController = {
             // (Futura mejora: match exacto por monto)
             const targetPayment = pendingPayments[0];
 
-            // 3. Procesar el pago
+            // 3. Procesar el pago.
+            // externalId tiene constraint UNIQUE: si el reference ya quedó registrado
+            // en otro pago (mismo u otro cliente/mes, ej. referencias que se reutilizan),
+            // el save cae en ER_DUP_ENTRY (1062). En ese caso se genera un id único.
             targetPayment.status = 'pagado';
             targetPayment.paymentDate = date ? new Date(date) : new Date();
             targetPayment.paymentMethod = paymentMethod || 'whatsapp_integration';
-            targetPayment.externalId = reference || `WHATSAPP-${Date.now()}`;
-            
-            await paymentRepository.save(targetPayment);
+
+            try {
+                targetPayment.externalId = reference || `WHATSAPP-${Date.now()}`;
+                await paymentRepository.save(targetPayment);
+            } catch (saveError: any) {
+                if (saveError?.driverError?.errno === 1062 || saveError?.code === 'ER_DUP_ENTRY') {
+                    targetPayment.externalId = `WHATSAPP-${Date.now()}`;
+                    await paymentRepository.save(targetPayment);
+                } else {
+                    throw saveError;
+                }
+            }
+
+            // Si el cliente estaba suspendido por falta de pago, reactivarlo en la OLT
+            try {
+                const restored = await restoreServiceForClient(client.id);
+                if (restored.reactivated > 0) {
+                    console.log(`[N8n] Cliente ${client.id} reactivado en OLT (${restored.reactivated} instalación(es))`);
+                }
+            } catch (oltError: any) {
+                console.error('[N8n] Error reactivando servicio en OLT tras pago:', oltError.message);
+            }
 
             return res.json({
                 success: true,

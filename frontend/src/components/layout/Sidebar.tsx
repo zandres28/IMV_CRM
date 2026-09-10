@@ -58,6 +58,7 @@ const NAV: NavItem[] = [
       { kind: 'leaf', label: 'Instalaciones', to: '/installation-billing', icon: <DotIcon />, permission: 'installations.view' },
       { kind: 'leaf', label: 'Agenda', to: '/installations/agenda', icon: <DotIcon />, permission: 'installations.view' },
       { kind: 'leaf', label: 'Solicitudes CRM', to: '/interactions', icon: <DotIcon />, permission: 'clients.crm.view' },
+      { kind: 'leaf', label: 'Cuentas Netflix', to: '/netflix-accounts', icon: <DotIcon />, permission: 'clients.list.view' },
       { kind: 'leaf', label: 'Caídas de Servicio', to: '/service-outages', icon: <DotIcon />, permission: 'clients.outages.view' },
       { kind: 'leaf', label: 'Traslados', to: '/service-transfers', icon: <DotIcon /> },
       { kind: 'leaf', label: 'Facturación', to: '/billing', icon: <DotIcon />, permission: 'billing.view' },

@@ -347,7 +347,6 @@ export const GeneralDashboard: React.FC = () => {
             subtext={`Crec. Neto: ${stats.growth.netGrowth}`}
             icon={<PersonAdd fontSize="small" />}
             color={tokens.accent}
-            delta={stats.growth.growthRate}
             sparkline={growthHistoryData.map((g) => g.newClients)}
           />
         </Grid>
@@ -368,7 +367,6 @@ export const GeneralDashboard: React.FC = () => {
             value={`${stats.growth.growthRate}%`}
             icon={<TrendingUp fontSize="small" />}
             color={tokens.info}
-            delta={stats.growth.growthRate}
             sparkline={growthHistoryData.map((g) => g.netGrowth)}
           />
         </Grid>
@@ -390,7 +388,6 @@ export const GeneralDashboard: React.FC = () => {
             subtext={`Eficiencia: ${stats.collection.collectionEfficiency}%`}
             icon={<AccountBalanceWallet fontSize="small" />}
             color={tokens.accent}
-            delta={stats.collection.collectionEfficiency}
             sparkline={revenueHistoryData.map((r) => r.collected)}
           />
         </Grid>
@@ -493,6 +490,38 @@ export const GeneralDashboard: React.FC = () => {
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: tokens.ink, fontWeight: 'bold' }}>
+              Ingresos por Fuente (Mes)
+            </Typography>
+            <Stack spacing={1}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary">Plan (Servicio)</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {formatCurrency(stats.finance.revenueBySource.month.servicePlans)}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary">Servicios Adicionales</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {formatCurrency(stats.finance.revenueBySource.month.additionalServices)}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary">Productos / Cuotas</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {formatCurrency(stats.finance.revenueBySource.month.products)}
+                </Typography>
+              </Box>
+              <Box sx={{ borderTop: `1px solid ${tokens.border}`, pt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>Total Mes</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: tokens.brand }}>
+                  {formatCurrency(stats.finance.monthlyBilling)}
+                </Typography>
+              </Box>
+            </Stack>
           </Paper>
 
           <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>

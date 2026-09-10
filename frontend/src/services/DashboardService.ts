@@ -23,6 +23,18 @@ export interface DashboardStats {
         yearlyBilling: number;
         arpu: number;
         projectedRevenue: number;
+        revenueBySource: {
+            month: {
+                servicePlans: number;
+                additionalServices: number;
+                products: number;
+            };
+            year: {
+                servicePlans: number;
+                additionalServices: number;
+                products: number;
+            };
+        };
     };
     collection: {
         realCollection: number; // Recaudo real

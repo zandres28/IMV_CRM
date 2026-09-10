@@ -4,8 +4,11 @@ import { Client } from "../entities/Client";
 import { Payment } from "../entities/Payment";
 import { Installation } from "../entities/Installation";
 import { ServicePlan } from "../entities/ServicePlan";
+import { AdditionalService } from "../entities/AdditionalService";
 import { AuthRequest } from "../middlewares/auth.middleware";
-import { Between, LessThan, MoreThanOrEqual } from "typeorm";
+import { Between, LessThan, MoreThanOrEqual, Brackets } from "typeorm";
+
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const clientRepository = AppDataSource.getRepository(Client);
 const paymentRepository = AppDataSource.getRepository(Payment);
@@ -125,25 +128,70 @@ export const DashboardController = {
 
             // --- 3. FINANCIAL MODULE ---
 
+            // Regla de exclusión: los cobros NO pagados de clientes retirados no cuentan en la
+            // facturación ni en la cartera (un retirado solo cuenta si efectivamente pagó).
+            // Coherente con el filtro aplicado en /api/monthly-billing.
+            const retiredExclusion = (qb: any) => {
+                qb.where('client.status <> :retired', { retired: 'retirado' })
+                  .orWhere('payment.status = :paid', { paid: 'pagado' });
+            };
+
             // Monthly Billing (Facturación del mes - generated invoices/payments)
-            // Assuming we check payments due in this month
-            // or created in this month. For 'Facturación', it's usually payments where month/year matches
+            // paymentMonth se almacena como texto en español ("agosto"), no como número.
             const monthlyBillingRaw = await paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
                 .select("SUM(payment.amount)", "total")
-                .where("payment.paymentMonth = :month", { month: (currentMonth + 1).toString() }) 
+                .where("payment.paymentMonth = :month", { month: MONTHS[currentMonth] })
                 .andWhere("payment.paymentYear = :year", { year: currentYear })
+                .andWhere(new Brackets(retiredExclusion))
                 .getRawOne();
             
             const monthlyBilling = parseFloat(monthlyBillingRaw?.total || '0');
 
+            // Desglose de ingresos por fuente (mes): servicios (plan), adicionales, productos/cuotas
+            const monthlyBreakdownRaw = await paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
+                .select("SUM(payment.servicePlanAmount)", "servicePlans")
+                .addSelect("SUM(payment.additionalServicesAmount)", "additionalServices")
+                .addSelect("SUM(payment.productInstallmentsAmount)", "products")
+                .where("payment.paymentMonth = :month", { month: MONTHS[currentMonth] })
+                .andWhere("payment.paymentYear = :year", { year: currentYear })
+                .andWhere(new Brackets(retiredExclusion))
+                .getRawOne();
+
+            const monthlyBreakdown = {
+                servicePlans: parseFloat(monthlyBreakdownRaw?.servicePlans || '0'),
+                additionalServices: parseFloat(monthlyBreakdownRaw?.additionalServices || '0'),
+                products: parseFloat(monthlyBreakdownRaw?.products || '0')
+            };
+
+            // Desglose de ingresos por fuente (YTD)
+            const yearlyBreakdownRaw = await paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
+                .select("SUM(payment.servicePlanAmount)", "servicePlans")
+                .addSelect("SUM(payment.additionalServicesAmount)", "additionalServices")
+                .addSelect("SUM(payment.productInstallmentsAmount)", "products")
+                .where("payment.paymentYear = :year", { year: currentYear })
+                .andWhere(new Brackets(retiredExclusion))
+                .getRawOne();
+
+            const yearlyBreakdown = {
+                servicePlans: parseFloat(yearlyBreakdownRaw?.servicePlans || '0'),
+                additionalServices: parseFloat(yearlyBreakdownRaw?.additionalServices || '0'),
+                products: parseFloat(yearlyBreakdownRaw?.products || '0')
+            };
+
             // Accumulated Billing (YTD)
             const yearlyBillingRaw = await paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
                 .select("SUM(payment.amount)", "total")
                 .where("payment.paymentYear = :year", { year: currentYear })
+                .andWhere(new Brackets(retiredExclusion))
                 .getRawOne();
             const yearlyBilling = parseFloat(yearlyBillingRaw?.total || '0');
 
             // Real Collection (Recaudo Real del Mes - Money received)
+            // Solo pagos efectivamente cobrados; los retirados que pagaron cuentan (dinero real).
             const realCollectionRaw = await paymentRepository.createQueryBuilder("payment")
                 .select("SUM(payment.amount)", "total")
                 .where("payment.paymentDate BETWEEN :start AND :end", { start: startOfMonth, end: endOfMonth })
@@ -151,20 +199,26 @@ export const DashboardController = {
                 .getRawOne();
             const realCollection = parseFloat(realCollectionRaw?.total || '0');
 
-            // ARPU
-            const arpu = totalActiveClients > 0 ? monthlyBilling / totalActiveClients : 0;
-
-            // Projected Revenue (Next Month)
-            // Sum of active plans
-            const projectedRevenueRaw = await installationRepository.createQueryBuilder("installation")
+            // Proyección de ingresos por fuente (mensual): plan + adicionales + cuotas pendientes de activos
+            const projectedPlansRaw = await installationRepository.createQueryBuilder("installation")
                 .leftJoin("installation.servicePlan", "plan")
                 .leftJoin("installation.client", "client")
                 .select("SUM(plan.monthlyFee)", "total")
                 .where("client.status = :status", { status: 'activo' })
                 .andWhere("installation.serviceStatus = :svcStatus", { svcStatus: 'activo' })
                 .getRawOne();
-            const projectedRevenue = parseFloat(projectedRevenueRaw?.total || '0');
+            const projectedAdditionalRaw = await AppDataSource.getRepository(AdditionalService)
+                .createQueryBuilder("service")
+                .innerJoin("service.client", "client")
+                .select("SUM(service.monthlyFee)", "total")
+                .where("client.status = :status", { status: 'activo' })
+                .andWhere("service.status = :svcStatus", { svcStatus: 'activo' })
+                .getRawOne();
 
+            const projectedRevenue = parseFloat(projectedPlansRaw?.total || '0') + parseFloat(projectedAdditionalRaw?.total || '0');
+
+            // ARPU (facturación promedio por cliente activo)
+            const arpu = totalActiveClients > 0 ? monthlyBilling / totalActiveClients : 0;
 
             // --- 4. COLLECTION & PORTFOLIO ---
 
@@ -174,27 +228,28 @@ export const DashboardController = {
                 : 0;
 
             // Portfolio (Cartera Vencida - Total Overdue)
-            // Status 'overdue' or 'pending' with dueDate < now
+            // Excluye clientes retirados: su deuda es incobrable y no pertenece a la cartera activa.
             const totalOverdueRaw = await paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
                 .select("SUM(payment.amount)", "total")
                 .where("payment.status IN (:...statuses)", { statuses: ['vencido', 'pendiente'] })
                 .andWhere("payment.dueDate < :now", { now: new Date() })
+                .andWhere("client.status <> :retired", { retired: 'retirado' })
                 .getRawOne();
             const totalOverdue = parseFloat(totalOverdueRaw?.total || '0');
 
             // Portfolio by Age
             // 0-30, 31-60, 61-90, 90+
-            // We can do this with conditional sums in SQL
-            // Using DATEDIFF in MySQL/MariaDB: DATEDIFF(expr1, expr2) returns expr1 - expr2
-            // We want (NOW - dueDate) > X
-            
+            // Excluye clientes retirados (deuda incobrable).
             const portfolioAgeQuery = paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
             .select("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 0 AND 30 THEN payment.amount ELSE 0 END)", "range0_30")
             .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 31 AND 60 THEN payment.amount ELSE 0 END)", "range31_60")
             .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) BETWEEN 61 AND 90 THEN payment.amount ELSE 0 END)", "range61_90")
             .addSelect("SUM(CASE WHEN DATEDIFF(NOW(), payment.dueDate) > 90 THEN payment.amount ELSE 0 END)", "range90_plus")
             .where("payment.status IN (:...statuses)", { statuses: ['vencido', 'pendiente'] })
-            .andWhere("payment.dueDate < :now", { now: new Date() });
+            .andWhere("payment.dueDate < :now", { now: new Date() })
+            .andWhere("client.status <> :retired", { retired: 'retirado' });
 
             const portfolioAgeRaw = await portfolioAgeQuery.getRawOne();
             
@@ -205,10 +260,12 @@ export const DashboardController = {
                 range90_plus: parseFloat(portfolioAgeRaw?.range90_plus || '0')
             };
 
-            // Clients in Default (Clientes en Mora)
+            // Clients in Default (Clientes en Mora) - excluye retirados
             const clientsInDefaultRaw = await paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
                 .select("COUNT(DISTINCT payment.clientId)", "count")
                 .where("payment.status = 'vencido'")
+                .andWhere("client.status <> :retired", { retired: 'retirado' })
                 .getRawOne();
             const clientsInDefault = parseInt(clientsInDefaultRaw?.count || '0');
 
@@ -243,16 +300,19 @@ export const DashboardController = {
             }
             // --- 7. REVENUE HISTORY ---
             const revenueHistory = [];
+            const MONTHS_ABBR = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
             for (let i = 5; i >= 0; i--) {
                 const d = new Date(currentYear, currentMonth - i, 1); 
-                // Using paymentMonth based query to be consistent with 'Billing'
-                const pMonth = (d.getMonth() + 1).toString();
+                // paymentMonth se almacena como nombre en español; usar MONTHS para matchear
+                const pMonth = MONTHS[d.getMonth()];
                 const pYear = d.getFullYear();
 
                 const billingRaw = await paymentRepository.createQueryBuilder("payment")
+                .innerJoin("payment.client", "client")
                 .select("SUM(payment.amount)", "total")
                 .where("payment.paymentMonth = :month", { month: pMonth }) 
                 .andWhere("payment.paymentYear = :year", { year: pYear })
+                .andWhere(new Brackets(retiredExclusion))
                 .getRawOne();
 
                 const collectedRaw = await paymentRepository.createQueryBuilder("payment")
@@ -264,7 +324,7 @@ export const DashboardController = {
                 .andWhere("payment.status = 'pagado'")
                 .getRawOne();
 
-                const monthName = d.toLocaleString('default', { month: 'short' });
+                const monthName = MONTHS_ABBR[d.getMonth()];
              
                 revenueHistory.push({
                     month: monthName,
@@ -296,7 +356,10 @@ export const DashboardController = {
                     yearlyBilling,
                     arpu: parseFloat(arpu.toFixed(2)),
                     projectedRevenue,
-                    // revenueByPlan: [] 
+                    revenueBySource: {
+                        month: monthlyBreakdown,
+                        year: yearlyBreakdown
+                    }
                 },
                 collection: {
                     realCollection,

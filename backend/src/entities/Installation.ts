@@ -68,6 +68,10 @@ export class Installation {
     @Column({ type: 'date', nullable: true, transformer: dateOnlyTransformer })
     retirementDate?: Date;
 
+    // Timestamp de cuándo se suspendió el servicio (para prorrateo por suspensión)
+    @Column({ type: 'datetime', nullable: true })
+    suspendedAt?: Date | null;
+
     @Column({ default: false })
     isActive!: boolean;
 

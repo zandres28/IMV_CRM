@@ -27,6 +27,7 @@ import { PromotionsManager } from '../components/admin/PromotionsManager';
 import { AvisosManager } from '../components/admin/AvisosManager';
 import OnuSearch from '../components/installations/OnuSearch';
 import AgendaInstalaciones from '../components/installations/AgendaInstalaciones';
+import { NetflixAccountsManager } from '../components/netflix/NetflixAccountsManager';
 
 const router = createBrowserRouter([
     {
@@ -96,6 +97,10 @@ const router = createBrowserRouter([
             {
                 path: "installations/onu-search",
                 element: <OnuSearch />
+            },
+            {
+                path: "netflix-accounts",
+                element: <NetflixAccountsManager />
             },
             {
                 path: "dashboard",

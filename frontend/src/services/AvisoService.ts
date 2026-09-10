@@ -23,6 +23,8 @@ export interface AvisoFilters {
     planId?: number | '';
     installationDateFrom?: string;
     installationDateTo?: string;
+    clientStatus?: string[];
+    paymentStatus?: string[];
 }
 
 export interface AvisoPreview {
