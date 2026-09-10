@@ -238,7 +238,7 @@ export class NetflixAccountController {
     async assignSlot(req: Request, res: Response) {
         try {
             const { slotId } = req.params;
-            const { clientId, pin } = req.body;
+            const { clientId, pin, profileName } = req.body;
 
             const client = await this.clientRepository.findOneBy({ id: parseInt(clientId) });
             if (!client) {
@@ -259,12 +259,16 @@ export class NetflixAccountController {
             if (pin !== undefined && pin !== null && String(pin).trim()) {
                 const newPin = String(pin).trim().padStart(4, '0').slice(0, 4);
                 const dup = await this.slotRepository.count({
-                    where: { account: { id: slot.account.id }, pin: newPin }
+                    where: { account: { id: slot.account.id }, pin: newPin, id: Not(slot.id) }
                 });
                 if (dup > 0) {
                     return res.status(400).json({ message: 'Ese PIN ya está en uso en esta cuenta' });
                 }
                 slot.pin = newPin;
+            }
+
+            if (profileName !== undefined && String(profileName).trim()) {
+                slot.profileName = String(profileName).trim();
             }
 
             slot.client = client;

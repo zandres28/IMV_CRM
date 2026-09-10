@@ -20,8 +20,8 @@ export const NetflixAccountService = {
         await axios.delete(`${API_URL}/netflix-accounts/${id}`);
     },
 
-    assignSlot: async (slotId: number, clientId: number, pin?: string): Promise<NetflixAccount> =>
-        (await axios.post(`${API_URL}/netflix-accounts/slot/${slotId}/assign`, { clientId, pin })).data,
+    assignSlot: async (slotId: number, clientId: number, pin?: string, profileName?: string): Promise<NetflixAccount> =>
+        (await axios.post(`${API_URL}/netflix-accounts/slot/${slotId}/assign`, { clientId, pin, profileName })).data,
 
     releaseSlot: async (slotId: number): Promise<NetflixAccount> =>
         (await axios.post(`${API_URL}/netflix-accounts/slot/${slotId}/release`)).data,
