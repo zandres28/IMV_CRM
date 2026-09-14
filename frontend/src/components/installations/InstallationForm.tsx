@@ -13,7 +13,7 @@ import {
     MenuItem,
     SelectChangeEvent
 } from '@mui/material';
-import { Installation } from '../../services/InstallationService';
+import { Installation, InstallationService } from '../../services/InstallationService';
 import { ServicePlanService, ServicePlan } from '../../services/ServicePlanService';
 import { TechnicianService, Technician } from '../../services/TechnicianService';
 import { toInputDateString } from '../../utils/dateUtils';
@@ -59,6 +59,7 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
         scheduledTimeSlot: '',
     }), [prefillData]);
 
+    const [saving, setSaving] = React.useState<boolean>(false);
     const [formData, setFormData] = React.useState<Partial<Installation>>(buildDefaultForm);
 
     React.useEffect(() => {
@@ -156,17 +157,26 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
         }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const installationData: any = {
-            ...formData
-        };
-        if (!installation) {
-            // En creación enviar clientId como número (backend espera clientId)
-            installationData.clientId = clientId;
+        setSaving(true);
+        try {
+            if (installation?.id) {
+                await InstallationService.update(installation.id, formData);
+                alert('Instalación actualizada correctamente.');
+            } else {
+                await InstallationService.create({ ...formData, clientId });
+                alert('Instalación creada correctamente.');
+            }
+            onSave(formData);
+            onClose();
+        } catch (error: any) {
+            console.error('Error al guardar instalación:', error);
+            const msg = error?.response?.data?.message || 'Error al guardar la instalación. Verifique los datos.';
+            alert(msg);
+        } finally {
+            setSaving(false);
         }
-        onSave(installationData);
-        onClose();
     };
 
     return (
@@ -400,9 +410,9 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
                     </Grid>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" variant="contained" color="primary">
-                        {installation ? 'Actualizar' : 'Crear'}
+                    <Button onClick={onClose} disabled={saving}>Cancelar</Button>
+                    <Button type="submit" variant="contained" color="primary" disabled={saving}>
+                        {saving ? 'Guardando...' : (installation ? 'Actualizar' : 'Crear')}
                     </Button>
                 </DialogActions>
             </form>
