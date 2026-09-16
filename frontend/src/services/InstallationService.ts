@@ -108,5 +108,10 @@ export const InstallationService = {
     getOnuStatus: async (id: number): Promise<{ onlineStatus: string; isOnline: boolean }> => {
         const response = await axios.get(`${API_URL}/installations/${id}/onu-status`);
         return response.data;
+    },
+
+    checkOltHealth: async (): Promise<{ status: string; details: string; host: string; port: string; timestamp: string }> => {
+        const response = await axios.get(`${API_URL}/olt/health-check`);
+        return response.data;
     }
 };

@@ -33,7 +33,8 @@ import {
     Delete as DeleteIcon,
     RestartAlt as RestartAltIcon,
     Wifi as WifiIcon,
-    WifiOff as WifiOffIcon
+    WifiOff as WifiOffIcon,
+    HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 import { Installation, InstallationService } from '../../services/InstallationService';
 import { InstallationForm } from './InstallationForm';
@@ -64,6 +65,9 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
     const [notificationOpen, setNotificationOpen] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
     const [notificationSeverity, setNotificationSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
+
+    const [oltHealth, setOltHealth] = useState<{ status: string; details: string } | null>(null);
+    const [checkingHealth, setCheckingHealth] = useState(false);
 
     const requestedPlanPrefill = useMemo<Partial<Installation> | undefined>(() => {
         if (!client || !client.requestedPlanName) {
@@ -333,6 +337,26 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
         }
     };
 
+    const handleCheckOltHealth = async () => {
+        setCheckingHealth(true);
+        setOltHealth(null);
+        try {
+            const result = await InstallationService.checkOltHealth();
+            setOltHealth({ status: result.status, details: result.details });
+            setNotificationMessage(`OLT: ${result.status.toUpperCase()} — ${result.details}`);
+            setNotificationSeverity(result.status === 'online' ? 'success' : result.status === 'web_hung' ? 'warning' : 'error');
+            setNotificationOpen(true);
+        } catch (error: any) {
+            const msg = error?.response?.data?.message || error?.message || 'Error al verificar OLT';
+            setOltHealth({ status: 'error', details: msg });
+            setNotificationMessage(`Error OLT: ${msg}`);
+            setNotificationSeverity('error');
+            setNotificationOpen(true);
+        } finally {
+            setCheckingHealth(false);
+        }
+    };
+
     const getStatusChipProps = (status: string) => {
         const statusMap: Record<string, { label: string; color: 'success' | 'warning' | 'error' }> = {
             activo: { label: 'Activo', color: 'success' },
@@ -370,7 +394,27 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                         }}
                         sx={{ width: 200 }}
                     />
-                    {!AuthService.hasRole('tecnico') && (
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={checkingHealth ? <CircularProgress size={14} /> : <HealthIcon />}
+                        onClick={handleCheckOltHealth}
+                        disabled={checkingHealth}
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            borderColor: oltHealth?.status === 'online' ? '#1cc88a' : oltHealth?.status === 'web_hung' ? '#f6c23e' : '#e74a3b',
+                            color: oltHealth?.status === 'online' ? '#1cc88a' : oltHealth?.status === 'web_hung' ? '#f6c23e' : '#858796',
+                            '&:hover': {
+                                borderColor: oltHealth?.status === 'online' ? '#17a06e' : '#d4a017',
+                                bgcolor: 'rgba(0,0,0,0.02)'
+                            }
+                        }}
+                    >
+                        OLT {oltHealth ? (oltHealth.status === 'online' ? 'OK' : oltHealth.status === 'web_hung' ? 'HUNG' : 'DOWN') : 'Check'}
+                    </Button>
+                    {AuthService.hasPermission('installations.edit') && (
                         <Button
                             variant="contained"
                             size="small"
@@ -460,7 +504,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                 <Divider sx={{ my: 1, opacity: 0.5 }} />
 
                                 <Box display="flex" justifyContent="flex-end" gap={0.5}>
-                                    {!AuthService.hasRole('tecnico') ? (
+                                    {AuthService.hasPermission('installations.edit') ? (
                                         <>
                                             <IconButton size="small" onClick={() => handleEdit(installation)} disabled={installation.isDeleted} sx={{ color: '#4e73df' }} title="Editar"><EditIcon fontSize="small" /></IconButton>
                                             <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
@@ -474,7 +518,6 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                             )}
                                         </>
                                     ) : (
-                                        // VISTA LIMITADA TÉCNICO
                                         <>
                                             <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
                                             <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
@@ -583,7 +626,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                     )}
                                 </TableCell>
                                 <TableCell sx={{ py: 0.5 }}>
-                                    {!AuthService.hasRole('tecnico') ? (
+                                    {AuthService.hasPermission('installations.edit') ? (
                                         <>
                                             <IconButton
                                                 size="small"
@@ -640,7 +683,6 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                             )}
                                         </>
                                     ) : (
-                                        // VISTA DE TÉCNICO (Solo Reiniciar e Historial)
                                         <>
                                             <IconButton
                                                 size="small"
