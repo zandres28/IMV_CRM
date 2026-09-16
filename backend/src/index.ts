@@ -40,7 +40,7 @@ import networkDeviceRoutes from "./routes/network-devices";
 import iptvRoutes from "./routes/iptv";
 import netflixAccountRoutes from "./routes/netflix-accounts";
 import { startOltDisconnectScheduler } from "./services/OltSchedulerService";
-import { startOltHealthMonitor } from "./services/OltHealthMonitorService";
+// import { startOltHealthMonitor } from "./services/OltHealthMonitorService";
 import { startOltBackupScheduler } from "./services/OltBackupService";
 import { startOltStatusSync } from "./services/OltStatusSyncService";
 import path from "path";
@@ -170,7 +170,7 @@ AppDataSource.initialize().then(() => {
     startOltDisconnectScheduler();
 
     // Iniciar monitor de salud OLT (alerta de corte de energía)
-    startOltHealthMonitor();
+    // startOltHealthMonitor(); // Manual desde /api/olt/health-check
 
     // Backup diario de config OLT
     startOltBackupScheduler();

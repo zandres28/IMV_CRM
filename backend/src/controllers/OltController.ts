@@ -3,6 +3,7 @@ import { AppDataSource } from "../config/database";
 import { Installation } from "../entities/Installation";
 import { OltService } from "../services/OltService";
 import { syncSuspendedInstallations, restoreServiceForClient } from "../services/OltStatusSyncService";
+import { checkOltHealth } from "../services/oltHealthCheck";
 
 // Helper para buscar instalación por ID o Serial Number
 const findInstallation = async (identifier: string) => {
@@ -219,5 +220,20 @@ export const OltController = {
             console.error("Error reactivando servicio de cliente:", error);
             return res.status(500).json({ message: "Error reactivando servicio", error: error.message });
         }
-    }
+    },
+
+    healthCheck: async (req: Request, res: Response) => {
+        try {
+            const result = await checkOltHealth();
+            return res.json({
+                status: result.status,
+                details: result.details,
+                host: process.env.OLT_HOST || "192.168.1.94",
+                port: process.env.OLT_WEB_PORT || "8080",
+                timestamp: new Date().toISOString(),
+            });
+        } catch (error: any) {
+            return res.status(500).json({ message: "Error verificando salud OLT", error: error.message });
+        }
+    },
 };

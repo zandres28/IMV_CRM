@@ -1,14 +1,18 @@
+import { authMiddleware } from "../middlewares/auth.middleware";
 import { Router } from "express";
 import { OltController } from "../controllers/OltController";
 import { apiKeyMiddleware } from "../middlewares/apiKey.middleware";
 
 const router = Router();
 
-// Todas las rutas de OLT requieren API Key (para uso desde n8n)
+// Health check manual — usa JWT del browser, NO API Key
+router.get("/health-check", authMiddleware, OltController.healthCheck);
+
+// Todas las rutas OLT restantes requieren API Key (n8n)
 router.use(apiKeyMiddleware);
 
 router.post("/reboot/:installationId", OltController.rebootOnu);
-router.post("/service/:installationId", OltController.toggleService); // Body: { action: 'enable' | 'disable' }
+router.post("/service/:installationId", OltController.toggleService);
 router.get("/status/:installationId", OltController.getStatus);
 router.post("/sync-service-status", OltController.syncServiceStatus);
 router.post("/restore-client/:clientId", OltController.restoreClientService);
