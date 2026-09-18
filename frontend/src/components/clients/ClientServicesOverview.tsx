@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Box, Typography, Paper, Chip, IconButton, Tooltip, useMediaQuery, useTheme,
-    Card, CardContent, Grid, Button
+    Card, CardContent, Grid, Button, CircularProgress
 } from '@mui/material';
 import {
     Visibility as ViewIcon,
@@ -9,11 +9,13 @@ import {
     PowerSettingsNew as PowerIcon,
     RestartAlt as RestartIcon,
     Wifi as WifiIcon,
+    WifiOff as WifiOffIcon,
+    Refresh as RefreshIcon,
     Tv as TvIcon,
     ShoppingBag as ProductIcon,
     Add as AddIcon
 } from '@mui/icons-material';
-import { Installation } from '../../services/InstallationService';
+import { Installation, InstallationService } from '../../services/InstallationService';
 import { AdditionalService, ProductSold } from '../../types/AdditionalServices';
 import { Payment } from '../../services/MonthlyBillingService';
 import { Client } from '../../types/Client';
@@ -116,7 +118,22 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
 }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isAdmin = !AuthService.hasRole('tecnico');
+    const isAdmin = AuthService.hasPermission('installations.edit');
+
+    const [onuStatusMap, setOnuStatusMap] = useState<Record<number, { onlineStatus: string; isOnline: boolean } | null>>({});
+    const [onuLoadingMap, setOnuLoadingMap] = useState<Record<number, boolean>>({});
+
+    const fetchOnuStatus = useCallback(async (inst: Installation) => {
+        setOnuLoadingMap(prev => ({ ...prev, [inst.id]: true }));
+        try {
+            const status = await InstallationService.getOnuStatus(inst.id);
+            setOnuStatusMap(prev => ({ ...prev, [inst.id]: status }));
+        } catch {
+            setOnuStatusMap(prev => ({ ...prev, [inst.id]: { onlineStatus: 'unknown', isOnline: false } }));
+        } finally {
+            setOnuLoadingMap(prev => ({ ...prev, [inst.id]: false }));
+        }
+    }, []);
 
     const activeInstallations = installations.filter(i => !i.isDeleted && i.serviceStatus !== 'retirado');
     const activeServices = additionalServices.filter(s => s.status === 'activo');
@@ -131,7 +148,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
             {/* Resumen */}
             <Paper sx={{ p: 2, mb: 2, borderLeft: 4, borderColor: '#2D5BFF' }}>
                 <Grid container spacing={2}>
-                    <Grid item xs={6} sm={3}>
+                    <Grid item xs={6} sm={6}>
                         <Typography variant="caption" sx={{ color: '#6B7290', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.65rem' }}>
                             Costo Mensual
                         </Typography>
@@ -139,15 +156,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                             {formatCurrency(totalMonthly)}
                         </Typography>
                     </Grid>
-                    <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" sx={{ color: '#6B7290', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.65rem' }}>
-                            Instalaciones
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0E1330' }}>
-                            {activeInstallations.length}
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
+                    <Grid item xs={6} sm={6}>
                         <Typography variant="caption" sx={{ color: '#6B7290', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.65rem' }}>
                             Servicios Adicionales
                         </Typography>
@@ -155,7 +164,15 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                             {activeServices.length}
                         </Typography>
                     </Grid>
-                    <Grid item xs={6} sm={3}>
+                    <Grid item xs={6} sm={6}>
+                        <Typography variant="caption" sx={{ color: '#6B7290', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.65rem' }}>
+                            Instalaciones
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0E1330' }}>
+                            {activeInstallations.length}
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={6} sm={6}>
                         <Typography variant="caption" sx={{ color: '#6B7290', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.65rem' }}>
                             Productos
                         </Typography>
@@ -190,13 +207,45 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                 <Chip label={statusLabel(inst.serviceStatus)} color={statusColor(inst.serviceStatus)} size="small" sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700 }} />
                             </Box>
                             <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                                {formatCurrency(inst.monthlyFee)}/mes · {inst.speedMbps} Mbps · {formatDate(inst.installationDate)}
+                                {formatCurrency(inst.monthlyFee)}/mes · {inst.speedMbps} Mbps
                             </Typography>
-                            {inst.onuSerialNumber && (
-                                <Typography variant="caption" display="block" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
-                                    ONU: {inst.onuSerialNumber}
-                                </Typography>
-                            )}
+                            <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
+                                {inst.napLabel && (
+                                    <Chip label={`NAP: ${inst.napLabel}`} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EDF0F7', color: '#3A4163' }} />
+                                )}
+                                {inst.onuSerialNumber && (
+                                    <Chip label={`ONU: ${inst.onuSerialNumber}`} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EDF0F7', color: '#3A4163' }} />
+                                )}
+                                {inst.ponId && (
+                                    <Chip label={`PON: ${inst.ponId}`} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EDF0F7', color: '#3A4163' }} />
+                                )}
+                                {inst.onuId && (
+                                    <Chip label={`ID ONU: ${inst.onuId}`} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EDF0F7', color: '#3A4163' }} />
+                                )}
+                                <Box display="flex" alignItems="center" gap={0.5}>
+                                    {onuLoadingMap[inst.id] ? (
+                                        <CircularProgress size={14} sx={{ color: '#6B7290' }} />
+                                    ) : onuStatusMap[inst.id] ? (
+                                        <Chip
+                                            icon={onuStatusMap[inst.id]!.isOnline ? <WifiIcon sx={{ fontSize: 12, color: '#1cc88a !important' }} /> : <WifiOffIcon sx={{ fontSize: 12, color: '#e74a3b !important' }} />}
+                                            label={onuStatusMap[inst.id]!.isOnline ? 'ONU Online' : 'ONU Offline'}
+                                            size="small"
+                                            sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: onuStatusMap[inst.id]!.isOnline ? 'rgba(28,200,138,0.12)' : 'rgba(231,74,59,0.12)', color: onuStatusMap[inst.id]!.isOnline ? '#1cc88a' : '#e74a3b' }}
+                                        />
+                                    ) : (
+                                        <Chip
+                                            icon={<RefreshIcon sx={{ fontSize: 12 }} />}
+                                            label="Consultar ONU"
+                                            size="small"
+                                            onClick={() => fetchOnuStatus(inst)}
+                                            sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EDF0F7', color: '#3A4163', cursor: 'pointer', '&:hover': { bgcolor: '#D8DCE8' } }}
+                                        />
+                                    )}
+                                </Box>
+                            </Box>
+                            <Typography variant="caption" display="block" color="textSecondary" sx={{ fontSize: '0.65rem', mt: 0.5 }}>
+                                {formatDate(inst.installationDate)}
+                            </Typography>
                             <Box display="flex" justifyContent="flex-end" gap={0.5} mt={1}>
                                 <Tooltip title="Ver / Editar">
                                     <IconButton size="small" onClick={() => onViewInstallation(inst)} sx={{ color: '#2D5BFF' }}>
@@ -233,8 +282,8 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                     <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse' }}>
                         <Box component="thead">
                             <Box component="tr" sx={{ bgcolor: '#EDF0F7' }}>
-                                {['Plan', 'Velocidad', 'Mensual', 'Estado', 'Instalado', 'Acciones'].map(h => (
-                                    <Box key={h} component="th" sx={{ px: 1.5, py: 1, fontSize: '0.65rem', fontWeight: 800, color: '#4e73df', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: h === 'Acciones' ? 'right' : 'left' }}>
+                                {['Plan', 'NAP', 'ONU SN', 'PON ID', 'ONU ID', 'Estado', 'Instalado', 'ONU', 'Acciones'].map(h => (
+                                    <Box key={h} component="th" sx={{ px: 1.5, py: 1, fontSize: '0.65rem', fontWeight: 800, color: '#4e73df', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: h === 'Acciones' ? 'right' : 'left', whiteSpace: 'nowrap' }}>
                                         {h}
                                     </Box>
                                 ))}
@@ -244,12 +293,34 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                             {activeInstallations.map(inst => (
                                 <Box component="tr" key={inst.id} sx={{ '&:hover': { bgcolor: '#f8f9fc' }, borderTop: '1px solid #E2E6F0' }}>
                                     <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.8rem', fontWeight: 600 }}>{inst.servicePlan?.name || inst.serviceType}</Box>
-                                    <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.8rem' }}>{inst.speedMbps} Mbps</Box>
-                                    <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.8rem', fontWeight: 600, color: '#00D4A6' }}>{formatCurrency(inst.monthlyFee)}</Box>
+                                    <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.75rem', color: '#6B7290' }}>{inst.napLabel || '-'}</Box>
+                                    <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.75rem', fontFamily: 'monospace' }}>{inst.onuSerialNumber || '-'}</Box>
+                                    <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.75rem', fontFamily: 'monospace' }}>{inst.ponId || '-'}</Box>
+                                    <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.75rem', fontFamily: 'monospace' }}>{inst.onuId || '-'}</Box>
                                     <Box component="td" sx={{ px: 1.5, py: 1 }}>
                                         <Chip label={statusLabel(inst.serviceStatus)} color={statusColor(inst.serviceStatus)} size="small" sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700 }} />
                                     </Box>
                                     <Box component="td" sx={{ px: 1.5, py: 1, fontSize: '0.75rem', color: '#6B7290' }}>{formatDate(inst.installationDate)}</Box>
+                                    <Box component="td" sx={{ px: 1, py: 1, whiteSpace: 'nowrap' }}>
+                                        {onuLoadingMap[inst.id] ? (
+                                            <CircularProgress size={14} sx={{ color: '#6B7290' }} />
+                                        ) : onuStatusMap[inst.id] ? (
+                                            <Chip
+                                                icon={onuStatusMap[inst.id]!.isOnline ? <WifiIcon sx={{ fontSize: 12, color: '#1cc88a !important' }} /> : <WifiOffIcon sx={{ fontSize: 12, color: '#e74a3b !important' }} />}
+                                                label={onuStatusMap[inst.id]!.isOnline ? 'ONU Online' : 'ONU Offline'}
+                                                size="small"
+                                                sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700, bgcolor: onuStatusMap[inst.id]!.isOnline ? 'rgba(28,200,138,0.12)' : 'rgba(231,74,59,0.12)', color: onuStatusMap[inst.id]!.isOnline ? '#1cc88a' : '#e74a3b' }}
+                                            />
+                                        ) : (
+                                            <Chip
+                                                icon={<RefreshIcon sx={{ fontSize: 12 }} />}
+                                                label="Consultar"
+                                                size="small"
+                                                onClick={() => fetchOnuStatus(inst)}
+                                                sx={{ height: 20, fontSize: '0.6rem', fontWeight: 600, bgcolor: '#EDF0F7', color: '#3A4163', cursor: 'pointer', '&:hover': { bgcolor: '#D8DCE8' } }}
+                                            />
+                                        )}
+                                    </Box>
                                     <Box component="td" sx={{ px: 1, py: 1, textAlign: 'right', whiteSpace: 'nowrap' }}>
                                         <Tooltip title="Ver / Editar">
                                             <IconButton size="small" onClick={() => onViewInstallation(inst)} sx={{ color: '#2D5BFF' }}><ViewIcon fontSize="small" /></IconButton>
