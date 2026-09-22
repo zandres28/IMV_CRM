@@ -8,6 +8,7 @@ import { ProductInstallment } from '../entities/ProductInstallment';
 import { Interaction } from '../entities/Interaction';
 import { SystemSetting } from '../entities/SystemSetting';
 import { InteractionType } from '../entities/InteractionType';
+import { AvisoTemplate } from '../entities/AvisoTemplate';
 import { In, Between, Like } from 'typeorm';
 import { restoreServiceForClient } from '../services/OltStatusSyncService';
 
@@ -683,9 +684,11 @@ export const N8nIntegrationController = {
     sendAviso: async (req: Request, res: Response) => {
         try {
             const { AvisoController } = await import('./AvisoController');
+            const avisoRepo = AppDataSource.getRepository(AvisoTemplate);
 
-            const { message, ponId, planId, installationDateFrom, installationDateTo, clientStatus, paymentStatus } = req.body as {
+            const { message, templateId, ponId, planId, installationDateFrom, installationDateTo, clientStatus, paymentStatus } = req.body as {
                 message?: string;
+                templateId?: number;
                 ponId?: string;
                 planId?: number;
                 installationDateFrom?: string;
@@ -696,6 +699,15 @@ export const N8nIntegrationController = {
 
             if (!message || message.trim() === '') {
                 return res.status(400).json({ message: 'El campo message es requerido' });
+            }
+
+            // Registrar fecha/hora del último envío de la plantilla
+            if (templateId) {
+                const template = await avisoRepo.findOneBy({ id: Number(templateId) });
+                if (template) {
+                    template.lastSentAt = new Date();
+                    await avisoRepo.save(template);
+                }
             }
 
             const recipients = await AvisoController._buildRecipients({ ponId, planId, installationDateFrom, installationDateTo, clientStatus, paymentStatus });

@@ -255,6 +255,15 @@ export const AvisosManager: React.FC = () => {
                 </Button>
             </Box>
 
+            <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2" component="div">
+                    <b>¿Cómo funciona?</b> Primero se genera el mensaje de la plantilla, luego se elige a quién se envía
+                    (pulsando <b>"Enviar por WhatsApp"</b> y usando los filtros de destinatarios, por ejemplo solo activos,
+                    por PON, por plan o por fecha) y finalmente se confirma el envío. Un mensaje nuevo se crea con
+                    <b>"Nuevo Aviso"</b>.
+                </Typography>
+            </Alert>
+
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
             {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
@@ -301,6 +310,23 @@ export const AvisosManager: React.FC = () => {
                                                             </IconButton>
                                                         </Tooltip>
                                                     </Box>
+                                                </Box>
+
+                                                <Box
+                                                    sx={{
+                                                        bgcolor: 'info.50',
+                                                        borderRadius: 1,
+                                                        px: 1,
+                                                        py: 0.75,
+                                                        border: '1px solid',
+                                                        borderColor: 'info.light',
+                                                    }}
+                                                >
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {t.lastSentAt
+                                                            ? <>🕐 Último envío: <b>{new Date(t.lastSentAt).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}</b></>
+                                                            : <>🕐 Aún no se ha enviado</>}
+                                                    </Typography>
                                                 </Box>
 
                                                 <Typography
