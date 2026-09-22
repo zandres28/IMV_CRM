@@ -19,6 +19,9 @@ export class AvisoTemplate {
     @Column({ default: true })
     isActive!: boolean;
 
+    @Column({ type: 'datetime', nullable: true })
+    lastSentAt!: Date | null;
+
     @CreateDateColumn()
     createdAt!: Date;
 

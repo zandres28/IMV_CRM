@@ -14,6 +14,7 @@ export interface AvisoTemplate {
     category: AvisoCategory;
     message: string;
     isActive: boolean;
+    lastSentAt?: string | null;
     createdAt: string;
     updatedAt: string;
 }
