@@ -72,6 +72,7 @@ export const AvisosManager: React.FC = () => {
     const [previewSample, setPreviewSample] = useState<string[]>([]);
     const [previewing, setPreviewing] = useState(false);
     const [sending, setSending] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
     const [customMessage, setCustomMessage] = useState('');
 
     // ────────────────────────────────────────────────────────────────────────
@@ -161,6 +162,7 @@ export const AvisosManager: React.FC = () => {
         setFilterDateTo(new Date().toISOString().slice(0, 10));
         setPreviewCount(null);
         setPreviewSample([]);
+        setSendError(null);
         setSendOpen(true);
     };
 
@@ -183,13 +185,14 @@ export const AvisosManager: React.FC = () => {
     const handlePreview = async () => {
         setPreviewing(true);
         setPreviewCount(null);
+        setSendError(null);
         setPreviewSample([]);
         try {
             const result = await AvisoService.preview(buildFilters());
             setPreviewCount(result.count);
             setPreviewSample(result.sample);
         } catch {
-            setError('Error al obtener vista previa de destinatarios');
+            setSendError('Error al obtener vista previa de destinatarios');
         } finally {
             setPreviewing(false);
         }
@@ -198,14 +201,15 @@ export const AvisosManager: React.FC = () => {
     const handleSend = async () => {
         if (!sendTemplate) return;
         if (!customMessage.trim()) {
-            setError('El mensaje no puede estar vacío');
+            setSendError('El mensaje no puede estar vacío');
             return;
         }
         if (!N8N_WEBHOOK_URL) {
-            setError('La URL del webhook de n8n no está configurada (REACT_APP_N8N_NOTIFICATIONS_WEBHOOK)');
+            setSendError('La URL del webhook de n8n no está configurada (REACT_APP_N8N_NOTIFICATIONS_WEBHOOK). El deploy no incluyó REACT_APP_N8N_NOTIFICATIONS_WEBHOOK.');
             return;
         }
         setSending(true);
+        setSendError(null);
         try {
             await fetch(N8N_WEBHOOK_URL, {
                 method: 'POST',
@@ -220,7 +224,7 @@ export const AvisosManager: React.FC = () => {
             setSuccess(`✅ Aviso "${sendTemplate.title}" enviado a n8n correctamente`);
             setSendOpen(false);
         } catch {
-            setError('Error al llamar al webhook de n8n');
+            setSendError('Error al llamar al webhook de n8n');
         } finally {
             setSending(false);
         }
@@ -401,6 +405,12 @@ export const AvisosManager: React.FC = () => {
                 </DialogTitle>
                 <DialogContent>
                     <Stack spacing={3} sx={{ mt: 1 }}>
+                        {sendError && (
+                            <Alert severity="error" onClose={() => setSendError(null)}>
+                                {sendError}
+                            </Alert>
+                        )}
+
                         {sendTemplate && (
                             <Chip
                                 label={CATEGORY_LABELS[sendTemplate.category]}
