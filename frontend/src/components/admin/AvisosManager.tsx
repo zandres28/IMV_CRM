@@ -356,6 +356,7 @@ export const AvisosManager: React.FC = () => {
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         <TextField
                             label="Título del aviso"
+                            autoFocus
                             fullWidth
                             value={formTitle}
                             onChange={e => setFormTitle(e.target.value)}
@@ -422,6 +423,7 @@ export const AvisosManager: React.FC = () => {
                         {/* Mensaje personalizable */}
                         <TextField
                             label="Mensaje a enviar (editable)"
+                            autoFocus
                             fullWidth
                             multiline
                             rows={5}
