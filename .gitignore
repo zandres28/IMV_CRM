@@ -55,3 +55,17 @@ memory.md
 
 # Design screenshots
 *.png
+
+# E2E artifacts (Playwright MCP) — contienen PII de clientes
+.playwright-mcp/
+
+# Capturas sueltas de terminal/web (no son parte del proyecto)
+20
+chatwoot_*.txt
+tmp_terminal.txt
+
+# Scripts con credenciales MikroTik en claro (mover password a env var antes de subir)
+start-mikrotik-mcp.bat
+mikrotik/add-firewall-rules.py
+mikrotik/configure-firewall-rest.py
+mikrotik/configure-firewall.py

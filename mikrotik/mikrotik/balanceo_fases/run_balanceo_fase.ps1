@@ -1,9 +1,9 @@
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('precheck', 'cutover', 'validacion', 'rollback')]
+    [ValidateSet('prerevision', 'backup', 'saneamiento', 'cutover', 'habilitar_wan', 'validacion', 'rollback', 'rollback_saneamiento')]
     [string]$Fase,
 
-    [string]$RouterHost = '192.168.1.9',
+    [string]$RouterHost = '192.168.1.94',
     [string]$RouterUser = 'admin',
     [string]$HostKey = 'ssh-rsa 2048 SHA256:xHR9VAY1bfITBTvkucySm9Qdz5omAwcNqHJ5c1XjFHg',
     [string]$PlinkPath = 'C:\Program Files\PuTTY\plink.exe',
@@ -31,10 +31,14 @@ $baseDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $rscDir = Join-Path $baseDir 'rsc'
 
 $map = @{
-    precheck   = '01_precheck_backup.rsc'
-    cutover    = '02_cutover_habilitar_monitoreo.rsc'
-    validacion = '03_validacion_post_cutover.rsc'
-    rollback   = '04_rollback_rapido.rsc'
+    prerevision        = '00_pre_revision.rsc'
+    backup             = '01_precheck_backup.rsc'
+    saneamiento        = '02_fase1_saneamiento.rsc'
+    cutover            = '03_fase2_cutover_balanceo.rsc'
+    habilitar_wan      = '04_fase2_habilitar_wan.rsc'
+    validacion         = '05_fase3_validacion.rsc'
+    rollback           = '06_fase4_rollback_rapido.rsc'
+    rollback_saneamiento = '07_fase4_rollback_saneamiento.rsc'
 }
 
 $rscFile = Join-Path $rscDir $map[$Fase]

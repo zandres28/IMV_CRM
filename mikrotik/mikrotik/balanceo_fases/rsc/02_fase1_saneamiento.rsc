@@ -1,0 +1,36 @@
+:put "=== FASE 02: SANEAMIENTO - RECREAR bridge_lan (DESCONEXION BREVE 1-3 min) ==="
+:put "ADVERTENCIA: Los clientes pierden conexion mientras los ONTs renuevan DHCP."
+
+:put "--- 1.1 CREAR bridge_lan (si no existe) ---"
+/interface bridge add name="bridge_lan" protocol-mode=rstp fast-forward=yes disabled=no comment="CLIENTES"
+
+:put "--- 1.2 MOVER PUERTOS DE CLIENTES bridge1 -> bridge_lan ---"
+/interface bridge port set [find where interface="1-LAN-OLT"] bridge="bridge_lan"
+/interface bridge port set [find where interface="ether2"] bridge="bridge_lan"
+/interface bridge port set [find where interface="ether3"] bridge="bridge_lan"
+/interface bridge port set [find where interface="ether7"] bridge="bridge_lan"
+/interface bridge port set [find where interface="ether8"] bridge="bridge_lan"
+/interface bridge port set [find where interface="ether9"] bridge="bridge_lan"
+/interface bridge port set [find where interface="sfp-sfpplus2"] bridge="bridge_lan"
+/interface bridge port set [find where interface="sfp-sfpplus3"] bridge="bridge_lan"
+/interface bridge port set [find where interface="sfp-sfpplus4"] bridge="bridge_lan"
+
+:put "--- 1.2b VERIFICAR: puertos NO movidos deben quedar en bridge1 (12-WAN1, 13-conf, sfp-sfpplus1) ---"
+/interface bridge port print detail where interface="12-WAN1" or interface="13-conf" or interface="sfp-sfpplus1"
+
+:put "--- 1.3 MOVER IP 192.168.10.1 AL bridge_lan ---"
+/ip address set [find where address="192.168.10.1/24"] interface="bridge_lan"
+:put "--- 1.3b MOVER dhcp1 AL bridge_lan ---"
+/ip dhcp-server set [find where name="dhcp1"] interface="bridge_lan"
+
+:put "--- 1.5 VERIFICACION DEL SANEAMIENTO ---"
+:put "-- Puertos en bridge_lan --"
+/interface bridge port print detail where bridge="bridge_lan"
+:put "-- IPs en bridge1 y bridge_lan --"
+/ip address print detail where interface="bridge1" or interface="bridge_lan"
+:put "-- dhcp1 --"
+/ip dhcp-server print detail where name="dhcp1"
+:put "-- Leases 192.168.10.x (deben seguir bound) --"
+/ip dhcp-server lease print where address~"192.168.10."
+
+:put "=== FASE 02 COMPLETADA ==="

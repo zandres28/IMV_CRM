@@ -5,7 +5,7 @@ const baseUrl = `http://${host}:${port}/cgi-bin/h.cgi`;
 
 async function login() {
   const password = process.env.OLT_PASSWORD || 'IMV*2025*';
-  const md5pass = crypto.createHash('md5').update(password).digest('hex');
+  const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
   const response = await fetch(`${baseUrl}?module=sys_login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

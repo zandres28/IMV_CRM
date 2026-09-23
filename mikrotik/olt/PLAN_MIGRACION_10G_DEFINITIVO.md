@@ -1,65 +1,60 @@
-# PLAN DE MIGRACIÓN 10G - MIKROTIK CCR2116 & OLT WOLCK 16PG
+# Migracion OLT 10G - CCR2116 y XGE1
 
-Este documento contiene los comandos exactos validados para la ventana de mantenimiento.
+Estado validado el 2026-08-03 contra la CCR2116 en produccion.
 
-## 1. PREPARACIÓN MIKROTIK (Ejecutar primero)
-Copia y pega estos comandos en una Terminal de MikroTik para preparar el bridge. Estos comandos NO cortarán el servicio actual (UTP puerto 1).
+## Hallazgos
 
-```routeros
-# 1. Habilitar el puerto SFP+ 1
-/interface ethernet set [find name=sfp-sfpplus1] disabled=no auto-negotiation=yes comment="Uplink 10G OLT"
+- El uplink actual de clientes es `1-LAN-OLT` dentro de `bridge1`.
+- `1-LAN-OLT` transportaba aproximadamente 150 Mbps durante la validacion.
+- La interfaz `vlan1` (service-tag 100) estaba en 0 bps; no es el camino activo de clientes.
+- `sfp-sfpplus1` enlaza a 10 Gbps full duplex mediante DAC de 1 m, no fibra optica.
+- XGE1 y GE4 pertenecen al mismo dominio L2 de la OLT: SFP1 aprende por LLDP a la propia CCR2116 reenviada desde GE4.
+- Agregar SFP1 al bridge mientras GE4 sigue habilitado crea riesgo de loop.
 
-# 2. Agregar el puerto SFP al bridge
-/interface bridge port add bridge=bridge1 interface=sfp-sfpplus1 comment="10G OLT"
+## Staging aplicado
 
-# 3. Configurar la tabla de VLANs (PASO CRÍTICO)
-# Esto indica que la VLAN 100 viaja etiquetada entre el CPU del MikroTik y la OLT por SFP+
-/interface bridge vlan
-add bridge=bridge1 tagged=bridge1,sfp-sfpplus1 vlan-ids=100
-
-# 4. Asegurar acceso administrativo (Lockout Protection)
-# Permitimos que la administración (VLAN nativa/1) pase por el puerto de WAN1 (Donde está tu IP 1.9)
-/interface bridge vlan
-add bridge=bridge1 untagged=bridge1,12-WAN1 vlan-ids=1
-```
-
-## 2. CONFIGURACIÓN OLT WOLCK (WK-OLT-16PG-B2)
-Accede por CLI a la OLT. El puerto SFP+ 10G en este modelo suele ser el **GE17** (o el primer puerto tras los 16 PON). 
-**Verifica con `show interface brief` antes de aplicar.**
-
-```bash
-enable
-config
-# Entrar al puerto SFP+ (Asegúrate que sea el puerto conectado físicamente)
-interface ge 0/17
-# Configurar como Trunk y permitir la VLAN de clientes
-description Uplink_10G_Mikrotik
-switchport mode trunk
-switchport trunk vlan 100
-exit
-write
-```
-
-## 3. ACTIVACIÓN (VENTANA DE RIESGO - MADRUGADA)
-En el MikroTik, haz clic en el botón **[Safe Mode]** de Winbox (ARRIBA A LA IZQUIERDA) y luego ejecuta:
+SFP1 ya esta registrado como puerto deshabilitado de `bridge1`:
 
 ```routeros
-# Activar el filtrado de VLAN en el bridge
-/interface bridge set [find name=bridge1] vlan-filtering=yes
+/interface bridge port
+add bridge=bridge1 interface=sfp-sfpplus1 pvid=100 disabled=yes comment="nexum-stage-olt10g"
 ```
 
-## 4. VERIFICACIÓN Y LIMPIEZA
-Si todo funciona:
-1. Desconecta el cable UTP del puerto `1-LAN-OLT`.
-2. Remueve el puerto viejo del bridge para evitar bucles:
-   ```routeros
-   /interface bridge port remove [find interface=1-LAN-OLT]
-   ```
+Al estar deshabilitado, no reenvia trafico y no afecta a los clientes.
 
-## 5. ROLLBACK (EN CASO DE FALLA)
-Si pierdes conexión o el servicio no vuelve:
-1. **Opción A (Safe Mode):** Si no has confirmado los cambios y pierdes acceso, el router volverá al estado anterior tras 30-60 segundos automáticamente.
-2. **Opción B (Manual):**
-   ```routeros
-   /interface bridge set [find name=bridge1] vlan-filtering=no
-   ```
+## Secuencia de cutover
+
+Usar Safe Mode en WinBox. La secuencia obligatoria es:
+
+1. Confirmar `sfp-sfpplus1` con `running=yes` y 10 Gbps.
+2. Deshabilitar el bridge port de `1-LAN-OLT`.
+3. Habilitar el bridge port de `sfp-sfpplus1`.
+4. Validar trafico, ARP y navegacion de clientes.
+
+Nunca habilitar ambos puertos simultaneamente.
+
+Ejecutar:
+
+```routeros
+/import file-name=01_CUTOVER_OLT_10G.rsc
+/import file-name=03_VALIDAR_OLT_10G.rsc
+```
+
+## Rollback
+
+El rollback usa el orden inverso y evita el loop:
+
+1. Deshabilitar SFP1.
+2. Habilitar `1-LAN-OLT`.
+
+```routeros
+/import file-name=02_ROLLBACK_OLT_10G.rsc
+```
+
+## Corte esperado
+
+El cambio son dos operaciones de bridge port y una pausa de 200 ms. La interrupcion tecnica esperada es menor a 2 segundos; ONUs o routers de clientes pueden tardar varios segundos adicionales en renovar ARP o sesiones.
+
+## No incluido
+
+El balanceo PCC de WAN10/WAN11 y backup WAN12 debe hacerse en una ventana separada. No mezclar la migracion del uplink OLT con cambios de rutas WAN.

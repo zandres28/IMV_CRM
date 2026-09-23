@@ -182,16 +182,12 @@ export class OltService {
     }
 
     async deactivateOnu(ponId: string, onuId: string): Promise<void> {
-        await this.apiPost('onu_deactive', { PonId: ponId, OnuId: parseInt(onuId) });
+        await this.apiPost('onu_deactive', { PonId: ponId, OnuId: parseInt(onuId), ControlFlag: 0 });
         OltService.invalidateOnuListCache();
     }
 
     async activateOnu(ponId: string, onuId: string): Promise<void> {
-        await this.apiPost('onu_manual_add', {
-            PonId: ponId,
-            OnuId: parseInt(onuId),
-            Action: 'activate'
-        });
+        await this.apiPost('onu_deactive', { PonId: ponId, OnuId: parseInt(onuId), ControlFlag: 1 });
         OltService.invalidateOnuListCache();
     }
 
