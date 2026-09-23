@@ -63,3 +63,15 @@ Evidencia (capturas y snapshots): carpeta `.playwright-mcp/`.
 - `page-*.yml` — snapshots de a11y de cada pantalla recorrida.
 - `client-detail.png` — detalle `/clients/105` correcto.
 - `billing-abril.png` (intentado; timeout por carga de fuentes, petición no crítica).
+
+## Estado de implementación (2026-09-23 — commit a continuación)
+
+Todos los hallazgos #1-#5 están **implementados y verificados** en navegador:
+
+1. **Tabs (ALTO) — CORREGIDO.** Emisores `openTabIndex: 3` → `1` en `ClientForm.tsx:129` y `ClientList.tsx:648/886/1192`. Además `ClientDetail.tsx` normaliza/clamp el `openTabIndex` al rango válido (`normalizeTabValue`, técnico=0..1 / admin=0..2) aceptando cualquier valor legacy. Verificado: crear cliente y "Agregar Instalación" aterrizan en la pestaña "Servicios" con contenido; 0 errores de consola.
+2. **N+1 (ALTO) — CORREGIDO.** Nuevo endpoint `GET /api/clients/summary` (`ClientController.getSummaries`, registrado en `routes/clients.ts` **antes** de `/:id`) devuelve en UNA respuesta los adicionales/productos/instalaciones de todos los clientes del scope (sucursal/técnico), agrupados por `clientId`, replicando los filtros de los endpoints por-client (`isDeleted=false`, `relations`, orden). `ClientList.tsx` ahora hace 1 sola llamada. Verificado: `/clients` = 1 request `clients` + 1 request `summary` (antes ~289).
+3. **Card "Antigüedad Cartera" (MEDIO) — CORREGIDO.** `GeneralDashboard.tsx:423` usa `formatCurrency(...)`. Verificado: muestra `$ 9.520.000`.
+4. **Eje del gráfico (BAJO) — CORREGIDO.** `GeneralDashboard.tsx:559` usa `Intl.NumberFormat('es-CO', {notation:'compact'})`. Verificado: ejes muestran `0 / 2,5 M / 5 M / 7,5 M / 10 M`.
+5. **Pago Manual de Instalación (BAJO) — IMPLEMENTADO.** El botón "Nuevo Pago Manual" era un stub hardcodeado con `disabled`; el backend `POST /api/installation-billing/manual` existía pero nunca se conectó en la UI. Se implementó diálogo MUI con: selector de cliente (Autocomplete), instalación del cliente (Select, se carga al elegir cliente), monto, fecha, método de pago y notas. Bonus: se alineó `CreateManualPaymentRequest` del service a lo que el backend espera (`date`, no `paymentDate`). Verificado: abre, carga clientes e instalaciones, valida el botón "Crear Pago".
+
+Pendiente: hallazgo #6 queda como observación para validar contra producción.

@@ -44,9 +44,7 @@ import { ClientService } from '../../services/ClientService';
 import { parseLocalDate, formatLocalDate } from '../../utils/dateUtils';
 import { formatPhoneForDisplay } from '../../utils/formatters';
 import { AdditionalService, ProductSold } from '../../types/AdditionalServices';
-import { AdditionalServiceService } from '../../services/AdditionalServiceService';
-import { ProductService } from '../../services/ProductService';
-import { InstallationService, Installation } from '../../services/InstallationService';
+import { Installation } from '../../services/InstallationService';
 import AuthService from '../../services/AuthService';
 
 type Order = 'asc' | 'desc';
@@ -263,21 +261,24 @@ export const ClientList: React.FC = () => {
 
     useEffect(() => {
         // Cuando cambian los clientes, cargar servicios/productos/instalaciones
+        // en UNA sola llamada batch (evita el patrón N+1 de 3 requests por cliente).
         const fetchDetails = async () => {
-            const newMap: Record<number, { additionalServices: AdditionalService[]; products: ProductSold[]; installations: Installation[] }> = {};
-            await Promise.all(clients.map(async (client) => {
-                try {
-                    const [additionalServices, products, installations] = await Promise.all([
-                        AdditionalServiceService.getByClient(client.id),
-                        ProductService.getByClient(client.id),
-                        InstallationService.getByClient(client.id)
-                    ]);
-                    newMap[client.id] = { additionalServices, products, installations };
-                } catch (e) {
-                    newMap[client.id] = { additionalServices: [], products: [], installations: [] };
+            try {
+                const summaries = await ClientService.getSummaries(true);
+                const newMap: Record<number, { additionalServices: AdditionalService[]; products: ProductSold[]; installations: Installation[] }> = {};
+                for (const key of Object.keys(summaries)) {
+                    const id = Number(key);
+                    const value = summaries[key];
+                    newMap[id] = {
+                        additionalServices: value?.additionalServices || [],
+                        products: value?.products || [],
+                        installations: value?.installations || []
+                    };
                 }
-            }));
-            setClientServices(newMap);
+                setClientServices(newMap);
+            } catch (e) {
+                console.error('Error al cargar el resumen de clientes:', e);
+            }
         };
         if (clients.length > 0) fetchDetails();
     }, [clients]);
@@ -645,7 +646,7 @@ export const ClientList: React.FC = () => {
                                                 title="Agregar Instalación"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } });
+                                                    navigate(`/clients/${client.id}`, { state: { openTabIndex: 1 } });
                                                 }}
                                             >
                                                 <AddIcon />
@@ -883,7 +884,7 @@ export const ClientList: React.FC = () => {
                                                         title="Agregar Instalación"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } });
+                                                            navigate(`/clients/${client.id}`, { state: { openTabIndex: 1 } });
                                                         }}
                                                     >
                                                         <AddIcon fontSize="small" />
@@ -1189,7 +1190,7 @@ export const ClientList: React.FC = () => {
                                                     <IconButton
                                                         color="primary"
                                                         title="Agregar Instalación"
-                                                        onClick={() => navigate(`/clients/${client.id}`, { state: { openTabIndex: 3 } })}
+                                                        onClick={() => navigate(`/clients/${client.id}`, { state: { openTabIndex: 1 } })}
                                                     >
                                                         <AddIcon />
                                                     </IconButton>
