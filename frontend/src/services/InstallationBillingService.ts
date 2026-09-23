@@ -62,7 +62,7 @@ export interface CreateManualPaymentRequest {
   clientId: number;
   installationId: number;
   amount: number;
-  paymentDate: string;
+  date: string;
   paymentMethod: string;
   notes?: string;
 }

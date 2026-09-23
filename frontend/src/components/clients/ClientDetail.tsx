@@ -70,6 +70,14 @@ const getTabIndexFromParam = (tabParam: string | null, isTechnician: boolean): n
     return mapping[normalized] ?? null;
 };
 
+// Los tabs reales son: técnico = 2 (0,1), operador/admin = 3 (0,1,2).
+// value fuera de rango (p.ej. openTabIndex:3 del layout viejo) dejaba la página en blanco.
+const normalizeTabValue = (raw: number, isTechnician: boolean): number => {
+    if (!Number.isInteger(raw)) return 0;
+    const max = isTechnician ? 1 : 2;
+    return Math.min(Math.max(raw, 0), max);
+};
+
 export const ClientDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -83,7 +91,7 @@ export const ClientDetail: React.FC = () => {
     const [tabValue, setTabValue] = useState<number>(() => {
         const stateTab = (location.state && (location.state as any).openTabIndex);
         if (typeof stateTab === 'number') {
-            return stateTab;
+            return normalizeTabValue(stateTab, isTechnician);
         }
         const params = new URLSearchParams(location.search);
         const mapped = getTabIndexFromParam(params.get('tab'), isTechnician);
@@ -187,8 +195,9 @@ export const ClientDetail: React.FC = () => {
 
         const stateTab = (location.state && (location.state as any).openTabIndex);
         if (typeof stateTab === 'number') {
-            if (stateTab !== tabValue) {
-                setTabValue(stateTab);
+            const normalized = normalizeTabValue(stateTab, isTechnician);
+            if (normalized !== tabValue) {
+                setTabValue(normalized);
             }
             return;
         }

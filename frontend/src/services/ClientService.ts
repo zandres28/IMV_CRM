@@ -16,6 +16,13 @@ export const ClientService = {
         return response.data;
     },
 
+    getSummaries: async (includeDeleted: boolean = true): Promise<Record<string, { additionalServices: any[]; products: any[]; installations: any[] }>> => {
+        const response = await axios.get(`${API_URL}/clients/summary`, {
+            params: { includeDeleted }
+        });
+        return response.data;
+    },
+
     create: async (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<Client> => {
         const response = await axios.post(`${API_URL}/clients`, client);
         return response.data;

@@ -1,7 +1,10 @@
 import { Response, Request } from "express";
-import { DeepPartial } from "typeorm";
+import { DeepPartial, In } from "typeorm";
 import { AppDataSource } from "../config/database";
 import { Client } from "../entities/Client";
+import { AdditionalService } from "../entities/AdditionalService";
+import { ProductSold } from "../entities/ProductSold";
+import { Installation } from "../entities/Installation";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { hasPermission, PERMISSIONS } from "../utils/permissions";
 import { createNoteInteraction } from "../utils/interactionUtils";
@@ -17,6 +20,9 @@ import axios from 'axios';
 const clientRepository = AppDataSource.getRepository(Client);
 const servicePlanRepository = AppDataSource.getRepository(ServicePlan);
 const consentLogRepository = AppDataSource.getRepository(PublicConsentLog);
+const additionalServiceRepository = AppDataSource.getRepository(AdditionalService);
+const productSoldRepository = AppDataSource.getRepository(ProductSold);
+const installationRepository = AppDataSource.getRepository(Installation);
 
 const buildPublicRequestWhatsappUrl = (data: {
     fullName: string;
@@ -415,6 +421,111 @@ export const ClientController = {
         } catch (error) {
             console.error('Error al obtener los clientes:', error);
             return res.status(500).json({ message: "Error al obtener los clientes", error });
+        }
+    },
+
+    // Batch de datos relacionados (adicionales, productos, instalaciones) para el listado,
+    // evitando el patrón N+1 de 3 requests por cliente.
+    getSummaries: async (req: AuthRequest, res: Response) => {
+        try {
+            // Verificar permiso para ver clientes
+            if (!hasPermission(req.user || null, PERMISSIONS.CLIENTS.LIST.VIEW)) {
+                return res.status(403).json({
+                    message: 'No tienes permiso para ver la lista de clientes'
+                });
+            }
+
+            const { includeDeleted } = req.query;
+            const user = req.user;
+
+            let query = clientRepository.createQueryBuilder('client');
+
+            // FILTRO POR SUCURSAL: Admin global (sin sucursal) ve todo;
+            // cualquier otro usuario solo ve los clientes de su sucursal.
+            const isGlobalAdmin = user && user.roles && user.roles.some((r: any) => r.name === 'admin') && !user.sucursal;
+            if (user && user.sucursal && !isGlobalAdmin) {
+                query = query.andWhere('client.sucursal = :sucursal', { sucursal: user.sucursal });
+            }
+
+            // ROL DE TÉCNICO: luego se filtran las instalaciones al componer el response.
+            let technicianName: string | null = null;
+            if (user && user.roles && user.roles.some((r: any) => r.name === 'Technician')) {
+                technicianName = `${user.firstName} ${user.lastName}`;
+                query = query.andWhere(qb => {
+                    const subQuery = qb.subQuery()
+                        .select("1")
+                        .from("installations", "i")
+                        .where("i.clientId = client.id")
+                        .andWhere("i.technician LIKE :techName")
+                        .getQuery();
+                    return "EXISTS " + subQuery;
+                }).setParameter("techName", `%${technicianName}%`);
+            }
+
+            if (includeDeleted === 'true') {
+                query = query.withDeleted();
+            } else {
+                query = query.andWhere('client.deletedAt IS NULL');
+            }
+
+            const clients = await query.getMany();
+            const ids = clients.map(c => c.id);
+
+            const empty: { additionalServices: any[]; products: any[]; installations: any[] } = {
+                additionalServices: [],
+                products: [],
+                installations: []
+            };
+
+            if (ids.length === 0) {
+                return res.json({});
+            }
+
+            const [additionalServices, products, installations] = await Promise.all([
+                additionalServiceRepository.find({
+                    where: { client: { id: In(ids) } },
+                    order: { created_at: 'DESC' }
+                }),
+                productSoldRepository.find({
+                    where: { client: { id: In(ids) } },
+                    relations: ['installmentPayments'],
+                    order: { created_at: 'DESC' }
+                }),
+                installationRepository.find({
+                    where: { client: { id: In(ids) }, isDeleted: false },
+                    relations: ['speedHistory', 'servicePlan'],
+                    order: { created_at: 'DESC' }
+                })
+            ]);
+
+            const result: Record<string, typeof empty> = {};
+            for (const id of ids) result[String(id)] = { ...empty, installations: [] };
+
+            const clientIdOf = (row: any): number | undefined => row?.clientId ?? row?.client?.id;
+
+            for (const service of additionalServices) {
+                const bucket = result[String(clientIdOf(service))];
+                if (bucket) bucket.additionalServices.push(service);
+            }
+            for (const product of products) {
+                const bucket = result[String(clientIdOf(product))];
+                if (bucket) bucket.products.push(product);
+            }
+
+            // Técnico: solo ver instalaciones que le correspondan (paridad con getInstallationsByClient).
+            const technicianFilter = technicianName
+                ? (inst: any) => !inst.technician || String(inst.technician).includes(technicianName!)
+                : () => true;
+
+            for (const installation of installations) {
+                const bucket = result[String(clientIdOf(installation))];
+                if (bucket && technicianFilter(installation)) bucket.installations.push(installation);
+            }
+
+            return res.json(result);
+        } catch (error) {
+            console.error('Error al obtener el resumen de clientes:', error);
+            return res.status(500).json({ message: "Error al obtener el resumen de clientes", error });
         }
     },
 

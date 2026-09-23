@@ -25,6 +25,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Autocomplete,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -38,6 +39,9 @@ import InstallationBillingService, {
   InstallationBillingStats,
   MarkPaidRequest,
 } from '../../services/InstallationBillingService';
+import { Client } from '../../types/Client';
+import { ClientService } from '../../services/ClientService';
+import { InstallationService, Installation } from '../../services/InstallationService';
 
 const InstallationBillingList: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -70,6 +74,18 @@ const InstallationBillingList: React.FC = () => {
   const [paymentData, setPaymentData] = useState<MarkPaidRequest>({
     paymentMethod: 'efectivo',
     paymentDate: new Date().toISOString().split('T')[0],
+  });
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [manualClients, setManualClients] = useState<Client[]>([]);
+  const [manualInstallations, setManualInstallations] = useState<Installation[]>([]);
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualData, setManualData] = useState({
+    clientId: 0,
+    installationId: 0,
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    paymentMethod: 'efectivo',
+    notes: '',
   });
 
   const loadPayments = useCallback(async () => {
@@ -142,6 +158,60 @@ const InstallationBillingList: React.FC = () => {
     }
   };
 
+  const handleOpenManualDialog = async () => {
+    setManualData({
+      clientId: 0,
+      installationId: 0,
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: 'efectivo',
+      notes: '',
+    });
+    setManualInstallations([]);
+    setManualDialogOpen(true);
+    try {
+      const data = await ClientService.getAll(false);
+      setManualClients(data);
+    } catch (error) {
+      console.error('Error al cargar clientes:', error);
+    }
+  };
+
+  const handleManualClientChange = async (clientId: number) => {
+    setManualData((prev) => ({ ...prev, clientId, installationId: 0 }));
+    setManualInstallations([]);
+    if (!clientId) return;
+    try {
+      const installations = await InstallationService.getByClient(clientId);
+      setManualInstallations(installations);
+    } catch (error) {
+      console.error('Error al cargar instalaciones:', error);
+    }
+  };
+
+  const handleCreateManualPayment = async () => {
+    const amount = Number(manualData.amount);
+    if (!manualData.clientId || !manualData.installationId || !amount || amount <= 0) return;
+
+    try {
+      setManualSaving(true);
+      await InstallationBillingService.createManualPayment({
+        clientId: manualData.clientId,
+        installationId: manualData.installationId,
+        amount,
+        date: manualData.date,
+        paymentMethod: manualData.paymentMethod,
+        notes: manualData.notes || undefined,
+      });
+      setManualDialogOpen(false);
+      loadPayments();
+    } catch (error) {
+      console.error('Error al crear pago manual:', error);
+    } finally {
+      setManualSaving(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pagado':
@@ -192,7 +262,7 @@ const InstallationBillingList: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Pagos de Instalación</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} disabled>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenManualDialog}>
           Nuevo Pago Manual
         </Button>
       </Box>
@@ -569,6 +639,106 @@ const InstallationBillingList: React.FC = () => {
           <Button onClick={() => setPayDialogOpen(false)}>Cancelar</Button>
           <Button onClick={handleMarkAsPaid} variant="contained" color="success">
             Confirmar Pago
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Manual Payment Dialog */}
+      <Dialog open={manualDialogOpen} onClose={() => setManualDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Nuevo Pago Manual de Instalación</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Autocomplete
+              fullWidth
+              options={manualClients}
+              getOptionLabel={(option) => `${option.fullName} (${option.identificationNumber})`}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, value) => handleManualClientChange(value?.id || 0)}
+              renderInput={(params) => <TextField {...params} label="Cliente" />}
+            />
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Instalación</InputLabel>
+              <Select
+                value={manualData.installationId}
+                label="Instalación"
+                onChange={(e) => setManualData({ ...manualData, installationId: Number(e.target.value) })}
+                disabled={!manualData.clientId}
+              >
+                <MenuItem value={0}>
+                  <em>Seleccione instalación...</em>
+                </MenuItem>
+                {manualInstallations.map((inst) => (
+                  <MenuItem key={inst.id} value={inst.id}>
+                    {inst.serviceType} - {inst.speedMbps} Mbps ({inst.serviceStatus})
+                  </MenuItem>
+                ))}
+                {manualInstallations.length === 0 && (
+                  <MenuItem value={0} disabled>
+                    Sin instalaciones registradas
+                  </MenuItem>
+                )}
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              type="number"
+              label="Monto"
+              value={manualData.amount}
+              onChange={(e) => setManualData({ ...manualData, amount: e.target.value })}
+              sx={{ mt: 2 }}
+              inputProps={{ min: 0, step: 1000 }}
+            />
+            <TextField
+              fullWidth
+              type="date"
+              label="Fecha de Pago"
+              value={manualData.date}
+              onChange={(e) => setManualData({ ...manualData, date: e.target.value })}
+              sx={{ mt: 2 }}
+              InputLabelProps={{ shrink: true }}
+            />
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Método de Pago</InputLabel>
+              <Select
+                value={manualData.paymentMethod}
+                label="Método de Pago"
+                onChange={(e) => setManualData({ ...manualData, paymentMethod: e.target.value })}
+              >
+                <MenuItem value="efectivo">Efectivo</MenuItem>
+                <MenuItem value="nequi">Nequi</MenuItem>
+                <MenuItem value="bancolombia">Bancolombia</MenuItem>
+                <MenuItem value="daviplata">Daviplata</MenuItem>
+                <MenuItem value="rappi">Rappi</MenuItem>
+                <MenuItem value="bbva">BBVA</MenuItem>
+                <MenuItem value="littio">Littio</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              label="Notas"
+              value={manualData.notes}
+              onChange={(e) => setManualData({ ...manualData, notes: e.target.value })}
+              sx={{ mt: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setManualDialogOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={handleCreateManualPayment}
+            variant="contained"
+            color="primary"
+            disabled={
+              manualSaving ||
+              !manualData.clientId ||
+              !manualData.installationId ||
+              !manualData.amount ||
+              Number(manualData.amount) <= 0
+            }
+          >
+            {manualSaving ? 'Guardando...' : 'Crear Pago'}
           </Button>
         </DialogActions>
       </Dialog>

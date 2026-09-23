@@ -126,7 +126,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
             } else {
                 const newClient = await ClientService.create(dataToSave);
                 // Después de crear, navegar a detalles del cliente con tab de instalaciones abierto
-                navigate(`/clients/${newClient.id}`, { state: { openTabIndex: 3 } });
+                navigate(`/clients/${newClient.id}`, { state: { openTabIndex: 1 } });
             }
         } catch (error) {
             console.error('Error al guardar el cliente:', error);

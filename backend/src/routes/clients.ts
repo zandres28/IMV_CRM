@@ -7,6 +7,7 @@ const router = Router();
 
 // Rutas para clientes
 router.get("/", requirePermission(PERMISSIONS.CLIENTS.LIST.VIEW), ClientController.getAll);
+router.get("/summary", requirePermission(PERMISSIONS.CLIENTS.LIST.VIEW), ClientController.getSummaries);
 router.get("/:id/payments", requirePermission(PERMISSIONS.CLIENTS.LIST.VIEW), ClientController.getPayments);
 router.get("/:id", requirePermission(PERMISSIONS.CLIENTS.LIST.VIEW), ClientController.getById);
 router.post("/", requirePermission(PERMISSIONS.CLIENTS.LIST.CREATE), ClientController.create);

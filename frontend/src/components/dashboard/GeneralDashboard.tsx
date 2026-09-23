@@ -420,7 +420,7 @@ export const GeneralDashboard: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
             title="Antigüedad Cartera"
-            value={`${stats.collection.portfolioByAge.range90_plus > 0 ? stats.collection.portfolioByAge.range90_plus : 0}`}
+            value={formatCurrency(stats.collection.portfolioByAge.range90_plus > 0 ? stats.collection.portfolioByAge.range90_plus : 0)}
             subtext="+90 días en mora"
             icon={<AssignmentLate fontSize="small" />}
             color={tokens.danger}
@@ -556,7 +556,7 @@ export const GeneralDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={portfolioData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={(val: number) => `$${val / 1000}k`} />
+                <XAxis type="number" tickFormatter={(val: number) => new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 }).format(val)} />
                 <YAxis dataKey="name" type="category" width={80} style={{ fontSize: '12px' }} />
                 <ChartTooltip formatter={(value: any) => formatCurrency(Number(value))} />
                 <Bar dataKey="value" name="Monto" fill={tokens.warn} />
