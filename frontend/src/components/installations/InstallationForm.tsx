@@ -11,12 +11,19 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    SelectChangeEvent
+    SelectChangeEvent,
+    IconButton,
+    Tooltip,
+    useMediaQuery,
+    useTheme,
+    Box
 } from '@mui/material';
+import { CameraAlt as CameraIcon } from '@mui/icons-material';
 import { Installation, InstallationService } from '../../services/InstallationService';
 import { ServicePlanService, ServicePlan } from '../../services/ServicePlanService';
 import { TechnicianService, Technician } from '../../services/TechnicianService';
 import { toInputDateString } from '../../utils/dateUtils';
+import { BarcodeScanner } from './BarcodeScanner';
 
 interface InstallationFormProps {
     open: boolean;
@@ -39,6 +46,9 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
     const [technicians, setTechnicians] = React.useState<Technician[]>([]);
     const [plansLoading, setPlansLoading] = React.useState<boolean>(true);
     const [techsLoading, setTechsLoading] = React.useState<boolean>(true);
+    const [scannerOpen, setScannerOpen] = React.useState(false);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     const buildDefaultForm = React.useCallback((): Partial<Installation> => ({
         servicePlanId: prefillData?.servicePlanId,
@@ -238,17 +248,44 @@ export const InstallationForm: React.FC<InstallationFormProps> = ({
                             />
                         </Grid>
                         <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="ONU-SN"
-                                name="onuSerialNumber"
-                                value={(formData as any).onuSerialNumber || ''}
-                                onChange={handleInputChange}
-                                required
-                                inputProps={{ minLength: 10 }}
-                                helperText="Debe ser único. Mínimo 10 caracteres."
-                            />
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                                <TextField
+                                    fullWidth
+                                    label="ONU-SN"
+                                    name="onuSerialNumber"
+                                    value={(formData as any).onuSerialNumber || ''}
+                                    onChange={handleInputChange}
+                                    required
+                                    inputProps={{ minLength: 10 }}
+                                    helperText="Debe ser único. Mínimo 10 caracteres."
+                                />
+                                {isMobile && (
+                                    <Tooltip title="Escanear código de barras">
+                                        <IconButton
+                                            onClick={() => setScannerOpen(true)}
+                                            sx={{
+                                                mt: '-8px',
+                                                color: '#2D5BFF',
+                                                border: '1px solid #E2E6F0',
+                                                borderRadius: '8px',
+                                                width: 40,
+                                                height: 40,
+                                                '&:hover': { bgcolor: 'rgba(45,91,255,0.08)' }
+                                            }}
+                                        >
+                                            <CameraIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Box>
                         </Grid>
+                        <BarcodeScanner
+                            open={scannerOpen}
+                            onClose={() => setScannerOpen(false)}
+                            onScan={(code) => {
+                                setFormData(prev => ({ ...prev, onuSerialNumber: code }));
+                            }}
+                        />
                         <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth

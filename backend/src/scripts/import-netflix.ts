@@ -51,6 +51,8 @@ const main = async () => {
         notFound: [] as string[],
     };
 
+    const clientCursor = new Map<number, number>();
+
     for (const accountEmail of [...new Set(rows.map(r => r.account))]) {
         const group = rows.filter(r => r.account === accountEmail);
 
@@ -59,11 +61,13 @@ const main = async () => {
             account = new NetflixAccount();
             account.email = accountEmail;
             account.maxSlots = group.length;
-            account.paymentMethod = group[0]?.paymentMethod || null;
             account.notes = 'Importado desde PLANES NETFLIX.xlsx';
             account = await accountRepo.save(account);
             summary.accounts++;
         }
+        account.maxSlots = Math.max(account.maxSlots || 0, group.length);
+        account.paymentMethod = group[0]?.paymentMethod || account.paymentMethod || null;
+        await accountRepo.save(account);
 
         const usedPins = new Set<string>((account.slots || []).map(s => s.pin));
 
@@ -101,23 +105,28 @@ const main = async () => {
 
             let service: AdditionalService | null = null;
 
-            if (row.ad) {
-                service = await serviceRepo.findOne({ where: { id: row.ad }, relations: ['client'] });
-                if (service) {
-                    service.notes = `${accountEmail}\n${pin} ${row.alias}`;
-                    await serviceRepo.save(service);
-                } else {
-                    summary.notFound.push(`servicio adicional ${row.ad} (${accountEmail} / ${row.alias})`);
-                }
-            } else if (row.create && row.clientId) {
-                const existing = await serviceRepo.findOne({
-                    where: { client: { id: row.clientId }, status: 'activo' },
-                    relations: ['client'],
-                });
-                service = existing || null;
-                if (!service) {
-                    const client = await clientRepo.findOneBy({ id: row.clientId });
-                    if (client) {
+            if (row.clientId) {
+                const client = await clientRepo.findOneBy({ id: row.clientId });
+                if (client) {
+                    slot.client = client;
+                    slot.assignedAt = slot.assignedAt || new Date();
+                    summary.linked++;
+
+                    const clientServices = await serviceRepo.find({
+                        where: { client: { id: client.id } },
+                        relations: ['client'],
+                    });
+                    const netflixServices = clientServices
+                        .filter(s => (s.serviceName || '').toLowerCase() === NETFLIX_SERVICE_NAME)
+                        .sort((a, b) => Number(b.monthlyFee || 0) - Number(a.monthlyFee || 0) || a.id - b.id);
+
+                    if (netflixServices.length > 0) {
+                        const idx = Math.min(clientCursor.get(client.id) || 0, netflixServices.length - 1);
+                        clientCursor.set(client.id, (clientCursor.get(client.id) || 0) + 1);
+                        service = netflixServices[idx];
+                        service.notes = `${accountEmail}\n${pin} ${row.alias}`;
+                        await serviceRepo.save(service);
+                    } else if (row.create) {
                         service = new AdditionalService();
                         service.client = client;
                         service.serviceName = 'Netflix';
@@ -127,18 +136,7 @@ const main = async () => {
                         service.notes = `${accountEmail}\n${pin} ${row.alias}`;
                         service = await serviceRepo.save(service);
                         summary.servicesCreated++;
-                    } else {
-                        summary.notFound.push(`cliente ${row.clientId} (${accountEmail} / ${row.alias})`);
                     }
-                }
-            }
-
-            if (row.clientId) {
-                const client = await clientRepo.findOneBy({ id: row.clientId });
-                if (client) {
-                    slot.client = client;
-                    slot.assignedAt = slot.assignedAt || new Date();
-                    summary.linked++;
                 } else {
                     summary.notFound.push(`cliente ${row.clientId} (${accountEmail} / ${row.alias})`);
                 }

@@ -60,17 +60,24 @@ export const IptvController = {
 
             const expDate = req.body.expDate ? new Date(req.body.expDate) : undefined;
 
-            const result = await IptvService.createLine(client.fullName, undefined, expDate);
+            const hasXuiConfig = !!(process.env.XUI_PANEL_URL && process.env.XUI_API_KEY);
 
-            if (!result.success) {
-                return res.status(502).json({
-                    message: `Error creando línea IPTV en el panel: ${result.error}`,
-                    error: result.error
-                });
+            if (hasXuiConfig) {
+                const result = await IptvService.createLine(client.fullName, undefined, expDate);
+                if (!result.success) {
+                    return res.status(502).json({
+                        message: `Error creando línea IPTV en el panel: ${result.error}`,
+                        error: result.error
+                    });
+                }
+                client.iptvUsername = result.username;
+                client.iptvPassword = result.password;
+            } else {
+                const username = IptvService.generateUsername(client.fullName);
+                client.iptvUsername = username;
+                client.iptvPassword = username;
             }
 
-            client.iptvUsername = result.username;
-            client.iptvPassword = result.password;
             client.iptvStatus = 'activo';
             client.iptvExpDate = expDate || null;
 
