@@ -155,9 +155,11 @@ export const ClientList: React.FC = () => {
             const matchesBasicSearch = (
                 client.fullName.toLowerCase().includes(searchLower) ||
                 client.identificationNumber.toLowerCase().includes(searchLower) ||
+                client.installationAddress?.toLowerCase().includes(searchLower) ||
                 client.city.toLowerCase().includes(searchLower) ||
                 client.email.toLowerCase().includes(searchLower) ||
-                client.primaryPhone.toLowerCase().includes(searchLower)
+                client.primaryPhone.toLowerCase().includes(searchLower) ||
+                (client.secondaryPhone || '').toLowerCase().includes(searchLower)
             );
 
             // Check if any additional service name matches the search term
