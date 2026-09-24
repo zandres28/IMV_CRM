@@ -500,7 +500,7 @@ export const ClientController = {
             ]);
 
             const result: Record<string, typeof empty> = {};
-            for (const id of ids) result[String(id)] = { ...empty, installations: [] };
+            for (const id of ids) result[String(id)] = { additionalServices: [], products: [], installations: [] };
 
             const clientIdOf = (row: any): number | undefined => row?.clientId ?? row?.client?.id;
 
