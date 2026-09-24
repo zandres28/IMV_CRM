@@ -484,16 +484,17 @@ export const ClientController = {
             const [additionalServices, products, installations] = await Promise.all([
                 additionalServiceRepository.find({
                     where: { client: { id: In(ids) } },
+                    relations: ['client'],
                     order: { created_at: 'DESC' }
                 }),
                 productSoldRepository.find({
                     where: { client: { id: In(ids) } },
-                    relations: ['installmentPayments'],
+                    relations: ['installmentPayments', 'client'],
                     order: { created_at: 'DESC' }
                 }),
                 installationRepository.find({
                     where: { client: { id: In(ids) }, isDeleted: false },
-                    relations: ['speedHistory', 'servicePlan'],
+                    relations: ['speedHistory', 'servicePlan', 'client'],
                     order: { created_at: 'DESC' }
                 })
             ]);
