@@ -11,13 +11,54 @@ import {
     MenuItem,
     SelectChangeEvent,
     Box,
+    IconButton,
+    Tooltip,
 } from '@mui/material';
-import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon, ContentCopy as CopyIcon, Check as CheckIcon } from '@mui/icons-material';
 import { Client } from '../../types/Client';
 import { ClientService } from '../../services/ClientService';
 import { useNavigate } from 'react-router-dom';
 import { formatPhoneForDisplay } from '../../utils/formatters';
 import AuthService from '../../services/AuthService';
+
+// Fila de dato en la tarjeta: etiqueta en label + valor + botón de copiar (si aplica)
+interface InfoRowProps {
+    label: string;
+    value?: string | null;
+    copyable?: boolean;
+    onCopied?: () => void;
+}
+
+const statusLabel = (status?: string): string => {
+    const map: Record<string, string> = {
+        activo: 'Activo',
+        suspendido: 'Suspendido',
+        retirado: 'Retirado',
+        inactivo: 'Inactivo',
+        pendiente_instalacion: 'Pendiente Instalación'
+    };
+    return map[status || ''] || status || '-';
+};
+
+const InfoRow: React.FC<InfoRowProps> = ({ label, value, copyable, onCopied }) => (
+    <Box>
+        <Typography sx={{ color: '#6B7290', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.6rem', mb: 0.25 }}>
+            {label}
+        </Typography>
+        <Box display="flex" alignItems="center" gap={0.5} minHeight={28}>
+            <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#0E1330', wordBreak: 'break-word' }}>
+                {value || '-'}
+            </Typography>
+            {copyable && value && (
+                <Tooltip title={`Copiar ${label.toLowerCase()}`}>
+                    <IconButton size="small" onClick={onCopied} sx={{ p: 0.25 }}>
+                        <CopyIcon fontSize="small" sx={{ fontSize: 14, color: '#6B7290' }} />
+                    </IconButton>
+                </Tooltip>
+            )}
+        </Box>
+    </Box>
+);
 
 interface ClientFormProps {
     client?: Client;
@@ -27,6 +68,7 @@ interface ClientFormProps {
 export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
     const navigate = useNavigate();
     const [isEditable, setIsEditable] = useState(!client);
+    const [copiedField, setCopiedField] = useState<string | null>(null);
     const currentUser = AuthService.getCurrentUser();
     const [formData, setFormData] = useState({
         fullName: '',
@@ -89,12 +131,26 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
         }));
     };
 
-    const handleSelectChange = (e: SelectChangeEvent) => {
+const handleSelectChange = (e: SelectChangeEvent) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleCopy = (field: string, value?: string | null) => {
+        if (!value) return;
+        navigator.clipboard?.writeText(value).catch(() => {});
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 1500);
+    };
+
+    const copyButton = (field: string, value?: string | null) => {
+        if (copiedField === field) {
+            return <CheckIcon fontSize="small" sx={{ fontSize: 14, color: '#00D4A6' }} />;
+        }
+        return <CopyIcon fontSize="small" sx={{ fontSize: 14, color: '#6B7290' }} />;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +191,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
     };
 
     return (
-        <Paper style={{ padding: '2rem' }}>
+        <Paper sx={{ p: { xs: 2, md: 3 }, borderRadius: '16px', border: '1px solid #E2E6F0', boxShadow: '0 1px 0 rgba(14,19,48,0.04), 0 8px 24px -16px rgba(14,19,48,0.18)' }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Typography variant="h5">
                     {client ? 'Información del Cliente' : 'Nuevo Cliente'}
@@ -151,19 +207,75 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                 )}
             </Box>
 
-            <form onSubmit={handleSubmit}>
+            {client && !isEditable ? (
                 <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                        <TextField
-                            fullWidth
-                            required
-                            name="fullName"
-                            label="Nombres y Apellidos Completos"
-                            value={formData.fullName}
-                            onChange={handleInputChange}
-                            disabled={!isEditable}
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow
+                            label="Nombres y Apellidos"
+                            value={client.fullName}
+                            copyable
+                            onCopied={() => handleCopy('fullName', client.fullName)}
                         />
                     </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow label="No. Cédula" value={client.identificationNumber} />
+                    </Grid>
+                    <Grid item xs={12}>
+                        <InfoRow
+                            label="Dirección"
+                            value={client.installationAddress && client.city ? `${client.installationAddress}, ${client.city}` : client.installationAddress || client.city}
+                            copyable
+                            onCopied={() => handleCopy('address', client.installationAddress && client.city ? `${client.installationAddress}, ${client.city}` : client.installationAddress || client.city)}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow label="Ciudad" value={client.city} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow label="Sucursal" value={client.sucursal} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow
+                            label="Celular 1"
+                            value={formatPhoneForDisplay(client.primaryPhone)}
+                            copyable
+                            onCopied={() => handleCopy('primaryPhone', formatPhoneForDisplay(client.primaryPhone))}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow
+                            label="Celular 2"
+                            value={formatPhoneForDisplay(client.secondaryPhone)}
+                            copyable
+                            onCopied={() => handleCopy('secondaryPhone', formatPhoneForDisplay(client.secondaryPhone))}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow label="Correo Electrónico" value={client.email} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <InfoRow label="Estado" value={statusLabel(client.status)} />
+                    </Grid>
+                    {client.suspension_extension_date && (
+                        <Grid item xs={12} sm={6}>
+                            <InfoRow label="Extender Susp. Hasta" value={client.suspension_extension_date.split('T')[0]} />
+                        </Grid>
+                    )}
+                </Grid>
+            ) : (
+                <form onSubmit={handleSubmit}>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                required
+                                name="fullName"
+                                label="Nombres y Apellidos Completos"
+                                value={formData.fullName}
+                                onChange={handleInputChange}
+                                disabled={!isEditable}
+                            />
+                        </Grid>
 
                     <Grid item xs={12} sm={6}>
                         <TextField
@@ -291,19 +403,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                     </Grid>
 
                     {/* Boton Editar: Solo si no es técnico */}
-                    {client && !isEditable && !AuthService.hasRole('tecnico') && (
-                         <Box sx={{ position: 'absolute', top: 20, right: 20 }}>
-                            <Button 
-                                onClick={() => setIsEditable(true)} 
-                                startIcon={<EditIcon />} 
-                                variant="outlined" 
-                                size="small"
-                            >
-                                Editar
-                            </Button>
-                         </Box>
-                    )}
-
                     {isEditable && (
                         <Grid item xs={12} sx={{ display: 'flex', gap: 2, mt: 2 }}>
                             <Button
@@ -328,8 +427,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onSave }) => {
                             )}
                         </Grid>
                     )}
-                </Grid>
-            </form>
+                    </Grid>
+                </form>
+            )}
         </Paper>
     );
 };
