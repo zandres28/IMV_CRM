@@ -153,6 +153,7 @@ export const OltController = {
     getOnuRunState: async (req: Request, res: Response) => {
         try {
             const { installationId } = req.params;
+            const force = req.query.force === 'true'; // Bypass cache si force=true
             
             const installation = await findInstallation(installationId);
 
@@ -161,6 +162,12 @@ export const OltController = {
             }
 
             const oltService = new OltService();
+            
+            // Si force=true, invalidar cache antes de consultar
+            if (force) {
+                OltService.invalidateOnuListCache();
+            }
+
             let runState: string | null = null;
 
             if (installation.onuSerialNumber) {

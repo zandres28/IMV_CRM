@@ -22,7 +22,8 @@ import {
     CardContent,
     Divider,
     Grid,
-    CircularProgress
+    CircularProgress,
+    Tooltip
 } from '@mui/material';
 import AuthService from '../../services/AuthService';
 import {
@@ -146,6 +147,24 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
             setLoadingOnuStatus(false);
         }
     }, [clientId, handleOpenNewForm]);
+
+    const fetchOnuStatus = useCallback(async (installation: Installation) => {
+        if (!installation.onuSerialNumber) return;
+        
+        setOnuStatusMap(prev => ({ ...prev, [installation.id]: null }));
+        setLoadingOnuStatus(true);
+        try {
+            const status = await InstallationService.getOnuStatus(installation.id, true); // force=true
+            setOnuStatusMap(prev => ({ ...prev, [installation.id]: {
+                onlineStatus: status.onlineStatus,
+                isOnline: status.isOnline
+            }}));
+        } catch {
+            setOnuStatusMap(prev => ({ ...prev, [installation.id]: { onlineStatus: 'unknown', isOnline: false } }));
+        } finally {
+            setLoadingOnuStatus(false);
+        }
+    }, []);
 
     useEffect(() => {
         loadInstallations(false);
@@ -550,19 +569,26 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                         if (loadingOnuStatus) return <CircularProgress size={14} />;
                                         if (!onuStatus) return null;
                                         return (
-                                            <Chip
-                                                label={onuStatus.isOnline ? 'ONU ONLINE' : 'ONU OFFLINE'}
-                                                icon={onuStatus.isOnline ? <WifiIcon /> : <WifiOffIcon />}
-                                                sx={{
-                                                    height: 20,
-                                                    fontSize: '0.6rem',
-                                                    fontWeight: 800,
-                                                    bgcolor: onuStatus.isOnline ? '#1cc88a20' : '#e74a3b20',
-                                                    color: onuStatus.isOnline ? '#1cc88a' : '#e74a3b',
-                                                    border: `1px solid ${onuStatus.isOnline ? '#1cc88a' : '#e74a3b'}`
-                                                }}
-                                                size="small"
-                                            />
+                                            <Box display="flex" alignItems="center" gap={0.5}>
+                                                <Chip
+                                                    label={onuStatus.isOnline ? 'ONU ONLINE' : 'ONU OFFLINE'}
+                                                    icon={onuStatus.isOnline ? <WifiIcon /> : <WifiOffIcon />}
+                                                    sx={{
+                                                        height: 20,
+                                                        fontSize: '0.6rem',
+                                                        fontWeight: 800,
+                                                        bgcolor: onuStatus.isOnline ? '#1cc88a20' : '#e74a3b20',
+                                                        color: onuStatus.isOnline ? '#1cc88a' : '#e74a3b',
+                                                        border: `1px solid ${onuStatus.isOnline ? '#1cc88a' : '#e74a3b'}`
+                                                    }}
+                                                    size="small"
+                                                />
+                                                <Tooltip title="Forzar refresco (bypass cache OLT)">
+                                                    <IconButton size="small" onClick={() => fetchOnuStatus(installation)} sx={{ color: '#6B7290', p: 0.25 }}>
+                                                        <SyncIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                         );
                                     })()}
                                 </Box>
@@ -658,19 +684,26 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                         }
 
                                         return (
-                                            <Chip
-                                                label={onuStatus.isOnline ? 'ONLINE' : 'OFFLINE'}
-                                                icon={onuStatus.isOnline ? <WifiIcon /> : <WifiOffIcon />}
-                                                sx={{ 
-                                                    height: 18, 
-                                                    fontSize: '0.6rem', 
-                                                    fontWeight: 800,
-                                                    bgcolor: onuStatus.isOnline ? '#1cc88a20' : '#e74a3b20',
-                                                    color: onuStatus.isOnline ? '#1cc88a' : '#e74a3b',
-                                                    border: `1px solid ${onuStatus.isOnline ? '#1cc88a' : '#e74a3b'}`
-                                                }}
-                                                size="small"
-                                            />
+                                            <Box display="flex" alignItems="center" gap={0.5}>
+                                                <Chip
+                                                    label={onuStatus.isOnline ? 'ONLINE' : 'OFFLINE'}
+                                                    icon={onuStatus.isOnline ? <WifiIcon /> : <WifiOffIcon />}
+                                                    sx={{ 
+                                                        height: 18, 
+                                                        fontSize: '0.6rem', 
+                                                        fontWeight: 800,
+                                                        bgcolor: onuStatus.isOnline ? '#1cc88a20' : '#e74a3b20',
+                                                        color: onuStatus.isOnline ? '#1cc88a' : '#e74a3b',
+                                                        border: `1px solid ${onuStatus.isOnline ? '#1cc88a' : '#e74a3b'}`
+                                                    }}
+                                                    size="small"
+                                                />
+                                                <Tooltip title="Forzar refresco (bypass cache OLT)">
+                                                    <IconButton size="small" onClick={() => fetchOnuStatus(installation)} sx={{ color: '#6B7290', p: 0.25 }}>
+                                                        <SyncIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                         );
                                     })()}
                                 </TableCell>
