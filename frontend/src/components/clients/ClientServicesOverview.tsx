@@ -123,10 +123,10 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
     const [onuStatusMap, setOnuStatusMap] = useState<Record<number, { onlineStatus: string; isOnline: boolean } | null>>({});
     const [onuLoadingMap, setOnuLoadingMap] = useState<Record<number, boolean>>({});
 
-    const fetchOnuStatus = useCallback(async (inst: Installation) => {
+    const fetchOnuStatus = useCallback(async (inst: Installation, force = false) => {
         setOnuLoadingMap(prev => ({ ...prev, [inst.id]: true }));
         try {
-            const status = await InstallationService.getOnuStatus(inst.id);
+            const status = await InstallationService.getOnuStatus(inst.id, force);
             setOnuStatusMap(prev => ({ ...prev, [inst.id]: status }));
         } catch {
             setOnuStatusMap(prev => ({ ...prev, [inst.id]: { onlineStatus: 'unknown', isOnline: false } }));
@@ -226,12 +226,19 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                     {onuLoadingMap[inst.id] ? (
                                         <CircularProgress size={14} sx={{ color: '#6B7290' }} />
                                     ) : onuStatusMap[inst.id] ? (
-                                        <Chip
-                                            icon={onuStatusMap[inst.id]!.isOnline ? <WifiIcon sx={{ fontSize: 12, color: '#1cc88a !important' }} /> : <WifiOffIcon sx={{ fontSize: 12, color: '#e74a3b !important' }} />}
-                                            label={onuStatusMap[inst.id]!.isOnline ? 'ONU Online' : 'ONU Offline'}
-                                            size="small"
-                                            sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: onuStatusMap[inst.id]!.isOnline ? 'rgba(28,200,138,0.12)' : 'rgba(231,74,59,0.12)', color: onuStatusMap[inst.id]!.isOnline ? '#1cc88a' : '#e74a3b' }}
-                                        />
+                                        <>
+                                            <Chip
+                                                icon={onuStatusMap[inst.id]!.isOnline ? <WifiIcon sx={{ fontSize: 12, color: '#1cc88a !important' }} /> : <WifiOffIcon sx={{ fontSize: 12, color: '#e74a3b !important' }} />}
+                                                label={onuStatusMap[inst.id]!.isOnline ? 'ONU Online' : 'ONU Offline'}
+                                                size="small"
+                                                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: onuStatusMap[inst.id]!.isOnline ? 'rgba(28,200,138,0.12)' : 'rgba(231,74,59,0.12)', color: onuStatusMap[inst.id]!.isOnline ? '#1cc88a' : '#e74a3b' }}
+                                            />
+                                            <Tooltip title="Forzar refresco (bypass cache OLT)">
+                                                <IconButton size="small" onClick={() => fetchOnuStatus(inst, true)} sx={{ color: '#6B7290', p: 0.25 }}>
+                                                    <RefreshIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </>
                                     ) : (
                                         <Chip
                                             icon={<RefreshIcon sx={{ fontSize: 12 }} />}
@@ -305,12 +312,19 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                         {onuLoadingMap[inst.id] ? (
                                             <CircularProgress size={14} sx={{ color: '#6B7290' }} />
                                         ) : onuStatusMap[inst.id] ? (
-                                            <Chip
-                                                icon={onuStatusMap[inst.id]!.isOnline ? <WifiIcon sx={{ fontSize: 12, color: '#1cc88a !important' }} /> : <WifiOffIcon sx={{ fontSize: 12, color: '#e74a3b !important' }} />}
-                                                label={onuStatusMap[inst.id]!.isOnline ? 'ONU Online' : 'ONU Offline'}
-                                                size="small"
-                                                sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700, bgcolor: onuStatusMap[inst.id]!.isOnline ? 'rgba(28,200,138,0.12)' : 'rgba(231,74,59,0.12)', color: onuStatusMap[inst.id]!.isOnline ? '#1cc88a' : '#e74a3b' }}
-                                            />
+                                            <Box display="flex" alignItems="center" gap={0.5}>
+                                                <Chip
+                                                    icon={onuStatusMap[inst.id]!.isOnline ? <WifiIcon sx={{ fontSize: 12, color: '#1cc88a !important' }} /> : <WifiOffIcon sx={{ fontSize: 12, color: '#e74a3b !important' }} />}
+                                                    label={onuStatusMap[inst.id]!.isOnline ? 'ONU Online' : 'ONU Offline'}
+                                                    size="small"
+                                                    sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700, bgcolor: onuStatusMap[inst.id]!.isOnline ? 'rgba(28,200,138,0.12)' : 'rgba(231,74,59,0.12)', color: onuStatusMap[inst.id]!.isOnline ? '#1cc88a' : '#e74a3b' }}
+                                                />
+                                                <Tooltip title="Forzar refresco (bypass cache OLT)">
+                                                    <IconButton size="small" onClick={() => fetchOnuStatus(inst, true)} sx={{ color: '#6B7290', p: 0.25 }}>
+                                                        <RefreshIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                         ) : (
                                             <Chip
                                                 icon={<RefreshIcon sx={{ fontSize: 12 }} />}

@@ -232,6 +232,24 @@ export const ClientController = {
                     planMonthlyFee: Number(plan.monthlyFee || 0)
                 });
 
+                // Notificar a los administradores sobre la solicitud actualizada
+                try {
+                    const userRepo = AppDataSource.getRepository(User);
+                    const potentialRecipients = await userRepo.find({ relations: ['roles'] });
+                    const admins = potentialRecipients.filter(user =>
+                        (user.roles || []).some(role => role.name?.toLowerCase().includes('admin'))
+                    );
+
+                    const notificationMessage = `Solicitud web actualizada: ${existingClient.fullName} - ${plan.name}`;
+                    const link = `/clients/${existingClient.id}?tab=crm`;
+
+                    for (const admin of admins) {
+                        await NotificationService.create(admin, notificationMessage, link);
+                    }
+                } catch (notifyError) {
+                    console.error('Error enviando notificación de solicitud web actualizada:', notifyError);
+                }
+
                 const whatsappUrl = buildPublicRequestWhatsappUrl({
                     fullName: existingClient.fullName,
                     planName: plan.name,

@@ -105,8 +105,10 @@ export const InstallationService = {
         return response.data;
     },
 
-    getOnuStatus: async (id: number): Promise<{ onlineStatus: string; isOnline: boolean }> => {
-        const response = await axios.get(`${API_URL}/installations/${id}/onu-status`);
+    getOnuStatus: async (id: number, force = false): Promise<{ onlineStatus: string; isOnline: boolean }> => {
+        const response = await axios.get(`${API_URL}/installations/${id}/onu-status`, {
+            params: { force }
+        });
         return response.data;
     },
 
