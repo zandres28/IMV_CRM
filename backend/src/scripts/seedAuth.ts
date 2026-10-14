@@ -41,6 +41,10 @@ const seedAuthData = async () => {
           "installations.create",
           "installations.edit",
           "installations.delete",
+          // Visitas técnicas
+          "visits.view",
+          "visits.create",
+          "visits.edit",
           // Planes
           "plans.view",
           // Consultas
@@ -76,6 +80,10 @@ const seedAuthData = async () => {
           "clients.outages.view",
           "clients.outages.create",
           "clients.outages.edit",
+          // Visitas técnicas
+          "visits.view",
+          "visits.create",
+          "visits.edit",
           // Planes
           "plans.view",
           // Consultas (solo sus datos)
@@ -98,6 +106,8 @@ const seedAuthData = async () => {
           "installations.view",
           "installations.edit",
           "installations.assigned", // Solo ver instalaciones asignadas
+          // Visitas técnicas (solo ver; el controller filtra las suyas)
+          "visits.view",
           // Planes
           "plans.view",
           // Consultas (solo sus datos)

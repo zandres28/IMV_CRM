@@ -114,7 +114,7 @@ export class MonthlyBillingController {
             const lastDayOfMonth = new Date(yearNum, monthIndex + 1, 0);
             const totalDaysInMonth = lastDayOfMonth.getDate();
             
-            // Período de facturación: las facturas vencen el día 10 del mes siguiente
+            // Período de facturación: las facturas vencen el día 5 del mes siguiente
             const billingPeriodEnd = new Date(yearNum, monthIndex + 1, CUTOFF_DAY);
 
             for (const client of clients) {
@@ -626,7 +626,7 @@ export class MonthlyBillingController {
                 // Modo acumulado: Pagos del mes seleccionado + Pagos pendientes/vencidos anteriores
                 const monthIndex = getMonthIndex(month as string);
                 const yearNum = parseInt(year as string);
-                // Fecha de vencimiento del mes seleccionado (día 10 del mes siguiente)
+                // Fecha de vencimiento del mes seleccionado (día 5 del mes siguiente)
                 const currentMonthDueDate = new Date(yearNum, monthIndex + 1, CUTOFF_DAY);
                 
                 query.andWhere(

@@ -28,8 +28,11 @@ import {
     AccessTime as ClockIcon,
     Person as PersonIcon,
     Router as RouterIcon,
+    Build as BuildIcon,
 } from '@mui/icons-material';
 import { Installation, InstallationService } from '../../services/InstallationService';
+import AgendaVisitas from './AgendaVisitas';
+import AuthService from '../../services/AuthService';
 
 // ── Franjas horarias en orden para agrupar ────────────────────────────────
 const TIME_SLOTS = [
@@ -71,6 +74,9 @@ const AgendaInstalaciones: React.FC = () => {
     const [fromDate, setFromDate] = useState(isoToday());
     const [toDate, setToDate] = useState(isoWeekEnd());
     const [viewMode, setViewMode] = useState<ViewMode>('grouped');
+    const [agendaTab, setAgendaTab] = useState<'instalaciones' | 'visitas'>('instalaciones');
+    const [reloadKey, setReloadKey] = useState(0);
+    const canViewVisits = AuthService.hasPermission('visits.view');
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -267,14 +273,35 @@ const AgendaInstalaciones: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CalendarIcon color="primary" sx={{ fontSize: 32 }} />
                     <Box>
-                        <Typography variant="h5" fontWeight={700}>Agenda de Instalaciones</Typography>
+                        <Typography variant="h5" fontWeight={700}>
+                            {agendaTab === 'visitas' ? 'Agenda de Visitas Técnicas' : 'Agenda de Instalaciones'}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            {installations.length} instalación(es) en el rango seleccionado
+                            {agendaTab === 'visitas'
+                                ? 'Soporte, mantenimiento y reparaciones programadas'
+                                : `${installations.length} instalación(es) en el rango seleccionado`}
                         </Typography>
                     </Box>
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    {/* Pestañas: Instalaciones / Visitas */}
+                    {canViewVisits && (
+                        <ToggleButtonGroup
+                            value={agendaTab}
+                            exclusive
+                            onChange={(_, v) => { if (v) setAgendaTab(v); }}
+                            size="small"
+                        >
+                            <ToggleButton value="instalaciones" title="Agenda de instalaciones">
+                                <CalendarIcon fontSize="small" sx={{ mr: 0.5 }} /> Instalaciones
+                            </ToggleButton>
+                            <ToggleButton value="visitas" title="Agenda de visitas técnicas">
+                                <BuildIcon fontSize="small" sx={{ mr: 0.5 }} /> Visitas
+                            </ToggleButton>
+                        </ToggleButtonGroup>
+                    )}
+
                     {/* Filtros de fecha */}
                     <TextField
                         label="Desde"
@@ -295,31 +322,35 @@ const AgendaInstalaciones: React.FC = () => {
                         sx={{ width: 160 }}
                     />
                     <Tooltip title="Actualizar">
-                        <IconButton onClick={load} color="primary" disabled={loading}>
+                        <IconButton onClick={() => { load(); setReloadKey(k => k + 1); }} color="primary" disabled={loading}>
                             {loading ? <CircularProgress size={20} /> : <RefreshIcon />}
                         </IconButton>
                     </Tooltip>
 
-                    {/* Vista */}
-                    <ToggleButtonGroup
-                        value={viewMode}
-                        exclusive
-                        onChange={(_, v) => { if (v) setViewMode(v); }}
-                        size="small"
-                    >
-                        <ToggleButton value="grouped" title="Vista por bloques">
-                            <CalendarIcon fontSize="small" />
-                        </ToggleButton>
-                        <ToggleButton value="list" title="Vista tabla">
-                            <RouterIcon fontSize="small" />
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+                    {/* Vista (solo instalaciones) */}
+                    {agendaTab === 'instalaciones' && (
+                        <ToggleButtonGroup
+                            value={viewMode}
+                            exclusive
+                            onChange={(_, v) => { if (v) setViewMode(v); }}
+                            size="small"
+                        >
+                            <ToggleButton value="grouped" title="Vista por bloques">
+                                <CalendarIcon fontSize="small" />
+                            </ToggleButton>
+                            <ToggleButton value="list" title="Vista tabla">
+                                <RouterIcon fontSize="small" />
+                            </ToggleButton>
+                        </ToggleButtonGroup>
+                    )}
                 </Box>
             </Box>
 
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-            {loading ? (
+            {agendaTab === 'visitas' ? (
+                <AgendaVisitas fromDate={fromDate} toDate={toDate} reloadKey={reloadKey} />
+            ) : loading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                     <CircularProgress />
                 </Box>

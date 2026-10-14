@@ -32,7 +32,7 @@ export class OltService {
     private static onuListCache: OnuDevice[] | null = null;
     private static onuListCacheExpiry: number = 0;
     private static onuListPromise: Promise<OnuDevice[]> | null = null;
-    private static readonly ONU_LIST_TTL_MS = 30000;
+    private static readonly ONU_LIST_TTL_MS = 300000; // 5 minutos
 
     constructor() {
         const host = process.env.OLT_HOST || '192.168.1.94';
@@ -191,7 +191,35 @@ export class OltService {
         OltService.invalidateOnuListCache();
     }
 
+    // Renombra la descripción de la ONU en la OLT (OnuDesc).
+    // Módulo descubierto en el bundle Vue de la OLT (onu-detail chunk):
+    //   r.onuModifyDescription = e => u("onu_desc_set", e)
+    //   onSubmit() => this.$api.onuModifyDescription({ Desc: this.des, OnuId: +t, PonId: i })
+    async renameOnu(ponId: string, onuId: string, description: string): Promise<void> {
+        await this.apiPost('onu_desc_set', { Desc: description, PonId: ponId, OnuId: parseInt(onuId) });
+        OltService.invalidateOnuListCache();
+    }
+
     async getRawOnuList(): Promise<any[]> {
         return this.getAllOnus();
+    }
+
+    // Devuelve mapa { onuSerialNumber: { state, ponId, onuId, runningState, controlFlag } }
+    // Usa el cache estático - UNA sola llamada a la OLT para N instalaciones
+    async getAllOnuStatusMap(): Promise<Record<string, { state: string | null; ponId: string; onuId: number; runningState: number; controlFlag: number }>> {
+        const onus = await this.getAllOnus();
+        const map: Record<string, { state: string | null; ponId: string; onuId: number; runningState: number; controlFlag: number }> = {};
+        for (const onu of onus) {
+            if (onu.PonSn) {
+                map[onu.PonSn.toUpperCase()] = {
+                    state: onu.RunningState === 1 ? 'Online' : 'Offline',
+                    ponId: onu.PonId,
+                    onuId: onu.OnuId,
+                    runningState: onu.RunningState,
+                    controlFlag: onu.ControlFlag
+                };
+            }
+        }
+        return map;
     }
 }

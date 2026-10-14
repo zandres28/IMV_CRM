@@ -46,6 +46,13 @@ export const PERMISSIONS = {
     ASSIGNED: 'installations.assigned' // Solo ver instalaciones asignadas
   },
 
+  // VISITAS TÉCNICAS (agenda)
+  VISITS: {
+    VIEW: 'visits.view',     // Ver visitas en la agenda (el técnico solo ve las suyas)
+    CREATE: 'visits.create', // Programar visitas
+    EDIT: 'visits.edit'      // Editar/reasignar fecha y técnico, cambiar estado, eliminar
+  },
+
   // PLANES (General)
   PLANS: {
     VIEW: 'plans.view' // Ver planes (para dropdowns, etc)
@@ -100,6 +107,7 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.BILLING.EDIT,
     PERMISSIONS.BILLING.DELETE,
     ...Object.values(PERMISSIONS.INSTALLATIONS).filter(p => p !== PERMISSIONS.INSTALLATIONS.ASSIGNED),
+    ...Object.values(PERMISSIONS.VISITS),
     PERMISSIONS.PLANS.VIEW,
     PERMISSIONS.QUERIES.VIEW,
     PERMISSIONS.QUERIES.ALL,
@@ -120,6 +128,10 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.CLIENTS.OUTAGES.VIEW,
     PERMISSIONS.CLIENTS.OUTAGES.CREATE,
     PERMISSIONS.CLIENTS.OUTAGES.EDIT,
+    // Visitas técnicas
+    PERMISSIONS.VISITS.VIEW,
+    PERMISSIONS.VISITS.CREATE,
+    PERMISSIONS.VISITS.EDIT,
     // Planes
     PERMISSIONS.PLANS.VIEW,
     // Consultas - Solo sus datos
@@ -141,6 +153,8 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.INSTALLATIONS.VIEW,
     PERMISSIONS.INSTALLATIONS.EDIT,
     PERMISSIONS.INSTALLATIONS.ASSIGNED,
+    // Visitas técnicas - Solo ver (el controller filtra las suyas)
+    PERMISSIONS.VISITS.VIEW,
     // Planes
     PERMISSIONS.PLANS.VIEW,
     // Consultas - Solo sus datos

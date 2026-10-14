@@ -46,4 +46,8 @@ router.post('/:installationId/olt-service', requirePermission(PERMISSIONS.INSTAL
 // Obtener estado de ONU (Online/Offline)
 router.get('/:installationId/onu-status', requirePermission(PERMISSIONS.INSTALLATIONS.VIEW), OltController.getOnuRunState);
 
+// Sincronizar ONU con la OLT: renombra OnuDesc con el nombre del cliente
+// y completa ponId/onuId en el CRM (búsqueda por número de serie)
+router.post('/:installationId/sync-olt', requirePermission(PERMISSIONS.INSTALLATIONS.EDIT), OltController.syncOnuInfo);
+
 export default router;
