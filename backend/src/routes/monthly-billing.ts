@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { MonthlyBillingController } from "../controllers/MonthlyBillingController";
+import { PaymentStatementController } from "../controllers/PaymentStatementController";
 import { requirePermission } from "../middlewares/permissions.middleware";
 import { PERMISSIONS } from "../utils/permissions";
 
@@ -7,6 +8,10 @@ const router = Router();
 
 // Generar cobros mensuales
 router.post("/generate", requirePermission(PERMISSIONS.BILLING.CREATE), MonthlyBillingController.generateMonthlyBilling);
+
+// Generar / descargar la cuenta de cobro (PDF) de un cliente para un período (uso manual desde la UI)
+// OJO: debe declararse ANTES de GET /:id para que no colisione con el parámetro :id.
+router.get("/payment-statement", requirePermission(PERMISSIONS.BILLING.VIEW), PaymentStatementController.getPaymentStatement);
 
 // Obtener cobros de un mes específico
 router.get("/", requirePermission(PERMISSIONS.BILLING.VIEW), MonthlyBillingController.getMonthlyBilling);

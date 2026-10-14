@@ -216,6 +216,11 @@ function getPermissionDescription(permission: string): string {
     'installations.delete': 'Eliminar instalaciones',
     'installations.assigned': 'Ver solo instalaciones asignadas',
     
+    // Visitas técnicas (agenda)
+    'visits.view': 'Ver visitas técnicas en la agenda',
+    'visits.create': 'Programar visitas técnicas',
+    'visits.edit': 'Reasignar y gestionar visitas técnicas',
+    
     // Consultas
     'queries.view': 'Acceder a consultas',
     'queries.own': 'Ver solo sus propios datos',

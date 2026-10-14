@@ -53,7 +53,8 @@ import {
     NotificationsOff as ReminderOffIcon,
     CalendarMonth as CalendarMonthIcon,
     Block as BlockIcon,
-    DeleteForever as DeleteIcon
+    DeleteForever as DeleteIcon,
+    PictureAsPdf as PictureAsPdfIcon
 } from '@mui/icons-material';
 import MonthlyBillingService, { Payment, BillingStats } from '../../services/MonthlyBillingService';
 
@@ -88,6 +89,7 @@ const MonthlyBilling: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [filterReminder, setFilterReminder] = useState<'all' | 'sent' | 'not_sent'>('all');
+    const [downloadingStatementId, setDownloadingStatementId] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<'month' | 'cumulative'>('month');
     const [searchTerm, setSearchTerm] = useState('');
     const [billingComponentFilter, setBillingComponentFilter] = useState<'all' | 'servicePlan' | 'additionalServices' | 'products' | 'installations'>('all');
@@ -323,6 +325,44 @@ const MonthlyBilling: React.FC = () => {
         }
     };
 
+    const handleDownloadStatement = async (payment: Payment) => {
+        if (!payment.client) return;
+        setDownloadingStatementId(payment.id);
+        try {
+            const blob = await MonthlyBillingService.getPaymentStatementPdf(
+                payment.client.id,
+                payment.paymentMonth,
+                payment.paymentYear
+            );
+            // Si el backend devolvió un JSON de error (p.ej. cliente sin instalaciones activas), el blob es JSON
+            if (blob.type && blob.type.includes('application/json')) {
+                const text = await blob.text();
+                let msg = 'No se pudo generar la cuenta de cobro';
+                try {
+                    const parsed = JSON.parse(text);
+                    msg = parsed.error || msg;
+                } catch { /* ignorar */ }
+                throw new Error(msg);
+            }
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `CuentaCobro-${payment.client.id}-${payment.paymentMonth}-${payment.paymentYear}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: (error?.response?.data?.error) || error?.message || 'Error generando la cuenta de cobro',
+                severity: 'error',
+            });
+        } finally {
+            setDownloadingStatementId(null);
+        }
+    };
+
     const handleOpenDetailDialog = async (payment: Payment) => {
         try {
             const detail = await MonthlyBillingService.getPaymentDetail(payment.id);
@@ -530,6 +570,18 @@ const MonthlyBilling: React.FC = () => {
                          >
                             <VisibilityIcon />
                         </IconButton>
+                        {payment.client && (
+                            <Tooltip title="Cuenta de cobro (PDF)">
+                                <IconButton
+                                    size="small"
+                                    color="info"
+                                    disabled={downloadingStatementId === payment.id}
+                                    onClick={(e) => { e.stopPropagation(); handleDownloadStatement(payment); }}
+                                >
+                                    <PictureAsPdfIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                         {(payment.status === 'pendiente' || payment.status === 'vencido') && (
                             <Button 
                                 variant="contained" 
@@ -1169,6 +1221,18 @@ const MonthlyBilling: React.FC = () => {
                                             <VisibilityIcon />
                                         </IconButton>
                                     </Tooltip>
+                                    {payment.client && (
+                                        <Tooltip title="Cuenta de cobro (PDF)">
+                                            <IconButton
+                                                size="small"
+                                                color="info"
+                                                disabled={downloadingStatementId === payment.id}
+                                                onClick={() => handleDownloadStatement(payment)}
+                                            >
+                                                <PictureAsPdfIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
                                     {(payment.status === 'pendiente' || payment.status === 'vencido') && (
                                         <Tooltip title="Registrar pago">
                                             <IconButton 

@@ -8,6 +8,9 @@ const router = Router();
 // Health check manual — usa JWT del browser, NO API Key
 router.get("/health-check", authMiddleware, OltController.healthCheck);
 
+// Batch: estado de todas las ONUs — usa JWT
+router.get("/all-onu-status", authMiddleware, OltController.getAllOnuStatus);
+
 // Todas las rutas OLT restantes requieren API Key (n8n)
 router.use(apiKeyMiddleware);
 

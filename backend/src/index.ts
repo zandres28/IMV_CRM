@@ -25,6 +25,7 @@ import installationBillingRoutes from "./routes/installation-billing";
 import n8nIntegrationRoutes from "./routes/n8n-integration";
 import reportRoutes from "./routes/reports";
 import serviceOutageRoutes from "./routes/service-outages";
+import technicalVisitRoutes from "./routes/technical-visits";
 
 import publicRoutes from "./routes/public";
 import serviceTransferRoutes from "./routes/serviceTransfer";
@@ -142,6 +143,7 @@ app.use("/api/permissions", authMiddleware, permissionRoutes);
 app.use("/api/products", authMiddleware, productRoutes);
 app.use("/api/additional-services", authMiddleware, additionalServiceRoutes);
 app.use("/api/installations", authMiddleware, installationRoutes);
+app.use("/api/technical-visits", authMiddleware, technicalVisitRoutes);
 app.use("/api/promotions", authMiddleware, promotionRoutes);
 app.use("/api/avisos", authMiddleware, avisoRoutes);
 app.use("/api/mikrotik", authMiddleware, mikrotikRoutes);

@@ -158,6 +158,15 @@ const MonthlyBillingService = {
         return response.data;
     },
 
+    // Generar / descargar la cuenta de cobro (PDF) de un cliente para un período
+    getPaymentStatementPdf: async (clientId: number, month: string, year: number): Promise<Blob> => {
+        const response = await axios.get(`${API_URL}/payment-statement`, {
+            params: { clientId, month: month.toUpperCase(), year },
+            responseType: 'blob',
+        });
+        return response.data;
+    },
+
     // Marcar pagos en lote como pagados
     bulkMarkPaid: async (payload: { clientIds: number[]; month?: string; year?: number; paymentMethod?: string; paymentDate?: string; }) => {
         const response = await axios.post(`${API_URL}/bulk/mark-paid`, payload);

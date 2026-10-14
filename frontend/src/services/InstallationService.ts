@@ -110,8 +110,37 @@ export const InstallationService = {
         return response.data;
     },
 
+    // Sincroniza la ONU con la OLT: renombra la descripción con el nombre
+    // del cliente y completa ponId/onuId en el CRM (búsqueda por SN)
+    syncOlt: async (id: number): Promise<{
+        message: string;
+        data: {
+            installationId: number;
+            clientId?: number;
+            clientName: string;
+            sn: string;
+            ponId: string;
+            onuId: string;
+            previousDesc: string;
+            newDesc: string;
+            renamed: boolean;
+            updatedFields: string[];
+            online: boolean;
+            controlFlag: number;
+        };
+    }> => {
+        const response = await axios.post(`${API_URL}/installations/${id}/sync-olt`);
+        return response.data;
+    },
+
     checkOltHealth: async (): Promise<{ status: string; details: string; host: string; port: string; timestamp: string }> => {
         const response = await axios.get(`${API_URL}/olt/health-check`);
         return response.data;
+    },
+
+    // Batch: estado de todas las ONUs en una sola llamada
+    getAllOnuStatus: async (): Promise<Record<string, { state: string | null; ponId: string; onuId: number; runningState: number; controlFlag: number }>> => {
+        const response = await axios.get(`${API_URL}/olt/all-onu-status`);
+        return response.data.data;
     }
 };

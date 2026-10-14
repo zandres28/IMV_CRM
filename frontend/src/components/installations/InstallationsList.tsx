@@ -32,6 +32,7 @@ import {
     Search as SearchIcon,
     Delete as DeleteIcon,
     RestartAlt as RestartAltIcon,
+    Sync as SyncIcon,
     Wifi as WifiIcon,
     WifiOff as WifiOffIcon,
     HealthAndSafety as HealthIcon
@@ -68,6 +69,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
 
     const [oltHealth, setOltHealth] = useState<{ status: string; details: string } | null>(null);
     const [checkingHealth, setCheckingHealth] = useState(false);
+    const [syncingOltId, setSyncingOltId] = useState<number | null>(null);
 
     const requestedPlanPrefill = useMemo<Partial<Installation> | undefined>(() => {
         if (!client || !client.requestedPlanName) {
@@ -103,23 +105,37 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                 handleOpenNewForm();
             }
 
-            // Cargar estado de ONU para todas las instalaciones en paralelo
+            // Cargar estado de TODAS las ONUs en UNA sola llamada (batch)
             setLoadingOnuStatus(true);
-            const statusMap: Record<number, { onlineStatus: string; isOnline: boolean } | null> = {};
-            
-            await Promise.all(
-                data.map(async (inst) => {
-                    try {
-                        const status = await InstallationService.getOnuStatus(inst.id);
-                        statusMap[inst.id] = status;
-                    } catch (err) {
-                        console.error(`Error obteniendo estado de ONU para instalación ${inst.id}:`, err);
+            try {
+                const allOnuStatus = await InstallationService.getAllOnuStatus();
+                const statusMap: Record<number, { onlineStatus: string; isOnline: boolean } | null> = {};
+                
+                data.forEach((inst) => {
+                    if (inst.onuSerialNumber) {
+                        const sn = inst.onuSerialNumber.toUpperCase();
+                        const onuData = allOnuStatus[sn];
+                        if (onuData) {
+                            statusMap[inst.id] = {
+                                onlineStatus: onuData.state || 'unknown',
+                                isOnline: onuData.state === 'Online'
+                            };
+                        } else {
+                            statusMap[inst.id] = null;
+                        }
+                    } else {
                         statusMap[inst.id] = null;
                     }
-                })
-            );
-            
-            setOnuStatusMap(statusMap);
+                });
+                
+                setOnuStatusMap(statusMap);
+            } catch (err) {
+                console.error('Error obteniendo estados de ONUs (batch):', err);
+                // Fallback: mapa vacío
+                const emptyMap: Record<number, null> = {};
+                data.forEach(inst => { emptyMap[inst.id] = null; });
+                setOnuStatusMap(emptyMap);
+            }
             setLoadingOnuStatus(false);
         } catch (error: any) {
             console.error('Error al cargar las instalaciones:', error);
@@ -337,6 +353,56 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
         }
     };
 
+    // Sincroniza la ONU con la OLT: busca el SN en la OLT, renombra la
+    // descripción con el nombre del cliente y completa ponId/onuId en el CRM
+    const handleSyncOlt = async (installation: Installation) => {
+        if (!installation.onuSerialNumber) {
+            setNotificationMessage('No se puede sincronizar una instalación sin número de serie de ONU.');
+            setNotificationSeverity('error');
+            setNotificationOpen(true);
+            return;
+        }
+
+        const confirmed = window.confirm(
+            '¿Sincronizar esta ONU con la OLT?\n\n' +
+            '1. Se buscará el SN en la OLT.\n' +
+            '2. Se renombrará con el nombre del cliente.\n' +
+            '3. Se completarán PonId / OnuId en el CRM.'
+        );
+        if (!confirmed) return;
+
+        try {
+            setSyncingOltId(installation.id);
+            setNotificationMessage('Sincronizando con la OLT...');
+            setNotificationSeverity('info');
+            setNotificationOpen(true);
+
+            const result = await InstallationService.syncOlt(installation.id);
+            const d = result.data;
+
+            const parts = [
+                d.renamed ? `ONU renombrada a "${d.newDesc}"` : `ONU ya estaba nombrada`,
+                `PonId ${d.ponId} / OnuId ${d.onuId}`,
+            ];
+            if (d.updatedFields.length > 0) parts.push(`CRM actualizado: ${d.updatedFields.join(', ')}`);
+
+            setNotificationMessage(parts.join(' · '));
+            setNotificationSeverity('success');
+            setNotificationOpen(true);
+
+            await loadInstallations();
+            onChange?.();
+        } catch (error: any) {
+            console.error('Error al sincronizar ONU con la OLT:', error);
+            const msg = error?.response?.data?.message || 'Error al conectar con la OLT o sincronizar la ONU.';
+            setNotificationMessage(msg);
+            setNotificationSeverity('error');
+            setNotificationOpen(true);
+        } finally {
+            setSyncingOltId(null);
+        }
+    };
+
     const handleCheckOltHealth = async () => {
         setCheckingHealth(true);
         setOltHealth(null);
@@ -509,6 +575,7 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                             <IconButton size="small" onClick={() => handleEdit(installation)} disabled={installation.isDeleted} sx={{ color: '#4e73df' }} title="Editar"><EditIcon fontSize="small" /></IconButton>
                                             <IconButton size="small" onClick={() => handleViewSpeedHistory(installation)} disabled={installation.isDeleted} sx={{ color: '#36b9cc' }} title="Historial"><HistoryIcon fontSize="small" /></IconButton>
                                             <IconButton size="small" onClick={() => handleReboot(installation.id)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: '#f6c23e' }} title="Reiniciar ONU"><RestartAltIcon fontSize="small" /></IconButton>
+                                            <IconButton size="small" onClick={() => handleSyncOlt(installation)} disabled={installation.isDeleted || !installation.onuSerialNumber || syncingOltId === installation.id} sx={{ color: '#00D4A6' }} title="Sincronizar con OLT (renombrar + PonId/OnuId)">{syncingOltId === installation.id ? <CircularProgress size={14} /> : <SyncIcon fontSize="small" />}</IconButton>
                                             <IconButton size="small" onClick={() => handleToggleService(installation)} disabled={installation.isDeleted || !installation.onuSerialNumber} sx={{ color: installation.serviceStatus === 'suspendido' ? '#1cc88a' : '#858796' }} title={installation.serviceStatus === 'suspendido' ? 'Habilitar Servicio' : 'Suspender Servicio'}>
                                                 {installation.serviceStatus === 'suspendido' ? <WifiIcon fontSize="small" /> : <WifiOffIcon fontSize="small" />}
                                             </IconButton>
@@ -654,6 +721,15 @@ export const InstallationsList: React.FC<InstallationsListProps> = ({ clientId, 
                                                 sx={{ color: '#f6c23e' }}
                                             >
                                                 <RestartAltIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleSyncOlt(installation)}
+                                                title="Sincronizar con OLT (renombrar + PonId/OnuId)"
+                                                disabled={installation.isDeleted || !installation.onuSerialNumber || syncingOltId === installation.id}
+                                                sx={{ color: '#00D4A6' }}
+                                            >
+                                                {syncingOltId === installation.id ? <CircularProgress size={14} /> : <SyncIcon fontSize="small" />}
                                             </IconButton>
                                             <IconButton
                                                 size="small"

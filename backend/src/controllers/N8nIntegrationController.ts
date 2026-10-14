@@ -169,10 +169,10 @@ export const N8nIntegrationController = {
 
             const reminders = [];
 
-            // Calcular fecha límite (10 del mes siguiente al consultado)
-            const deadlineDate = new Date(queryYear, safeMonthIndex + 1, 10);
+            // Calcular fecha límite (5 del mes siguiente al consultado)
+            const deadlineDate = new Date(queryYear, safeMonthIndex + 1, 5);
             const deadlineMonthName = deadlineDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
-            const formattedDeadline = `10 de ${deadlineMonthName}`;
+            const formattedDeadline = `5 de ${deadlineMonthName}`;
 
             // Obtener configuración de días de recordatorio
             const systemSettingRepository = AppDataSource.getRepository(SystemSetting);
@@ -379,10 +379,10 @@ export const N8nIntegrationController = {
                             const pMonthIndex = monthNames.indexOf(pMonth);
                             const safePMonthIndex = pMonthIndex !== -1 ? pMonthIndex : 0;
 
-                            // Calculate deadline (10th of next month after the payment's month)
-                            const pDeadlineDate = new Date(pYear, safePMonthIndex + 1, 10);
+                            // Calculate deadline (5th of next month after the payment's month)
+                            const pDeadlineDate = new Date(pYear, safePMonthIndex + 1, 5);
                             const pDeadlineMonth = pDeadlineDate.toLocaleString('es-ES', { month: 'long' }).toUpperCase();
-                            const pFormattedDeadline = `10 de ${pDeadlineMonth}`;
+                            const pFormattedDeadline = `5 de ${pDeadlineMonth}`;
 
                             // Calculate days overdue
                             let pDias = 0;

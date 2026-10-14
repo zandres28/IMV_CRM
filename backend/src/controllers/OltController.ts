@@ -236,4 +236,104 @@ export const OltController = {
             return res.status(500).json({ message: "Error verificando salud OLT", error: error.message });
         }
     },
+
+    // Batch: estado de todas las ONUs en una sola llamada (usa cache 5min)
+    // GET /api/olt/all-onu-status
+    getAllOnuStatus: async (req: Request, res: Response) => {
+        try {
+            const oltService = new OltService();
+            const statusMap = await oltService.getAllOnuStatusMap();
+            return res.json({ message: "Estados de ONUs obtenidos", data: statusMap });
+        } catch (error: any) {
+            console.error("Error obteniendo estados de ONUs:", error);
+            return res.status(500).json({ message: "Error al consultar estados OLT", error: error.message });
+        }
+    },
+
+    /**
+     * Sincroniza la ONU con la OLT en ambos sentidos:
+     *  1. Busca el SN de la instalación en la OLT y renombra la descripción
+     *     (OnuDesc) con el nombre del cliente.
+     *  2. Extrae PonId/OnuId de la OLT y los guarda en la instalación (CRM).
+     * POST /api/installations/:installationId/sync-olt
+     */
+    syncOnuInfo: async (req: Request, res: Response) => {
+        try {
+            const { installationId } = req.params;
+            if (!installationId || isNaN(Number(installationId))) {
+                return res.status(400).json({ message: "installationId inválido" });
+            }
+
+            const installationRepository = AppDataSource.getRepository(Installation);
+            const installation = await installationRepository.findOne({
+                where: { id: parseInt(installationId, 10) },
+                relations: { client: true },
+            });
+
+            if (!installation) {
+                return res.status(404).json({ message: "Instalación no encontrada" });
+            }
+            if (!installation.onuSerialNumber) {
+                return res.status(400).json({ message: "La instalación no tiene número de serie de ONU registrado" });
+            }
+
+            const clientName = installation.client?.fullName?.trim();
+            if (!clientName) {
+                return res.status(400).json({ message: "El cliente no tiene nombre registrado para renombrar la ONU" });
+            }
+
+            const oltService = new OltService();
+            const onu = await oltService.getOnuBySerial(installation.onuSerialNumber);
+            if (!onu) {
+                return res.status(404).json({
+                    message: `ONU ${installation.onuSerialNumber} no encontrada en la OLT`,
+                });
+            }
+
+            // 1. Renombrar en la OLT solo si el nombre actual difiere
+            const previousDesc = onu.OnuDesc || "";
+            let renamed = false;
+            if (previousDesc.trim().toUpperCase() !== clientName.toUpperCase()) {
+                await oltService.renameOnu(onu.PonId, String(onu.OnuId), clientName);
+                renamed = true;
+            }
+
+            // 2. Completar PonId/OnuId en el CRM
+            const updatedFields: string[] = [];
+            if (installation.ponId !== onu.PonId) {
+                installation.ponId = onu.PonId;
+                updatedFields.push("ponId");
+            }
+            if (installation.onuId !== String(onu.OnuId)) {
+                installation.onuId = String(onu.OnuId);
+                updatedFields.push("onuId");
+            }
+            if (updatedFields.length > 0) {
+                await installationRepository.save(installation);
+            }
+
+            return res.json({
+                message: renamed
+                    ? `ONU renombrada a "${clientName}" y datos de OLT actualizados en el CRM`
+                    : `ONU ya estaba nombrada; datos de OLT verificados en el CRM`,
+                data: {
+                    installationId: installation.id,
+                    clientId: installation.client?.id,
+                    clientName,
+                    sn: installation.onuSerialNumber,
+                    ponId: onu.PonId,
+                    onuId: String(onu.OnuId),
+                    previousDesc,
+                    newDesc: clientName,
+                    renamed,
+                    updatedFields,
+                    online: onu.RunningState === 1,
+                    controlFlag: onu.ControlFlag,
+                },
+            });
+        } catch (error: any) {
+            console.error("Error en sync ONU↔OLT:", error);
+            return res.status(500).json({ message: "Error al sincronizar con la OLT", error: error.message });
+        }
+    },
 };
