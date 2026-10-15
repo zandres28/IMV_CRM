@@ -421,6 +421,8 @@ export class InstallationController {
                     installation.suspendedAt = new Date();
                 } else if (serviceStatus === 'activo') {
                     installation.suspendedAt = null;
+                    // Limpiar fecha de retiro anterior al reactivar (nueva instalación)
+                    installation.retirementDate = undefined;
                 }
             }
 
@@ -488,6 +490,8 @@ export class InstallationController {
                 installation.suspendedAt = new Date();
             } else if (serviceStatus === 'activo') {
                 installation.suspendedAt = null;
+                // Limpiar fecha de retiro anterior al reactivar (nueva instalación)
+                installation.retirementDate = undefined;
             }
 
             await this.installationRepository.save(installation);

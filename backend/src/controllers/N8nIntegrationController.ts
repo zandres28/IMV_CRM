@@ -11,6 +11,7 @@ import { InteractionType } from '../entities/InteractionType';
 import { AvisoTemplate } from '../entities/AvisoTemplate';
 import { In, Between, Like } from 'typeorm';
 import { restoreServiceForClient } from '../services/OltStatusSyncService';
+import { OltService } from '../services/OltService';
 
 // Helper: Formatear teléfono para WhatsApp (Evolution API requiere código país 57)
 export const formatPhoneForWhatsapp = (phone: string | null | undefined): string => {
@@ -1250,5 +1251,164 @@ export const N8nIntegrationController = {
             console.error("Error getting suspension candidates:", error);
             return res.status(500).json({ message: "Error interno", error: error.message });
         }
-    }
+    },
+
+    // Procesar suspensiones automáticamente (llamar desde n8n cron día 6)
+    processSuspensions: async (req: Request, res: Response) => {
+        try {
+            const { month, year, dryRun } = req.body;
+            const clientRepository = AppDataSource.getRepository(Client);
+            const paymentRepository = AppDataSource.getRepository(Payment);
+            const installationRepository = AppDataSource.getRepository(Installation);
+            const oltService = new OltService();
+
+            const currentDate = new Date();
+            const queryMonth = (month || currentDate.toLocaleString('es-ES', { month: 'long' })).toUpperCase();
+            const queryYear = year || currentDate.getFullYear();
+
+            // Obtener candidatos (reutilizar lógica de getSuspensionCandidates)
+            const clients = await clientRepository
+                .createQueryBuilder('client')
+                .leftJoinAndSelect('client.installations', 'installation', 'installation.isDeleted = :isDeleted AND installation.isActive = :isActive', { isDeleted: false, isActive: true })
+                .where('client.status = :status', { status: 'activo' })
+                .getMany();
+
+            const clientIds = clients.map(c => c.id);
+            if (clientIds.length === 0) return res.json({ processed: 0, suspended: 0, skipped: 0, message: 'No hay clientes activos' });
+
+            const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const queryMonthIndex = monthNames.indexOf(queryMonth.toUpperCase());
+            const safeMonthIndex = queryMonthIndex !== -1 ? queryMonthIndex : 0;
+            const endOfQueryPeriod = new Date(queryYear, safeMonthIndex + 1, 0, 23, 59, 59);
+
+            const allPayments = await paymentRepository.find({
+                where: [
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth, paymentYear: queryYear, status: 'pagado' },
+                    { client: { id: In(clientIds) }, paymentMonth: queryMonth.toLowerCase(), paymentYear: queryYear, status: 'pagado' }
+                ],
+                relations: ['client']
+            });
+            
+            const paidClientIds = new Set(allPayments.map(p => p.client.id));
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            let processed = 0;
+            let suspended = 0;
+            let skipped = 0;
+            const results = [];
+
+            for (const client of clients) {
+                // 1. Extensión de suspensión
+                if (client.suspension_extension_date) {
+                    const extDate = new Date(client.suspension_extension_date);
+                    extDate.setHours(23, 59, 59, 999);
+                    if (extDate >= today) {
+                        skipped++;
+                        results.push({ clientId: client.id, clientName: client.fullName, action: 'skipped', reason: 'Extensión de suspensión vigente' });
+                        continue;
+                    }
+                }
+
+                // 2. Pago
+                if (paidClientIds.has(client.id)) {
+                    skipped++;
+                    results.push({ clientId: client.id, clientName: client.fullName, action: 'skipped', reason: 'Tiene pago registrado' });
+                    continue;
+                }
+
+                // 3. Instalaciones facturables
+                const billableInstallations = (client.installations || []).filter(inst => {
+                    if (!inst.installationDate) return true;
+                    const installDate = new Date(inst.installationDate);
+                    return installDate <= endOfQueryPeriod;
+                });
+
+                if (billableInstallations.length === 0) {
+                    skipped++;
+                    results.push({ clientId: client.id, clientName: client.fullName, action: 'skipped', reason: 'Sin instalaciones facturables en el período' });
+                    continue;
+                }
+
+                // 4. Procesar cada instalación facturable
+                for (const installation of billableInstallations) {
+                    processed++;
+                    const hasOltData = (installation.ponId && installation.onuId) || installation.onuSerialNumber;
+                    
+                    if (!hasOltData) {
+                        skipped++;
+                        results.push({ 
+                            clientId: client.id, 
+                            clientName: client.fullName, 
+                            installationId: installation.id,
+                            action: 'skipped', 
+                            reason: 'Sin datos OLT (no automatable)' 
+                        });
+                        continue;
+                    }
+
+                    if (dryRun) {
+                        results.push({ 
+                            clientId: client.id, 
+                            clientName: client.fullName, 
+                            installationId: installation.id,
+                            action: 'dry_run', 
+                            reason: 'Simulación - se suspendería',
+                            ponId: installation.ponId,
+                            onuId: installation.onuId
+                        });
+                        continue;
+                    }
+
+                    try {
+                        // Desconectar en OLT
+                        if (!installation.ponId || !installation.onuId) {
+                            throw new Error('Faltan ponId/onuId en la instalación');
+                        }
+                        await oltService.deactivateOnu(installation.ponId, installation.onuId);
+                        
+                        // Actualizar instalación
+                        installation.serviceStatus = 'suspendido';
+                        installation.suspendedAt = new Date();
+                        installation.oltDisconnectScheduled = false;
+                        installation.oltDisconnectTime = undefined;
+                        await installationRepository.save(installation);
+
+                        suspended++;
+                        results.push({ 
+                            clientId: client.id, 
+                            clientName: client.fullName, 
+                            installationId: installation.id,
+                            action: 'suspended', 
+                            reason: 'Suspendido por morosidad',
+                            ponId: installation.ponId,
+                            onuId: installation.onuId
+                        });
+                    } catch (oltError: any) {
+                        results.push({ 
+                            clientId: client.id, 
+                            clientName: client.fullName, 
+                            installationId: installation.id,
+                            action: 'error', 
+                            reason: 'Error OLT: ' + oltError.message 
+                        });
+                    }
+                }
+            }
+
+            return res.json({
+                period: `${queryMonth} ${queryYear}`,
+                processed,
+                suspended,
+                skipped,
+                errors: results.filter(r => r.action === 'error').length,
+                results
+            });
+
+        } catch (error: any) {
+            console.error("Error processing suspensions:", error);
+            return res.status(500).json({ message: "Error interno", error: error.message });
+        }
+    },
+
 };
