@@ -138,10 +138,14 @@ export async function restoreServiceForClient(clientId: number): Promise<{ react
             let onuId: number | null = null;
 
             if (installation.onuSerialNumber) {
-                const onu = await oltService.getOnuBySerial(installation.onuSerialNumber);
-                if (onu) {
-                    ponId = onu.PonId;
-                    onuId = onu.OnuId;
+                try {
+                    const onu = await oltService.getOnuBySerial(installation.onuSerialNumber);
+                    if (onu) {
+                        ponId = onu.PonId;
+                        onuId = onu.OnuId;
+                    }
+                } catch (e) {
+                    console.warn(`[OLT Sync] No se pudo buscar ONU por serial ${installation.onuSerialNumber}, usando fallback BD: ${e.message}`);
                 }
             }
             if (!ponId || onuId === null) {
