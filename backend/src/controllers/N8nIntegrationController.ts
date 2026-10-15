@@ -783,13 +783,28 @@ export const N8nIntegrationController = {
 
             const paymentRepository = AppDataSource.getRepository(Payment);
 
-            const payment = await paymentRepository.findOne({
+            // Un cliente puede tener VARIAS facturas del mismo mes: el cobro de
+            // instalación prorrateado (paymentType='installation', normalmente
+            // 'pagado') + la mensualidad (paymentType='monthly'). El `findOne`
+            // sin filtro devolvía la primera por id — casi siempre la 'pagado' de
+            // instalación — así que `pending` salía false y el workflow de n8n
+            // DESCARTABA al cliente: nunca recibía recordatorio (caso real:
+            // clientes 128, 129, 133 con septiembre 'vencido' + instalación
+            // 'pagado'). Priorizamos la mensualidad y, entre las candidatas, la
+            // factura impaga, igual que hace getPaymentReminders.
+            const payments = await paymentRepository.find({
                 where: {
                     client: { id: Number(clientId) },
                     paymentMonth: String(month).toLowerCase(),
                     paymentYear: Number(year)
                 }
             });
+
+            const monthly = payments.filter(p => p.paymentType === 'monthly');
+            const candidates = monthly.length > 0 ? monthly : payments;
+            const payment = candidates.find(p => p.status === 'pendiente' || p.status === 'vencido')
+                || candidates[0]
+                || null;
 
             const status = payment?.status ?? null;
             const pending = status === 'pendiente' || status === 'vencido';
