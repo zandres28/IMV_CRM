@@ -1,12 +1,5 @@
 import cron from 'node-cron';
-import net from 'net';
-
-enum OltStatus {
-    ONLINE = 'online',
-    OFFLINE = 'offline',
-    WEB_HUNG = 'web_hung',
-    UNKNOWN = 'unknown',
-}
+import { checkOltHealth as probeOltHealth, OltStatus } from './oltHealthCheck';
 
 let lastOltStatus: OltStatus = OltStatus.UNKNOWN;
 let firstCheckDone = false;
@@ -76,70 +69,8 @@ function formatTimestamp(): string {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
-function checkTcpPort(host: string, port: number, timeoutMs: number): Promise<boolean> {
-    return new Promise((resolve) => {
-        const socket = new net.Socket();
-        let done = false;
-        const finish = (ok: boolean) => {
-            if (done) return;
-            done = true;
-            socket.destroy();
-            resolve(ok);
-        };
-        socket.setTimeout(timeoutMs);
-        socket.once('connect', () => finish(true));
-        socket.once('timeout', () => finish(false));
-        socket.once('error', () => finish(false));
-        socket.connect(port, host);
-    });
-}
-
-async function checkOltHealth(): Promise<OltStatus> {
-    const host = process.env.OLT_HOST || '192.168.1.94';
-    const port = parseInt(process.env.OLT_WEB_PORT || '8080', 10);
-    const username = process.env.OLT_USER || 'admin';
-    const password = process.env.OLT_PASSWORD || '***REMOVED***';
-
-    // Fase 1: TCP. Si ni siquiera conecta, la OLT no responde a nivel de red
-    // (posible corte de energía o caída del enlace de gestión).
-    const tcpOk = await checkTcpPort(host, port, 5000);
-    if (!tcpOk) {
-        return OltStatus.OFFLINE;
-    }
-
-    // Fase 2: HTTP. Si TCP conecta pero el servidor web nunca contesta,
-    // el lighttpd de la OLT está colgado (los clientes siguen con servicio;
-    // la gestión solo se recupera reiniciando físicamente la OLT).
-    const crypto = require('crypto');
-    const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
-    const url = `http://${host}:${port}/cgi-bin/h.cgi?module=sys_login`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Usrname: username, Password: md5pass }),
-            signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            return OltStatus.WEB_HUNG;
-        }
-
-        const result = await response.json() as any;
-        if (result.code !== 0) {
-            console.warn(`[OltHealthMonitor] OLT responde HTTP pero login falló (code=${result.code})`);
-        }
-        return OltStatus.ONLINE;
-    } catch {
-        clearTimeout(timeoutId);
-        return OltStatus.WEB_HUNG;
-    }
+function checkOltHealth(): Promise<OltStatus> {
+    return probeOltHealth().then(r => r.status);
 }
 
 export const startOltHealthMonitor = () => {

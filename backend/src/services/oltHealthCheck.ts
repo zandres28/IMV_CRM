@@ -4,6 +4,7 @@ export enum OltStatus {
     ONLINE = 'online',
     OFFLINE = 'offline',
     WEB_HUNG = 'web_hung',
+    UNKNOWN = 'unknown',
 }
 
 export async function checkOltHealth(): Promise<{ status: OltStatus; details: string }> {
@@ -50,7 +51,34 @@ export async function checkOltHealth(): Promise<{ status: OltStatus; details: st
             return { status: OltStatus.WEB_HUNG, details: `Login falló (code=${result.code})` };
         }
 
-        return { status: OltStatus.ONLINE, details: `Login OK` };
+        // El login por sí solo NO basta: la OLT puede aceptar el login y aun así
+        // devolver JSON truncado en las lecturas grandes (el CGI corta a ~40KB).
+        // Validamos una lectura mínima paginada para confirmar que el CGI sirve
+        // datos completos y parseables.
+        try {
+            const probeCtrl = new AbortController();
+            const probeTimeout = setTimeout(() => probeCtrl.abort(), 8000);
+            const probe = await fetch(
+                `http://${host}:${port}/cgi-bin/h.cgi?module=onu_list_get&PageNumber=1&PageSize=1`,
+                { headers: { token: result.data?.token || '' }, signal: probeCtrl.signal }
+            );
+            clearTimeout(probeTimeout);
+
+            const probeText = await probe.text();
+            let probeJson: any;
+            try {
+                probeJson = JSON.parse(probeText);
+            } catch {
+                return { status: OltStatus.WEB_HUNG, details: `Respuesta truncada/no-JSON en onu_list_get (${probeText.length} bytes)` };
+            }
+            if (probeJson.code !== 0) {
+                return { status: OltStatus.WEB_HUNG, details: `onu_list_get falló (code=${probeJson.code})` };
+            }
+        } catch (e: any) {
+            return { status: OltStatus.WEB_HUNG, details: `Lectura de prueba falló: ${e.message || 'timeout'}` };
+        }
+
+        return { status: OltStatus.ONLINE, details: `Login + lectura OK` };
     } catch (e: any) {
         return { status: OltStatus.WEB_HUNG, details: e.message || 'HTTP timeout/error' };
     }
