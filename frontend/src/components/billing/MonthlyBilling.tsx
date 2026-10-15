@@ -1198,6 +1198,11 @@ const MonthlyBilling: React.FC = () => {
                                             + servicios/productos
                                         </Typography>
                                     )}
+                                    {Number(payment.previousDebtAmount || 0) > 0 && (
+                                        <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 600 }}>
+                                            + saldo anterior {formatCurrency(payment.previousDebtAmount || 0)}
+                                        </Typography>
+                                    )}
                                 </TableCell>
                                 <TableCell>
                                     <Chip 
@@ -1497,6 +1502,11 @@ const MonthlyBilling: React.FC = () => {
                                         Cuotas de productos: {formatCurrency(selectedPayment.productInstallmentsAmount)}
                                     </Typography>
                                 )}
+                                {Number(selectedPayment.previousDebtAmount || 0) > 0 && (
+                                    <Typography variant="body2" sx={{ color: 'warning.dark', fontWeight: 700 }}>
+                                        Saldo anterior (meses vencidos): {formatCurrency(selectedPayment.previousDebtAmount || 0)}
+                                    </Typography>
+                                )}
                                 {extraAmount > 0 && (
                                     <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
                                         + Cuotas adicionales seleccionadas: {formatCurrency(extraAmount)}
@@ -1728,6 +1738,14 @@ const MonthlyBilling: React.FC = () => {
                                     <Typography variant="subtitle2" color="textSecondary">Cuotas de Productos</Typography>
                                     <Typography variant="body1">{formatCurrency(selectedPayment.productInstallmentsAmount)}</Typography>
                                 </Grid>
+                                {Number(selectedPayment.previousDebtAmount || 0) > 0 && (
+                                    <Grid item xs={6}>
+                                        <Typography variant="subtitle2" sx={{ color: 'warning.dark' }}>Saldo Anterior (vencido)</Typography>
+                                        <Typography variant="body1" sx={{ color: 'warning.dark', fontWeight: 600 }}>
+                                            {formatCurrency(selectedPayment.previousDebtAmount || 0)}
+                                        </Typography>
+                                    </Grid>
+                                )}
                                 
                                 {/* Desglose de cuotas de productos */}
                                 {selectedPayment.client?.productsSold && selectedPayment.client.productsSold.length > 0 && (

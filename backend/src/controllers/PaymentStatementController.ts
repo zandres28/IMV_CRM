@@ -353,6 +353,9 @@ export const PaymentStatementController = {
             const productNames = [...new Set(dueInstallments.map(p => p.product.productName))];
             const productDebt = dueInstallments.reduce((acc, p) => acc + roundToHundred(Number(p.amount)), 0);
 
+            // --- Saldo anterior arrastrado (cobros mensuales vencidos de meses anteriores) ---
+            const previousDebt = Number(payment?.previousDebtAmount || 0);
+
             // --- Detalle (concepto, valor, cantidad) ---
             const detalles: DetalleFila[] = [];
             const planesPorNombre = new Map<string, { fee: number; count: number }>();
@@ -388,9 +391,12 @@ export const PaymentStatementController = {
                     : (cuotas[0] ? ` (cuota ${cuotas[0].installmentNumber}/${cuotas[0].product.installments})` : '');
                 detalles.push({ concepto: `${name}${cuotaTxt}`, valor: monto, cantidad: 1 });
             }
+            if (previousDebt > 0) {
+                detalles.push({ concepto: 'Saldo anterior (meses vencidos)', valor: previousDebt, cantidad: 1 });
+            }
 
             const subtotal = valorPlan + descuento;
-            const adicionales = additionalAmount + productDebt;
+            const adicionales = additionalAmount + productDebt + previousDebt;
             const total = valorPlan + adicionales;
 
             // --- Consecutivo / número de cuenta (idempotente) ---

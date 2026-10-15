@@ -68,6 +68,17 @@ export class Payment {
     @Column({ type: 'int', default: 0 })
     productFutureInstallmentsCount!: number;
 
+    // Saldo anterior arrastrado: suma de cobros mensuales impagos de meses
+    // anteriores incluidos en esta factura (para no perder deuda que no alcanzó
+    // a ser notificada). Se cobra junto con el mes actual.
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    previousDebtAmount!: number;
+
+    // IDs (separados por coma) de las facturas anteriores incluidas en esta.
+    // Al pagar esta factura se marcan automáticamente como 'pagado'.
+    @Column({ type: 'varchar', length: 500, nullable: true })
+    previousDebtPayments?: string | null;
+
     // Prorrateo
     @Column({ default: false })
     isProrated!: boolean;
