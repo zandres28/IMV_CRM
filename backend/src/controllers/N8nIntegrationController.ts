@@ -12,6 +12,7 @@ import { AvisoTemplate } from '../entities/AvisoTemplate';
 import { In, Between, Like } from 'typeorm';
 import { restoreServiceForClient } from '../services/OltStatusSyncService';
 import { OltService } from '../services/OltService';
+import { absorbPreviousDebtPayments, syncCarryOverAfterPayment } from '../utils/paymentCarryOver';
 
 // Helper: Formatear teléfono para WhatsApp (Evolution API requiere código país 57)
 export const formatPhoneForWhatsapp = (phone: string | null | undefined): string => {
@@ -300,6 +301,7 @@ export const N8nIntegrationController = {
                     'VALOR': valorMensualidad,
                     'DESCUENTO': outageDiscountValue,
                     'ADICIONAL': Number(additionalAmount) + Number(productDebt),
+                    'SALDO_ANTERIOR': Number(payment?.previousDebtAmount || 0),
                     'DETALLE_ADICIONAL': [additionalDetails, productDetails].filter(d => d && d !== '').join(', ') || 'Ninguno',
                     'CUOTA': cuota,
                     'TIPO': tipo,
@@ -966,6 +968,19 @@ export const N8nIntegrationController = {
                 } else {
                     throw saveError;
                 }
+            }
+
+            // Saldo anterior: si esta factura absorbió facturas viejas, saldarlas; si es
+            // una factura vieja pagada por separado, reajustar las nuevas.
+            try {
+                const absorbed = await absorbPreviousDebtPayments(paymentRepository, targetPayment);
+                if (absorbed > 0) {
+                    targetPayment.notes = (targetPayment.notes || '') + ` | ${absorbed} factura(s) anterior(es) saldada(s) por arrastre`;
+                    await paymentRepository.save(targetPayment);
+                }
+                await syncCarryOverAfterPayment(paymentRepository, client.id, targetPayment.id);
+            } catch (carryError: any) {
+                console.error('[N8n] Error ajustando saldo anterior:', carryError.message);
             }
 
             // Si el cliente estaba suspendido por falta de pago, reactivarlo en la OLT

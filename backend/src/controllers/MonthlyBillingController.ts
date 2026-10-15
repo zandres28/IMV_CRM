@@ -12,6 +12,7 @@ import { Between, Brackets, In, Like } from "typeorm";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { hasPermission, PERMISSIONS } from "../utils/permissions";
 import { restoreServiceForClient } from "../services/OltStatusSyncService";
+import { absorbPreviousDebtPayments, extractPaymentIds, syncCarryOverAfterPayment } from "../utils/paymentCarryOver";
 
 // Día de vencimiento de cuotas de productos y de las facturas mensuales
 const CUTOFF_DAY = 5;
@@ -402,7 +403,33 @@ export class MonthlyBillingController {
                     0
                 );
 
-                const totalAmount = servicePlanAmount + additionalServicesAmount + productInstallmentsAmount - outageDiscountAmount;
+                // --- ARRASTRE DE SALDO ANTERIOR ---
+                // Los cobros mensuales impagos de meses anteriores se incluyen en esta
+                // factura para que la deuda no se pierda (p. ej. clientes que no
+                // alcanzaron a recibir el recordatorio del mes). Se excluyen las facturas
+                // que ya fueron absorbidas por otra para no duplicar el cobro.
+                const clientMonthlyPayments = await paymentRepository.find({
+                    where: { client: { id: client.id }, paymentType: 'monthly' }
+                });
+                const alreadyAbsorbed = new Set<number>();
+                for (const cp of clientMonthlyPayments) {
+                    extractPaymentIds(cp.previousDebtPayments).forEach(id => alreadyAbsorbed.add(id));
+                }
+                const billingAbsoluteMonth = yearNum * 12 + monthIndex;
+                const priorUnpaid = clientMonthlyPayments.filter(cp =>
+                    cp.id !== payment?.id &&
+                    cp.status !== 'pagado' &&
+                    cp.status !== 'anulado' &&
+                    (cp.paymentYear * 12 + getMonthIndex(cp.paymentMonth)) < billingAbsoluteMonth &&
+                    !alreadyAbsorbed.has(cp.id)
+                );
+                const previousDebtAmount = priorUnpaid.reduce((sum, cp) => sum + Number(cp.amount), 0);
+                const previousDebtPayments = priorUnpaid.map(cp => cp.id).join(',');
+                const previousDebtNote = previousDebtAmount > 0
+                    ? ` | Incluye saldo anterior de ${priorUnpaid.map(cp => `${cp.paymentMonth} ${cp.paymentYear}`).join(', ')} ($${previousDebtAmount.toLocaleString('es-CO')})`
+                    : '';
+
+                const totalAmount = servicePlanAmount + additionalServicesAmount + productInstallmentsAmount - outageDiscountAmount + previousDebtAmount;
 
                 // Si el total es 0 o negativo (ej. todas las instalaciones son futuras), 
                 // y existe un pago pendiente previo, eliminarlo para limpiar basura
@@ -438,6 +465,8 @@ export class MonthlyBillingController {
                     payment.outageDays = outageDays;
                     payment.productFutureInstallmentsAmount = Number(productFutureInstallmentsAmount.toFixed(2));
                     payment.productFutureInstallmentsCount = productFutureInstallmentsCount;
+                    payment.previousDebtAmount = Number(previousDebtAmount.toFixed(2));
+                    payment.previousDebtPayments = previousDebtPayments || null;
                     payment.isProrated = isProrated;
                     payment.billedDays = isProrated ? billedDaysAgg : totalDaysInMonth;
                     const futureNote = productFutureInstallmentsCount > 0
@@ -446,7 +475,7 @@ export class MonthlyBillingController {
                     const outageNote = outageDays > 0
                         ? ` | Descuento por ${outageDays} día(s) sin servicio (-$${outageDiscountAmount.toLocaleString('es-CO')})`
                         : '';
-                    payment.notes = isProrated ? `Prorrateo aplicado${futureNote}${outageNote}` : (payment.notes || '') + futureNote + outageNote;
+                    payment.notes = (isProrated ? `Prorrateo aplicado${futureNote}${outageNote}` : (payment.notes || '') + futureNote + outageNote) + previousDebtNote;
                 }
 
                 await paymentRepository.save(payment);
@@ -534,6 +563,18 @@ export class MonthlyBillingController {
                     payment.notes = (payment.notes || '') +
                         ` | ${marked} cuota(s) del mes marcada(s) como pagada(s)`;
                     await paymentRepository.save(payment);
+                }
+
+                // Saldo anterior: saldar facturas absorbidas / reajustar las nuevas
+                try {
+                    const absorbed = await absorbPreviousDebtPayments(paymentRepository, payment);
+                    if (absorbed > 0) {
+                        payment.notes = (payment.notes || '') + ` | ${absorbed} factura(s) anterior(es) saldada(s) por arrastre`;
+                        await paymentRepository.save(payment);
+                    }
+                    await syncCarryOverAfterPayment(paymentRepository, clientId, payment.id);
+                } catch (carryError: any) {
+                    console.error('[Billing] Error ajustando saldo anterior (bulk):', carryError.message);
                 }
 
                 // Si el cliente estaba suspendido por falta de pago, reactivarlo en la OLT
@@ -638,6 +679,20 @@ export class MonthlyBillingController {
                           });
                     })
                 );
+
+                // Excluir facturas ya absorbidas por otra (arrastre de saldo anterior)
+                // para no duplicar el saldo en la cartera acumulada.
+                const absorbedRows = await paymentRepository.createQueryBuilder('p')
+                    .select('p.previousDebtPayments', 'ids')
+                    .where('p.previousDebtPayments IS NOT NULL')
+                    .getRawMany();
+                const absorbedIds: number[] = [];
+                for (const row of absorbedRows) {
+                    extractPaymentIds(row.ids).forEach(id => absorbedIds.push(id));
+                }
+                if (absorbedIds.length > 0) {
+                    query.andWhere('payment.id NOT IN (:...absorbedIds)', { absorbedIds });
+                }
             } else {
                 // Modo normal: Solo pagos del mes seleccionado
                 query.andWhere('payment.paymentMonth = :month', { month })
@@ -925,6 +980,21 @@ export class MonthlyBillingController {
 
             await paymentRepository.save(payment);
 
+            // Saldo anterior: si esta factura absorbió facturas viejas, saldarlas; si
+            // esta factura es una vieja que se paga por separado, reajustar las nuevas.
+            if (payment.client) {
+                try {
+                    const absorbed = await absorbPreviousDebtPayments(paymentRepository, payment);
+                    if (absorbed > 0) {
+                        payment.notes = (payment.notes || '') + ` | ${absorbed} factura(s) anterior(es) saldada(s) por arrastre`;
+                        await paymentRepository.save(payment);
+                    }
+                    await syncCarryOverAfterPayment(paymentRepository, payment.client.id, payment.id);
+                } catch (carryError: any) {
+                    console.error('[Billing] Error ajustando saldo anterior:', carryError.message);
+                }
+            }
+
             // Si el cliente tenía el servicio suspendido por falta de pago, reactivarlo en la OLT
             if (payment.client) {
                 try {
@@ -964,13 +1034,15 @@ export class MonthlyBillingController {
             const paymentRepository = AppDataSource.getRepository(Payment);
 
             const payment = await paymentRepository.findOne({
-                where: { id: parseInt(id) }
+                where: { id: parseInt(id) },
+                relations: ['client']
             });
 
             if (!payment) {
                 return res.status(404).json({ message: "Pago no encontrado" });
             }
 
+            const wasPaid = payment.status === 'pagado';
             payment.status = status;
             
             if (notes) {
@@ -978,6 +1050,20 @@ export class MonthlyBillingController {
             }
 
             await paymentRepository.save(payment);
+
+            // Saldo anterior: al pasar a 'pagado' saldar facturas absorbidas / reajustar las nuevas
+            if (status === 'pagado' && !wasPaid && payment.client) {
+                try {
+                    const absorbed = await absorbPreviousDebtPayments(paymentRepository, payment);
+                    if (absorbed > 0) {
+                        payment.notes = (payment.notes || '') + ` | ${absorbed} factura(s) anterior(es) saldada(s) por arrastre`;
+                        await paymentRepository.save(payment);
+                    }
+                    await syncCarryOverAfterPayment(paymentRepository, payment.client.id, payment.id);
+                } catch (carryError: any) {
+                    console.error('[Billing] Error ajustando saldo anterior (status):', carryError.message);
+                }
+            }
 
             res.json({
                 message: "Estado de pago actualizado",

@@ -67,6 +67,8 @@ export interface Payment {
     productInstallmentsAmount: number;
     productFutureInstallmentsAmount?: number;
     productFutureInstallmentsCount?: number;
+    previousDebtAmount?: number;
+    previousDebtPayments?: string | null;
     isProrated: boolean;
     billedDays?: number;
     totalDaysInMonth?: number;
