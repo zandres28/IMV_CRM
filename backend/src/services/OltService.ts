@@ -33,6 +33,8 @@ export class OltService {
     private static onuListCacheExpiry: number = 0;
     private static onuListPromise: Promise<OnuDevice[]> | null = null;
     private static readonly ONU_LIST_TTL_MS = 300000; // 5 minutos
+    private static readonly MAX_RETRIES = 3;
+    private static readonly RETRY_BASE_DELAY_MS = 1000;
 
     constructor() {
         const host = process.env.OLT_HOST || '192.168.1.94';
@@ -55,81 +57,115 @@ export class OltService {
     }
 
     private async login(): Promise<string> {
-        const password = process.env.OLT_PASSWORD || '***REMOVED***';
-        const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
+        return this.withRetry(async () => {
+            const password = process.env.OLT_PASSWORD || '***REMOVED***';
+            const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
 
-        const response = await fetch(`${this.baseUrl}?module=sys_login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Usrname: process.env.OLT_USER || 'admin', Password: md5pass })
-        });
+            const response = await fetch(`${this.baseUrl}?module=sys_login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Usrname: process.env.OLT_USER || 'admin', Password: md5pass })
+            });
 
-        const text = await response.text();
-        let result: ApiResponse;
-        try {
-            result = JSON.parse(text);
-        } catch {
-            throw new Error(`Error de autenticación OLT: Respuesta no válida (no JSON) - HTTP ${response.status}`);
-        }
-        if (result.code !== 0 || !result.data?.token) {
-            throw new Error(`Error de autenticación OLT: ${result.description}`);
-        }
+            const text = await response.text();
+            let result: ApiResponse;
+            try {
+                result = JSON.parse(text);
+            } catch {
+                throw new Error(`Error de autenticación OLT: Respuesta no válida (no JSON) - HTTP ${response.status}`);
+            }
+            if (result.code !== 0 || !result.data?.token) {
+                throw new Error(`Error de autenticación OLT: ${result.description}`);
+            }
 
-        OltService.token = result.data.token;
-        OltService.tokenExpiry = Date.now() + 600000;
-        return OltService.token!;
+            OltService.token = result.data.token;
+            OltService.tokenExpiry = Date.now() + 600000;
+            return OltService.token!;
+        }, 'sys_login');
     }
 
     private async apiGet(module: string, params: Record<string, any> = {}): Promise<any> {
-        const token = await this.ensureToken();
-        const url = new URL(this.baseUrl);
-        url.searchParams.set('module', module);
-        Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+        return this.withRetry(async () => {
+            const token = await this.ensureToken();
+            const url = new URL(this.baseUrl);
+            url.searchParams.set('module', module);
+            Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
 
-        const response = await fetch(url.toString(), {
-            headers: { 'token': token, 'Content-Type': 'application/json' }
-        });
+            const response = await fetch(url.toString(), {
+                headers: { 'token': token, 'Content-Type': 'application/json' }
+            });
 
-        const text = await response.text();
-        let result: ApiResponse;
-        try {
-            result = JSON.parse(text);
-        } catch {
-            throw new Error(`API error [${module}]: Respuesta no válida (no JSON) - HTTP ${response.status}`);
-        }
-        if (result.code === 2) {
-            OltService.token = null;
-            return this.apiGet(module, params);
-        }
-        if (result.code !== 0) {
-            throw new Error(`API error [${module}]: ${result.description}`);
-        }
-        return result.data;
+            const text = await response.text();
+            let result: ApiResponse;
+            try {
+                result = JSON.parse(text);
+            } catch {
+                throw new Error(`API error [${module}]: Respuesta no válida (no JSON) - HTTP ${response.status}`);
+            }
+            if (result.code === 2) {
+                OltService.token = null;
+                return this.apiGet(module, params);
+            }
+            if (result.code !== 0) {
+                throw new Error(`API error [${module}]: ${result.description}`);
+            }
+            return result.data;
+        }, module);
     }
 
     private async apiPost(module: string, body: Record<string, any> = {}): Promise<any> {
-        const token = await this.ensureToken();
-        const response = await fetch(`${this.baseUrl}?module=${module}`, {
-            method: 'POST',
-            headers: { 'token': token, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
+        return this.withRetry(async () => {
+            const token = await this.ensureToken();
+            const response = await fetch(`${this.baseUrl}?module=${module}`, {
+                method: 'POST',
+                headers: { 'token': token, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
 
-        const text = await response.text();
-        let result: ApiResponse;
-        try {
-            result = JSON.parse(text);
-        } catch {
-            throw new Error(`API error [${module}]: Respuesta no válida (no JSON) - HTTP ${response.status}`);
+            const text = await response.text();
+            let result: ApiResponse;
+            try {
+                result = JSON.parse(text);
+            } catch {
+                throw new Error(`API error [${module}]: Respuesta no válida (no JSON) - HTTP ${response.status}`);
+            }
+            if (result.code === 2) {
+                OltService.token = null;
+                return this.apiPost(module, body);
+            }
+            if (result.code !== 0) {
+                throw new Error(`API error [${module}]: ${result.description}`);
+            }
+            return result.data;
+        }, module);
+    }
+
+    private async withRetry<T>(fn: () => Promise<T>, module: string): Promise<T> {
+        let lastError: Error;
+        for (let attempt = 0; attempt <= OltService.MAX_RETRIES; attempt++) {
+            try {
+                return await fn();
+            } catch (error: any) {
+                lastError = error;
+                const isRetryable = error.message.includes('no JSON') ||
+                    error.message.includes('fetch failed') ||
+                    error.message.includes('ECONNREFUSED') ||
+                    error.message.includes('ETIMEDOUT');
+
+                if (attempt < OltService.MAX_RETRIES && isRetryable) {
+                    const delay = OltService.RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+                    console.warn(`[OltService] ${module} attempt ${attempt + 1} failed: ${error.message}. Retrying in ${delay}ms...`);
+                    await new Promise(r => setTimeout(r, delay));
+                    // Invalidar cache y token para forzar re-login y nuevo fetch
+                    OltService.token = null;
+                    OltService.onuListCache = null;
+                    OltService.onuListCacheExpiry = 0;
+                    continue;
+                }
+                throw error;
+            }
         }
-        if (result.code === 2) {
-            OltService.token = null;
-            return this.apiPost(module, body);
-        }
-        if (result.code !== 0) {
-            throw new Error(`API error [${module}]: ${result.description}`);
-        }
-        return result.data;
+        throw lastError!;
     }
 
     async getAllOnus(): Promise<OnuDevice[]> {
