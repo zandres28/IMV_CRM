@@ -183,12 +183,34 @@ export class OltService {
         return OltService.onuListPromise;
     }
 
+    // El CGI de la OLT (lighttpd) trunca CUALQUIER respuesta > ~40KB: con 97
+    // ONUs el listado completo (~43KB) llegaba cortado a mitad de JSON, así que
+    // `JSON.parse` fallaba y el CRM reportaba "web hung" / "no se pudo conectar
+    // a la OLT" aunque el servidor sí respondía (HTTP 200) y el login funcionaba.
+    //
+    // Solución permanente: PAGINAR. `onu_list_get` acepta `PageNumber`
+    // (1-based; 0 = "todas" → truncado) y `PageSize`. Con PageSize=20 cada
+    // respuesta pesa ~8.6KB, muy por debajo del límite. Las páginas se recorren
+    // SECUENCIALMENTE (1 request a la vez): nunca fan-out a la OLT.
     private async fetchAllOnus(): Promise<OnuDevice[]> {
-        const data = await this.apiGet('onu_list_get');
-        const list: OnuDevice[] = data?.list || [];
-        OltService.onuListCache = list;
+        const PAGE_SIZE = 20;
+        const all: OnuDevice[] = [];
+        let page = 1;
+        let total = Infinity;
+
+        while (all.length < total) {
+            const data = await this.apiGet('onu_list_get', { PageNumber: page, PageSize: PAGE_SIZE });
+            const list: OnuDevice[] = data?.list || [];
+            if (list.length === 0) break; // salvaguarda anti-bucle infinito
+            all.push(...list);
+            total = Number(data?.PageTotal ?? all.length);
+            if (list.length < PAGE_SIZE) break; // última página
+            page++;
+        }
+
+        OltService.onuListCache = all;
         OltService.onuListCacheExpiry = Date.now() + OltService.ONU_LIST_TTL_MS;
-        return list;
+        return all;
     }
 
     static invalidateOnuListCache(): void {
