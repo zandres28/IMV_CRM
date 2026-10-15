@@ -28,6 +28,9 @@ router.post('/register-payment', (req, res) => N8nIntegrationController.register
 // Obtener candidatos a suspensión (corte automático día 6)
 router.get('/suspension-candidates', (req, res) => N8nIntegrationController.getSuspensionCandidates(req, res));
 
+// Procesar suspensiones automáticas (cron día 6 - llamar desde n8n)
+router.post('/process-suspensions', (req, res) => N8nIntegrationController.processSuspensions(req, res));
+
 // Resetear estado recordatorios (Admin/Tools)
 router.post('/reset-reminders', (req, res) => N8nIntegrationController.resetRemindersStatus(req, res));
 

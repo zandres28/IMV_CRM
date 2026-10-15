@@ -64,7 +64,13 @@ export class OltService {
             body: JSON.stringify({ Usrname: process.env.OLT_USER || 'admin', Password: md5pass })
         });
 
-        const result = await response.json() as ApiResponse;
+        const text = await response.text();
+        let result: ApiResponse;
+        try {
+            result = JSON.parse(text);
+        } catch {
+            throw new Error(`Error de autenticación OLT: Respuesta no válida (no JSON) - HTTP ${response.status}`);
+        }
         if (result.code !== 0 || !result.data?.token) {
             throw new Error(`Error de autenticación OLT: ${result.description}`);
         }
@@ -84,7 +90,13 @@ export class OltService {
             headers: { 'token': token, 'Content-Type': 'application/json' }
         });
 
-        const result = await response.json() as ApiResponse;
+        const text = await response.text();
+        let result: ApiResponse;
+        try {
+            result = JSON.parse(text);
+        } catch {
+            throw new Error(`API error [${module}]: Respuesta no válida (no JSON) - HTTP ${response.status}`);
+        }
         if (result.code === 2) {
             OltService.token = null;
             return this.apiGet(module, params);
@@ -103,7 +115,13 @@ export class OltService {
             body: JSON.stringify(body)
         });
 
-        const result = await response.json() as ApiResponse;
+        const text = await response.text();
+        let result: ApiResponse;
+        try {
+            result = JSON.parse(text);
+        } catch {
+            throw new Error(`API error [${module}]: Respuesta no válida (no JSON) - HTTP ${response.status}`);
+        }
         if (result.code === 2) {
             OltService.token = null;
             return this.apiPost(module, body);
