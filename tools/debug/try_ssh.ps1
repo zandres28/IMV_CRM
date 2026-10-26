@@ -1,5 +1,5 @@
 $plink = "C:\Program Files\PuTTY\plink.exe"
-$upass = "***REMOVED***"
+$upass = "<OLT_Y_MIKROTIK_PASSWORD: ver .env del VPS>"
 $hostname = "192.168.1.94"
 
 # First clear the known hosts for plink (remove old bad entry)

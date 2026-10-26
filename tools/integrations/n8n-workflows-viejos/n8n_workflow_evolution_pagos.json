@@ -140,7 +140,7 @@
             "parameter": [
                 {
                     "name": "api_access_token",
-                    "value": "***REMOVED***"
+                    "value": "<CHATWOOT_ACCESS_TOKEN: ver .env del VPS>"
                 }
             ]
         }
@@ -171,7 +171,7 @@
             "parameter": [
                 {
                     "name": "api_access_token",
-                    "value": "***REMOVED***"
+                    "value": "<CHATWOOT_ACCESS_TOKEN: ver .env del VPS>"
                 }
             ]
         }

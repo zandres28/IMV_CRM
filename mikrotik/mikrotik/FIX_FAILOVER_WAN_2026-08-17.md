@@ -3,12 +3,12 @@
 > Sesión de trabajo completa del 2026-08-17 sobre la MikroTik CCR2116-12G-4S+ (192.168.1.94). Detalle del incidente CLARO_1 en `INCIDENTE_CLARO1_2026-08-17.md`.
 
 ## CONTEXTO DEL PROYECTO
-- Router: MikroTik CCR2116-12G-4S+, RouterOS 7.23.2, IP 192.168.1.94, usuario admin, clave ***REMOVED***
+- Router: MikroTik CCR2116-12G-4S+, RouterOS 7.23.2, IP 192.168.1.94, usuario admin, clave <OLT_Y_MIKROTIK_PASSWORD: ver .env del VPS>
 - plink: `C:\Program Files\PuTTY\plink.exe`
 - Hostkey SSH: `ssh-rsa 2048 SHA256:xHR9VAY1bfITBTvkucySm9Qdz5omAwcNqHJ5c1XjFHg`
 - Patrón de conexión:
   ```
-  & 'C:\Program Files\PuTTY\plink.exe' -batch -hostkey 'ssh-rsa 2048 SHA256:xHR9VAY1bfITBTvkucySm9Qdz5omAwcNqHJ5c1XjFHg' -ssh -pw '***REMOVED***' 'admin@192.168.1.94' '<comando>'
+  & 'C:\Program Files\PuTTY\plink.exe' -batch -hostkey 'ssh-rsa 2048 SHA256:xHR9VAY1bfITBTvkucySm9Qdz5omAwcNqHJ5c1XjFHg' -ssh -pw '<OLT_Y_MIKROTIK_PASSWORD: ver .env del VPS>' 'admin@192.168.1.94' '<comando>'
   ```
   (también funciona con `-m archivo.rsc`)
 - WANs:

@@ -19,7 +19,7 @@ import * as path from 'path';
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 const CHATWOOT_URL   = process.env.CHATWOOT_URL   || 'http://localhost:3000';
-const CHATWOOT_TOKEN = process.env.CHATWOOT_TOKEN || '***REMOVED***';
+const CHATWOOT_TOKEN = process.env.CHATWOOT_TOKEN || '<CHATWOOT_ACCESS_TOKEN: ver .env del VPS>';
 const ACCOUNT_ID     = process.env.CHATWOOT_ACCOUNT || '1';
 const OUTPUT_DIR     = path.join(__dirname, '..', '..', 'tmp');
 

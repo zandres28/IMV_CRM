@@ -24,7 +24,7 @@ fi
 # Configuración
 DB_CONTAINER="imv_crm-db-1"
 DB_USER="root"
-DB_PASSWORD="***REMOVED***"
+DB_PASSWORD="<DB_PASSWORD: ver compose del VPS>"
 DB_NAME="imv_crm"
 
 echo "========================================="

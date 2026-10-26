@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 async function main() {
   const baseUrl = 'http://192.168.100.1:80/cgi-bin/h.cgi';
-  const md5pass = crypto.createHash('md5').update('***REMOVED***').digest('hex').toUpperCase();
+  const md5pass = crypto.createHash('md5').update('<OLT_Y_MIKROTIK_PASSWORD: ver .env del VPS>').digest('hex').toUpperCase();
   const r1 = await fetch(baseUrl + '?module=sys_login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

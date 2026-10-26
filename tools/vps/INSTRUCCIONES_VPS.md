@@ -46,7 +46,7 @@ cd imv_crm
 ./deploy_vps.sh
 # Espera 30 segundos
 # Ejecuta la importación
-cat docker-dump.sql | docker-compose exec -T db mysql -u root -p***REMOVED*** imv_crm
+cat docker-dump.sql | docker-compose exec -T db mysql -u root -p<DB_PASSWORD: ver compose del VPS> imv_crm
 ```
 
 ## Paso 4: Actualizaciones Futuras

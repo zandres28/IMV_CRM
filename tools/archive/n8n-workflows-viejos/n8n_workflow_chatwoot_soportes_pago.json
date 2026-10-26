@@ -182,7 +182,7 @@
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "***REMOVED***"
+              "value": "<N8N_API_KEY: ver .env del VPS>"
             }
           ]
         },
@@ -260,7 +260,7 @@
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "***REMOVED***"
+              "value": "<N8N_API_KEY: ver .env del VPS>"
             },
             {
               "name": "Content-Type",
@@ -306,7 +306,7 @@
           "parameters": [
             {
               "name": "api_access_token",
-              "value": "***REMOVED***"
+              "value": "<CHATWOOT_ACCESS_TOKEN: ver .env del VPS>"
             },
             {
               "name": "Content-Type",
@@ -338,7 +338,7 @@
           "parameters": [
             {
               "name": "api_access_token",
-              "value": "***REMOVED***"
+              "value": "<CHATWOOT_ACCESS_TOKEN: ver .env del VPS>"
             },
             {
               "name": "Content-Type",
@@ -370,7 +370,7 @@
           "parameters": [
             {
               "name": "api_access_token",
-              "value": "***REMOVED***"
+              "value": "<CHATWOOT_ACCESS_TOKEN: ver .env del VPS>"
             },
             {
               "name": "Content-Type",
@@ -402,7 +402,7 @@
           "parameters": [
             {
               "name": "api_access_token",
-              "value": "***REMOVED***"
+              "value": "<CHATWOOT_ACCESS_TOKEN: ver .env del VPS>"
             },
             {
               "name": "Content-Type",

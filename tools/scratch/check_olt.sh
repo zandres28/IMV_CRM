@@ -8,7 +8,7 @@ ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 admin@192.168.1.94 "/system 
 
 echo ""
 echo "=== Testing MikroTik API (REST) ==="
-curl -s -o /dev/null -w "MikroTik REST: %{http_code}\n" --connect-timeout 5 -u admin:***REMOVED*** http://192.168.1.94/rest/system/resource 2>&1 || echo "MikroTik REST: FAILED"
+curl -s -o /dev/null -w "MikroTik REST: %{http_code}\n" --connect-timeout 5 -u admin:<OLT_Y_MIKROTIK_PASSWORD: ver .env del VPS> http://192.168.1.94/rest/system/resource 2>&1 || echo "MikroTik REST: FAILED"
 
 echo ""
 echo "=== Alternative: Telnet to MikroTik API port ==="

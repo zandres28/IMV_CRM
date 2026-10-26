@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $DB_NAME = "imv_crm"
 $LOCAL_USER = "root"
 # Contraseña de la DB Docker definida en docker-compose.yml
-$DOCKER_DB_PASSWORD = "***REMOVED***" 
+$DOCKER_DB_PASSWORD = "<DB_PASSWORD: ver compose del VPS>" 
 
 Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host "   MIGRACIÓN DE LARAGON A DOCKER (LOCAL)      " -ForegroundColor Cyan

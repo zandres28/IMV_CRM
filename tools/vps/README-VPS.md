@@ -46,7 +46,7 @@ docker compose logs frontend --tail 200
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:3010/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@netflow.com","password":"***REMOVED***"}' | jq -r '.accessToken')
+  -d '{"email":"admin@netflow.com","password":"<SEED_ADMIN_PASSWORD: ver .env>"}' | jq -r '.accessToken')
 curl -H "Authorization: Bearer $TOKEN" http://localhost:3010/api/auth/me
 ```
 

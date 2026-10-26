@@ -4,7 +4,7 @@ const port = process.env.OLT_WEB_PORT || '8080';
 const baseUrl = `http://${host}:${port}/cgi-bin/h.cgi`;
 
 async function login() {
-  const password = process.env.OLT_PASSWORD || '***REMOVED***';
+  const password = process.env.OLT_PASSWORD || '<OLT_Y_MIKROTIK_PASSWORD: ver .env del VPS>';
   const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
   const response = await fetch(`${baseUrl}?module=sys_login`, {
     method: 'POST',
