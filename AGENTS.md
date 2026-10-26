@@ -100,7 +100,7 @@ app.use("/api/clients", authMiddleware, ...);                    // JWT only
 
 - **Workflow activo:** `IMV - Soportes de Pago (Gemini)` id `H2YRscVbeB19GaQ6` (webhook `soporte-pago`, 18 nodos). Webhook Chatwoot (inbox 5, cuenta 1) → `If -PRUEBAS` (solo `+573006143054`) → dedup por `messageId` → Gemini OCR → `Consultar Deuda en CRM` → registrar/responder.
 - **Clientes de prueba:** `3006143054` = cliente ID 73 "PRUEBAS".
-- **Instancias Evolution (2026-08-06):** `imv_chatwoot2` (token `***REMOVED***...`, **Chatwoot `enabled:false`** — apagado para eliminar duplicados) y `imv_chatwoot3` (token `***REMOVED***...`, **Chatwoot `enabled:true`** — canónica). Ambas conectadas al número `573334006212`.
+- **Instancias Evolution (2026-08-06):** `imv_chatwoot2` (Chatwoot `enabled:false` — apagado para eliminar duplicados) y `imv_chatwoot3` (Chatwoot `enabled:true` — canónica; token `<EVOLUTION_TOKEN_imv_chatwoot3: ver .env del VPS>`). Ambas conectadas al número `573334006212`.
 - **Desactivar Chatwoot en una instancia:** `POST /chatwoot/set/{instance}` (auth header `apikey` = `<EVOLUTION_GLOBAL_KEY: ver .env del VPS>` o token de instancia). Body requiere `enabled, accountId, token, url, signMsg, reopenConversation, conversationPending`. **No** está en la doc oficial de Evolution — solo en el bundle.
 - **Evolution API URL:** `http://imvevoapi.duckdns.org:8080` (HTTP; HTTPS da timeout).
 - **Gemini:** NO usar Files API (`/upload/v1beta/files` da 400 intermitente fuera de try/catch). Usar `inline_data` base64 en `/v1beta/models/gemini-3-flash-preview:generateContent`. Key en variable de entorno (`GEMINI_API_KEY`, no commitear).
