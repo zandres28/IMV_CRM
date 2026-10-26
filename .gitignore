@@ -69,3 +69,10 @@ start-mikrotik-mcp.bat
 mikrotik/add-firewall-rules.py
 mikrotik/configure-firewall-rest.py
 mikrotik/configure-firewall.py
+
+# Env con credenciales reales (trackeado por error)
+tools/genieacs/deploy/genieacs.env
+
+# Scripts scratch con tokens hardcodeados
+tools/scratch/test_send.js
+tools/scratch/test_whatsapp.js

@@ -11,7 +11,10 @@ export async function checkOltHealth(): Promise<{ status: OltStatus; details: st
     const host = process.env.OLT_HOST || '192.168.1.94';
     const port = parseInt(process.env.OLT_WEB_PORT || '8080');
     const username = process.env.OLT_USER || 'admin';
-    const password = process.env.OLT_PASSWORD || '***REMOVED***';
+    const password = process.env.OLT_PASSWORD;
+    if (!password) {
+        return { status: OltStatus.UNKNOWN, details: 'OLT_PASSWORD no está definido' };
+    }
 
     const tcpOk = await new Promise<boolean>((resolve) => {
         const sock = new net.Socket();

@@ -58,7 +58,10 @@ export class OltService {
 
     private async login(): Promise<string> {
         return this.withRetry(async () => {
-            const password = process.env.OLT_PASSWORD || '***REMOVED***';
+            const password = process.env.OLT_PASSWORD;
+            if (!password) {
+                throw new Error('OLT_PASSWORD no está definido en las variables de entorno');
+            }
             const md5pass = crypto.createHash('md5').update(password).digest('hex').toUpperCase();
 
             const response = await fetch(`${this.baseUrl}?module=sys_login`, {

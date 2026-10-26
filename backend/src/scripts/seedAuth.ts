@@ -181,7 +181,11 @@ const seedAuthData = async () => {
         throw new Error("No se encontró el rol de administrador");
       }
 
-      const hashedPassword = await bcrypt.hash("***REMOVED***", 10);
+      const initialPassword = process.env.SEED_ADMIN_PASSWORD;
+      if (!initialPassword) {
+        throw new Error("Define SEED_ADMIN_PASSWORD para crear el usuario administrador");
+      }
+      const hashedPassword = await bcrypt.hash(initialPassword, 10);
 
       const adminUser = userRepository.create({
         email: "admin@netflow.com",
@@ -195,7 +199,7 @@ const seedAuthData = async () => {
       await userRepository.save(adminUser);
       console.log("✓ Usuario administrador creado");
       console.log("  Email: admin@netflow.com");
-      console.log("  Password: ***REMOVED***");
+      console.log("  Password: (el definido en SEED_ADMIN_PASSWORD)");
       console.log("  ⚠ IMPORTANTE: Cambia esta contraseña después del primer login");
     }
 

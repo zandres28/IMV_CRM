@@ -590,8 +590,8 @@ export const N8nIntegrationController = {
     // Requiere header `x-n8n-api-key` igual a process.env.N8N_API_KEY
     sendPromotions: async (req: Request, res: Response) => {
         try {
-            // Aceptar tanto `x-n8n-api-key` como `x-api-key` y también ?apiKey query param
-            const apiKeyHeader = String(req.headers['x-n8n-api-key'] || req.headers['x-api-key'] || req.query.apiKey || '');
+            // Solo por header (la query string se filtra a logs y proxies)
+            const apiKeyHeader = String(req.headers['x-n8n-api-key'] || req.headers['x-api-key'] || '');
             const validApiKey = process.env.N8N_API_KEY;
 
             if (!validApiKey) {
