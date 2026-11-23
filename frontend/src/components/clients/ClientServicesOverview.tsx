@@ -118,7 +118,12 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
 }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isAdmin = AuthService.hasPermission('installations.edit');
+    // installations.edit habilita editar instalaciones (el rol técnico lo tiene).
+    // installations.create es otro permiso: el técnico no puede dar de alta instalaciones.
+    const canEditInstallations = AuthService.hasPermission('installations.edit');
+    const canCreateInstallations = AuthService.hasPermission('installations.create');
+    // Servicios y productos siguen compartiendo el permiso de edición de instalaciones.
+    const canEditItems = canEditInstallations;
 
     const [onuStatusMap, setOnuStatusMap] = useState<Record<number, { onlineStatus: string; isOnline: boolean } | null>>({});
     const [onuLoadingMap, setOnuLoadingMap] = useState<Record<number, boolean>>({});
@@ -190,7 +195,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
             <NetflixCard client={client} />
 
             {/* Instalaciones */}
-            <SectionHeader title="Instalaciones" count={activeInstallations.length} onAdd={isAdmin ? onAddInstallation : undefined} addLabel="Nueva" />
+            <SectionHeader title="Instalaciones" count={activeInstallations.length} onAdd={canCreateInstallations ? onAddInstallation : undefined} addLabel="Nueva" />
             {activeInstallations.length === 0 ? (
                 <Typography variant="body2" color="textSecondary" sx={{ ml: 1, mb: 2 }}>No hay instalaciones activas</Typography>
             ) : isMobile ? (
@@ -259,21 +264,21 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                         <ViewIcon fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
-                                {isAdmin && (
+                                {canEditInstallations && (
                                     <Tooltip title="Editar">
                                         <IconButton size="small" onClick={() => onEditInstallation(inst)} sx={{ color: '#6B7290' }}>
                                             <EditIcon fontSize="small" />
                                         </IconButton>
                                     </Tooltip>
                                 )}
-                                {isAdmin && (
+                                {canEditInstallations && (
                                     <Tooltip title="Reiniciar ONU">
                                         <IconButton size="small" onClick={() => onRebootOnu(inst)} sx={{ color: '#F0A23A' }}>
                                             <RestartIcon fontSize="small" />
                                         </IconButton>
                                     </Tooltip>
                                 )}
-                                {isAdmin && (
+                                {canEditInstallations && (
                                     <Tooltip title={inst.serviceStatus === 'activo' ? 'Suspender' : 'Activar'}>
                                         <IconButton size="small" onClick={() => onToggleOltService(inst)} sx={{ color: inst.serviceStatus === 'activo' ? '#E5484D' : '#00D4A6' }}>
                                             <PowerIcon fontSize="small" />
@@ -339,17 +344,17 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                         <Tooltip title="Ver / Editar">
                                             <IconButton size="small" onClick={() => onViewInstallation(inst)} sx={{ color: '#2D5BFF' }}><ViewIcon fontSize="small" /></IconButton>
                                         </Tooltip>
-                                        {isAdmin && (
+                                        {canEditInstallations && (
                                             <Tooltip title="Editar">
                                                 <IconButton size="small" onClick={() => onEditInstallation(inst)} sx={{ color: '#6B7290' }}><EditIcon fontSize="small" /></IconButton>
                                             </Tooltip>
                                         )}
-                                        {isAdmin && (
+                                        {canEditInstallations && (
                                             <Tooltip title="Reiniciar ONU">
                                                 <IconButton size="small" onClick={() => onRebootOnu(inst)} sx={{ color: '#F0A23A' }}><RestartIcon fontSize="small" /></IconButton>
                                             </Tooltip>
                                         )}
-                                        {isAdmin && (
+                                        {canEditInstallations && (
                                             <Tooltip title={inst.serviceStatus === 'activo' ? 'Suspender' : 'Activar'}>
                                                 <IconButton size="small" onClick={() => onToggleOltService(inst)} sx={{ color: inst.serviceStatus === 'activo' ? '#E5484D' : '#00D4A6' }}><PowerIcon fontSize="small" /></IconButton>
                                             </Tooltip>
@@ -363,7 +368,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
             )}
 
             {/* Servicios Adicionales */}
-            <SectionHeader title="Servicios Adicionales" count={additionalServices.length} onAdd={isAdmin ? onAddService : undefined} addLabel="Nuevo" />
+            <SectionHeader title="Servicios Adicionales" count={additionalServices.length} onAdd={canEditItems ? onAddService : undefined} addLabel="Nuevo" />
             {additionalServices.length === 0 ? (
                 <Typography variant="body2" color="textSecondary" sx={{ ml: 1, mb: 2 }}>No hay servicios adicionales</Typography>
             ) : isMobile ? (
@@ -389,7 +394,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                         <ViewIcon fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
-                                {isAdmin && (
+                                {canEditItems && (
                                     <Tooltip title="Editar">
                                         <IconButton size="small" onClick={() => onEditService(svc)} sx={{ color: '#6B7290' }}>
                                             <EditIcon fontSize="small" />
@@ -425,7 +430,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                         <Tooltip title="Ver / Editar">
                                             <IconButton size="small" onClick={() => onViewService(svc)} sx={{ color: '#2D5BFF' }}><ViewIcon fontSize="small" /></IconButton>
                                         </Tooltip>
-                                        {isAdmin && (
+                                        {canEditItems && (
                                             <Tooltip title="Editar">
                                                 <IconButton size="small" onClick={() => onEditService(svc)} sx={{ color: '#6B7290' }}><EditIcon fontSize="small" /></IconButton>
                                             </Tooltip>
@@ -439,7 +444,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
             )}
 
             {/* Productos */}
-            <SectionHeader title="Productos" count={products.length} onAdd={isAdmin ? onAddProduct : undefined} addLabel="Nuevo" />
+            <SectionHeader title="Productos" count={products.length} onAdd={canEditItems ? onAddProduct : undefined} addLabel="Nuevo" />
             {products.length === 0 ? (
                 <Typography variant="body2" color="textSecondary" sx={{ ml: 1, mb: 2 }}>No hay productos registrados</Typography>
             ) : isMobile ? (
@@ -467,7 +472,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                             <ViewIcon fontSize="small" />
                                         </IconButton>
                                     </Tooltip>
-                                    {isAdmin && (
+                                    {canEditItems && (
                                         <Tooltip title="Editar">
                                             <IconButton size="small" onClick={() => onEditProduct(prod)} sx={{ color: '#6B7290' }}>
                                                 <EditIcon fontSize="small" />
@@ -508,7 +513,7 @@ export const ClientServicesOverview: React.FC<ClientServicesOverviewProps> = ({
                                             <Tooltip title="Ver / Editar">
                                                 <IconButton size="small" onClick={() => onViewProduct(prod)} sx={{ color: '#2D5BFF' }}><ViewIcon fontSize="small" /></IconButton>
                                             </Tooltip>
-                                            {isAdmin && (
+                                            {canEditItems && (
                                                 <Tooltip title="Editar">
                                                     <IconButton size="small" onClick={() => onEditProduct(prod)} sx={{ color: '#6B7290' }}><EditIcon fontSize="small" /></IconButton>
                                                 </Tooltip>

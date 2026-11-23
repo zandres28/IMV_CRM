@@ -31,6 +31,12 @@ export class InstallationController {
         return new Date(y, m - 1, d);
     }
 
+    // El técnico (installations.assigned) solo puede tocar sus propias instalaciones.
+    private canEditInstallation(req: AuthRequest, installation: Installation): boolean {
+        if (getDataScopeForUser(req.user) !== 'assigned') return true;
+        return installation.technician === `${req.user!.firstName} ${req.user!.lastName}`;
+    }
+
     async createInstallation(req: AuthRequest, res: Response) {
         try {
             // Verificar permiso para crear instalaciones
@@ -330,6 +336,9 @@ export class InstallationController {
             if (!installation) {
                 return res.status(404).json({ message: 'Instalación no encontrada' });
             }
+            if (!this.canEditInstallation(req, installation)) {
+                return res.status(403).json({ message: 'Solo puedes editar las instalaciones asignadas a ti' });
+            }
 
             // If servicePlanId provided, update relation and snapshot values
             if (servicePlanId) {
@@ -482,6 +491,9 @@ export class InstallationController {
             if (!installation) {
                 return res.status(404).json({ message: 'Instalación no encontrada' });
             }
+            if (!this.canEditInstallation(req, installation)) {
+                return res.status(403).json({ message: 'Solo puedes editar las instalaciones asignadas a ti' });
+            }
 
             installation.serviceStatus = serviceStatus;
             installation.isActive = serviceStatus === 'activo';
@@ -573,6 +585,9 @@ export class InstallationController {
 
             const installation = await this.installationRepository.findOne({ where: { id: installationId } });
             if (!installation) return res.status(404).json({ message: 'Instalación no encontrada' });
+            if (!this.canEditInstallation(req, installation)) {
+                return res.status(403).json({ message: 'Solo puedes editar las instalaciones asignadas a ti' });
+            }
 
             installation.isDeleted = false;
             installation.deletedAt = null;
